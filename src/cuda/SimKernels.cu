@@ -17,10 +17,10 @@
 __constant__ float cdt;                     // Timestep
 __constant__ float cfreq_chop;              // Chopping frequency
 __constant__ float cfreq_nod;               // Nodding frequency
-__constant__ float cf_sample;            // Sampling frequency of readout
+__constant__ float cf_sample;               // Sampling frequency of readout
 __constant__ float cdAz_chop;               // Chopping throw
 __constant__ float cdelta;                  // Bandgap energy of MKID
-__constant__ float ceta_pb;                  // Pair-breaking efficiency of MKID
+__constant__ float ceta_pb;                 // Pair-breaking efficiency of MKID
 __constant__ int cnt;                       // Number of time evals
 __constant__ int cnf_ch;                    // Number of filter freqs
 __constant__ int cchop_mode;                // What chopping scheme to use
@@ -47,6 +47,7 @@ __constant__ float cphiy;
 texture<float, cudaTextureType1D, cudaReadModeElementType> tex_filterbank;
 texture<float, cudaTextureType1D, cudaReadModeElementType> tex_eta_ap_ON;
 texture<float, cudaTextureType1D, cudaReadModeElementType> tex_eta_ap_OFF;
+texture<float, cudaTextureType1D, cudaReadModeElementType> psd_atm;
 
 // CONSTANTS FOR KERNEL LAUNCHES
 #define NTHREADS1D      256
@@ -100,39 +101,6 @@ __host__ void writeArray(T *array, int s_array, std::string name_txt) {
     delete[] h_array;
 }
 
-/**
-  Get transmission coefficient for a dielectric window or lens.
-
-  This method calculates the transmission coefficient, not the reflection coefficients. If no AR coating is used,
-  The method "get_eta_refl_window_lens" should be called as well.
-
-  @param nu Sky frequency in Hertz.
-  @param d Thickness of window/lens in meters.
-  @param tandelta Tangent of argument of complex dielectric constant (loss tangent).
-  @param neff Effective refractive index of window/lens.
-
-  @returns Transmission coefficient of window..
- */
-__host__ float get_eta_trans_window_lens(float nu, float d, float tandelta, float neff)
-{
-    return exp(-d * 2 * PI * neff * (tandelta * nu / CL * (1 + tandelta * nu / CL))); 
-}
-
-/**
-  Get reflection coefficient for a dielectric window or lens.
-
-  This method calculates the reflection coefficient, not the transmission coefficients.
-  Only call this method if no AR coating is used on window/lens.
-
-  @param neff Effective refractive index of window/lens.
-
-  @returns reflection coefficient of window..
- */
-__host__ float get_eta_refl_window_lens(float neff)
-{
-    return ((1 - neff) / (1 + neff)) * ((1 - neff) / (1 + neff)); 
-}
-
 /////////////////////////////////
 /////////////////////////////////
 /////// DEVICE FUNCTIONS ////////
@@ -140,24 +108,7 @@ __host__ float get_eta_refl_window_lens(float neff)
 /////////////////////////////////
 
 /**
-  Calculate thermal Johnson-Nyquist noise power spectral density distribution.
-
-  Used for calculating single-moded  blackbody intensities of atmosphere, ground and telescope.
-
-  @param T Temperature of blackbody, in Kelvin.
-  @param nu Frequency at which to evaluate PSD, in Hertz.
-
-  @returns Single-moded Johnson-Nyquist power spectral density.
- */
-__device__ float get_jn_psd(float T, float nu)
-{
-    return HP * nu / (__expf(HP*nu / (KB*T)) - 1);
-}
-
-/**
   Cascade a PSD through a reflector system, and couple to a specific parasitic PSD.
-
-  Used for cascades through reflector systems. Can be used for either spillover losses or Ohmic losses.
 
   @param P_nu_in PSD of incoming signal to be cascaded.
   @param eta Efficiency term associated with cascade.
@@ -166,35 +117,11 @@ __device__ float get_jn_psd(float T, float nu)
 
   @returns Cascade output PSD.
  */
-__device__ float cascade_reflect(float P_nu_in, float eta, float T_parasitic, float nu)
+__device__ __inline__ float rad_trans(float psd_in, 
+        float eta, 
+        float psd_parasitic)
 {
-    return eta * P_nu_in + (1 - eta) * get_jn_psd(T_parasitic, nu);
-}
-
-/**
-  Cascade a PSD through a window/lens system, and couple to a specific parasitic PSD.
-
-  Used for cascades through windows and lenses systems. Currently can only couple to a single parasitic source.
-  Also, only does single reflection on both surfaces/interfaces of window/lens.
-
-  @param P_nu_in PSD of incoming signal to be cascaded.
-  @param eta_trans Transmission efficiency.
-  @param eta_refl Reflection efficiency, should be set to 0 if use_AR == False.
-  @param P_nu_parasitic_refl PSD of parasitic source coupled to reflections, if AR coating is not applied.
-  @param P_nu_parasitic_refr PSD of parasitic source coupled to transmission through dielectric.
-
-  @returns Cascade output PSD.
-
-  INSTEAD OF THIS DO THREE CALLS TO REFLECT INSIDE KERNEL
- */
-__device__ float cascade_refract(float P_nu_in, float eta_trans, float eta_refl, float P_nu_parasitic_refl, float P_nu_parasitic_refr)
-{
-    float _P_nu;
-    _P_nu = cascade_reflect(P_nu_in, 1 - eta_refl, P_nu_parasitic_refl);
-    _P_nu = cascade_reflect(_P_nu, eta_trans, P_nu_parasitic_refr);
-    _P_nu = cascade_reflect(_P_nu, 1 - eta_refl, P_nu_parasitic_refl);
-    
-    return _P_nu;
+    return eta * psd_in + (1 - eta) * psd_parasitic;
 }
 
 /**
@@ -328,7 +255,12 @@ __device__ __inline__ void getnochop_posflag(float &t_start, AzEl *center, AzEl 
 
   @return BT Array of two dim3 objects, containing number of blocks per grid and number of threads per block.
  */
-__host__ void initCUDA(Instrument<float> *instrument, Telescope<float> *telescope, Source<float> *source, Atmosphere<float> *atmosphere, int nTimes) {
+__host__ void initCUDA(Instrument<float> *instrument, 
+        Telescope<float> *telescope, 
+        Source<float> *source, 
+        Atmosphere<float> *atmosphere, 
+        int nTimes) 
+{
     float dt = 1. / instrument->f_sample;
      
     // OBSERVATION-INSTRUMENT PARAMETERS
@@ -426,6 +358,9 @@ __global__ void get_chop_pwv_rng(ArrSpec<float> Az_spec, ArrSpec<float> El_spec,
 /**
   Main simulation kernel. This is where the magic happens.
 
+  @param eta_cascade Array containing the transmission efficiency of each stage in the cascadei, including the final filterbank stage.
+  @param psd_cascade Array containing the parasitic power spectral density of each stage in the cascade, including the final filterbank stage.
+  @param num_stages Number of cascade stages, excluding the initial pass of the source signal through the atmosphere and the final filterbank stage.
   @param sigout Array for storing output power, for each channel, for each time, in SI units.
   @param nepout Array for storing output NEP, for each channel, for each time, in SI units.
   @param azout Array containing Azimuth coordinates as function of time.
@@ -435,19 +370,30 @@ __global__ void get_chop_pwv_rng(ArrSpec<float> Az_spec, ArrSpec<float> El_spec,
   @param eta_atm Array with transmission parameters as function of freqs_atm and PWV_atm.
   @param source Array containing source intensity, as function of azsrc, elsrc and freqs_src, in SI units.
  */
-__global__ void calcPowerNEP(ArrSpec<float> f_src, ArrSpec<float> f_atm, ArrSpec<float> PWV_atm, ArrSpec<float> Az_src, ArrSpec<float> El_src, float *sigout, float *nepout, float *azout, float *elout, int *flagout,
-        float *PWV_trace, float *eta_atm, float *source) {
+__global__ void calcPowerNEP(ArrSpec<float> f_src, 
+        ArrSpec<float> f_atm, 
+        ArrSpec<float> PWV_atm, 
+        ArrSpec<float> Az_src, 
+        ArrSpec<float> El_src,
+        float *eta_cascade,
+        float *psd_cascade,
+        int num_stages,
+        float *sigout, 
+        float *nepout, 
+        float *azout, 
+        float *elout, 
+        int *flagout,
+        float *PWV_trace, 
+        float *eta_atm, 
+        float *source) 
+{
     
     int idx = blockIdx.x * blockDim.x + threadIdx.x; 
     int idy = blockIdx.y * blockDim.y + threadIdx.y; 
 
     if (idx < cnt && idy < f_src.num) {
-
-        __shared__ float eta_refl_sh[NTHREADS2DX * NTHREADS2DY];
-        __shared__ float eta_refr_sh[NTHREADS2DX * NTHREADS2DY];
-
         float I_nu;             // Specific intensity of source.
-        // Reusable symbols for interpolation stuff
+        // Reusable symbols for interpolations
         int x0y0, x1y0, x0y1, x1y1;
         float t, u;
             
@@ -467,25 +413,29 @@ __global__ void calcPowerNEP(ArrSpec<float> f_src, ArrSpec<float> f_atm, ArrSpec
         bool offsource = ((pointing.Az < Az_src.start) or (pointing.Az > Az_src_max)) or 
                          ((pointing.El < El_src.start) or (pointing.El > El_src_max));
 
-        if(offsource) {I_nu = tex1Dfetch(tex_I_CMB, idy);}
-        
-        else {
-            x0y0 = f_src.num * (iAz + iEl * Az_src.num);
-            x1y0 = f_src.num * (iAz + 1 + iEl * Az_src.num);
-            x0y1 = f_src.num * (iAz + (iEl+1) * Az_src.num);
-            x1y1 = f_src.num * (iAz + 1 + (iEl+1) * Az_src.num);
-            
-            t = (pointing.Az - (Az_src.start + Az_src.step*iAz)) / Az_src.step;
-            u = (pointing.El - (El_src.start + El_src.step*iEl)) / El_src.step;
-            
-            I_nu = (1-t)*(1-u) * source[x0y0 + idy];
-            I_nu += t*(1-u) * source[x1y0 + idy];
-            I_nu += (1-t)*u * source[x0y1 + idy];
-            I_nu += t*u * source[x1y1 + idy];
+        // This can be improved quite alot...
+        if(offsource) 
+        {
+            pointing.Az = Az_src_max;
+            pointing.El = El_src_max;
         }
+        
+        x0y0 = f_src.num * (iAz + iEl * Az_src.num);
+        x1y0 = f_src.num * (iAz + 1 + iEl * Az_src.num);
+        x0y1 = f_src.num * (iAz + (iEl+1) * Az_src.num);
+        x1y1 = f_src.num * (iAz + 1 + (iEl+1) * Az_src.num);
+        
+        t = (pointing.Az - (Az_src.start + Az_src.step*iAz)) / Az_src.step;
+        u = (pointing.El - (El_src.start + El_src.step*iEl)) / El_src.step;
+        
+        I_nu = (1-t)*(1-u) * source[x0y0 + idy];
+        I_nu += t*(1-u) * source[x1y0 + idy];
+        I_nu += (1-t)*u * source[x0y1 + idy];
+        I_nu += t*u * source[x1y1 + idy];
+
         float eta_atm_interp;   // Interpolated eta_atm, over frequency and PWV
         float freq;             // Bin frequency
-        float PSD_nu;           // Local variable for storing PSD.
+        float psd_in;           // Local variable for storing PSD.
         float eta_kj;           // Filter efficiency for bin j, at channel k.
         float PWV_tr;           // Local variable for storing PWV value at time.
         float eta_ap;           // Local variable for storing aperture efficiency
@@ -511,16 +461,37 @@ __global__ void calcPowerNEP(ArrSpec<float> f_src, ArrSpec<float> f_atm, ArrSpec
 
         eta_atm_interp = __powf(eta_atm_interp, ccscEl0);
         
-        // Note that perfect throughput is not applied to source here, as I_nu has already been multiplied by this in Python
-        PSD_nu = (eta_ap * eta_atm_interp * const_effs[0] * I_nu
-            + const_effs[0] * (1 - eta_atm_interp) * tex1Dfetch(tex_I_atm, idy)
-            + const_effs[1] * tex1Dfetch(tex_I_gnd, idy)
-            + const_effs[2] * tex1Dfetch(tex_I_tel, idy)) 
-            * CL*CL / (freq*freq);
+        // Initial pass through atmosphere
+        psd_in = eta_ap * I_nu; 
+        psd_in = rad_trans(psd_in, eta_atm_interp, tex1Dfetch(tex_I_atm, idy));
 
-        sigfactor = PSD_nu * f_src->step;
-        nepfactor1 = sigfactor * (HP * freq + 2 * cdelta / const_effs[3]);
-        nepfactor2 = sigfactor * PSD_nu;
+        // Radiative transfer cascade
+        float psd_parasitic_use;
+        for (int n=0; n<num_stages; n++) 
+        {
+            psd_parasitic_use = psd_cascade[idy + n*f_src.num];
+            if (psd_parasitic_use < 0) 
+            {
+                psd_parasitic_use = eta_atm_interp * tex1Dfetch(tex_I_atm, idy); // Make more efficient
+            }
+
+            psd_in = rad_trans(psd_in, eta_cascade[idy + n*f_src.num], psd_parasitic_use);
+        }
+
+        float psd_filterbank = psd_cascade[idy + num_stages*f_src.num];
+        float eta_filterbank = eta_cascade[idy + num_stages*f_src.num];
+
+        // Final pass and coupling through filterbank
+        #pragma unroll 
+        for(int k=0; k<cnf_ch; k++) {
+            eta_kj = tex1Dfetch( tex_filterbank, k*f_src->num + idy)*eta_filterbank;
+        }
+        
+        psd_in = psd_in * CL*CL / (freq*freq);
+        
+        sigfactor = psd_in * f_src->step;
+        nepfactor1 = sigfactor * (HP * freq + 2 * cdelta / ceta_pb);
+        nepfactor2 = sigfactor * psd_in;
 
         #pragma unroll 
         for(int k=0; k<cnf_ch; k++) {
