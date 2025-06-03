@@ -14,7 +14,7 @@ import scipy.constants as scc
 from functools import partial
 from tqdm import tqdm
 
-import tiempo2.FileIO as fio
+import gateau.fileio as fio
 
 def convolveSourceCube(args, xargs):
     f_arr, source_cube, thread_idx = args
@@ -62,12 +62,8 @@ def convolveSourceCube(args, xargs):
 
 
 def _AiryDisk(source_slice, az_grid, el_grid, k, R):
-    #np.seterr(divide='ignore', invalid='ignore')
     theta = np.radians(np.sqrt((az_grid/3600)**2 + (el_grid/3600)**2))
     airy = np.nan_to_num((2 * j1(k * R * np.sin(theta)) / (k * R * np.sin(theta)))**2, nan=1)
-    #import matplotlib.pyplot as plt
-    #plt.imshow(airy)
-    #plt.show()
 
     return np.nansum(source_slice * airy.ravel()) / np.nansum(airy)
 
@@ -149,7 +145,6 @@ def avgDirectSubtract(args, result_path, conv, xargs):
             mean_index_off[chu_idx] = np.nanmean(chu_off)
         
         bkg_on = interp1d(mean_index_off, mean_values_off, kind="linear", axis=0, fill_value="extrapolate")(idx_on)    
-        #bkg_on = np.nanmean(res_dict["signal"][idx_off,:], axis=0)    
 
         on_sub = res_dict["signal"][idx_on,:] - bkg_on
         N_on = on_sub.shape[0]

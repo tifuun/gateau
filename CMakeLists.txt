@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.16.3)
 
-project(TiEMPO2 
-    VERSION 0.1.0 
-    DESCRIPTION "TiEMPO improved"
+project(gateau 
+    VERSION 0.0.1 
+    DESCRIPTION "gateau: GPU-Accelerated Time-dEpendent observAtion simUlator"
     LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -18,12 +18,12 @@ target_include_directories(scan PUBLIC src/include)
 add_library(timer SHARED src/include/Timer.cpp)
 target_include_directories(timer PUBLIC src/include)
 
-add_library(tiempo2 SHARED src/cpp/InterfaceCPU.cpp)
-target_link_libraries(tiempo2 PRIVATE interputils scan timer)
-target_include_directories(tiempo2 PRIVATE src/include)
+add_library(gateau SHARED src/cpp/InterfaceCPU.cpp)
+target_link_libraries(gateau PRIVATE interputils scan timer)
+target_include_directories(gateau PRIVATE src/include)
 
 if(NOT WIN32)
-    target_compile_options(tiempo2 PRIVATE -pthread)
+    target_compile_options(gateau PRIVATE -pthread)
 endif()
 
 include(CheckLanguage)
@@ -36,16 +36,16 @@ if(CMAKE_CUDA_COMPILER)
     #set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
     file(GLOB CUDAfiles src/cuda/*.cu)
 
-    add_library(cutiempo2 SHARED ${CUDAfiles})
-    add_library(cutiempo2ptx OBJECT ${CUDAfiles})
-    target_include_directories(cutiempo2 PRIVATE src/cuda src/include)
-    target_link_libraries(cutiempo2 PRIVATE timer)
-    set_target_properties(cutiempo2 PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    set_property(TARGET cutiempo2 PROPERTY CUDA_ARCHITECTURES OFF)
+    add_library(cugateau SHARED ${CUDAfiles})
+    add_library(cugateauptx OBJECT ${CUDAfiles})
+    target_include_directories(cugateau PRIVATE src/cuda src/include)
+    target_link_libraries(cugateau PRIVATE timer)
+    set_target_properties(cugateau PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    set_property(TARGET cugateau PROPERTY CUDA_ARCHITECTURES OFF)
     
-    target_include_directories(cutiempo2ptx PRIVATE src/cuda src/include)
-    target_link_libraries(cutiempo2ptx PRIVATE timer)
-    set_property(TARGET cutiempo2ptx PROPERTY CUDA_PTX_COMPILATION ON)
+    target_include_directories(cugateauptx PRIVATE src/cuda src/include)
+    target_link_libraries(cugateauptx PRIVATE timer)
+    set_property(TARGET cugateauptx PROPERTY CUDA_PTX_COMPILATION ON)
 else()
     message(STATUS "WARNING: no CUDA compiler detected. Not building CUDA libraries")
 endif()

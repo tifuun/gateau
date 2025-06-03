@@ -1,6 +1,6 @@
 """!
 @file
-Bindings for the ctypes interface for TiEMPO2. 
+Bindings for the ctypes interface for gateau. 
 """
 
 import ctypes
@@ -8,13 +8,13 @@ import numpy as np
 import os
 import pathlib
 
-import tiempo2.Threadmgr as TManager
-import tiempo2.Structs as TStructs
-import tiempo2.BindUtils as TBUtils
+import gateau.threadmgr as gmanager
+import gateau.structs as gstructs
+import gateau.bind_utils as gutils
 
-def loadTiEMPO2lib():
+def load_gateaulib():
     """!
-    Load the TiEMPO2 shared library. Will detect the operating system and link the library accordingly.
+    Load the gateau shared library. Will detect the operating system and link the library accordingly.
 
     @returns lib The ctypes library containing the C/C++ functions.
     """
@@ -23,28 +23,28 @@ def loadTiEMPO2lib():
 
     path_cur = pathlib.Path(__file__).parent.resolve()
     try:
-        lib = ctypes.CDLL(os.path.join(path_cur, "libtiempo2.dll"))
+        lib = ctypes.CDLL(os.path.join(path_cur, "libgateau.dll"))
     except:
         try:
-            lib = ctypes.CDLL(os.path.join(path_cur, "libtiempo2.so"))
+            lib = ctypes.CDLL(os.path.join(path_cur, "libgateau.so"))
         except:
-            lib = ctypes.CDLL(os.path.join(path_cur, "libtiempo2.dylib"))
+            lib = ctypes.CDLL(os.path.join(path_cur, "libgateau.dylib"))
 
-    lib.calcW2K.argtypes = [ctypes.POINTER(TStructs.Instrument(ct)), 
-                            ctypes.POINTER(TStructs.Telescope(ct)),
-                            ctypes.POINTER(TStructs.Atmosphere(ct)), 
-                            ctypes.POINTER(TStructs.CalOutput(ct)),
+    lib.calcW2K.argtypes = [ctypes.POINTER(gstructs.Instrument(ct)), 
+                            ctypes.POINTER(gstructs.Telescope(ct)),
+                            ctypes.POINTER(gstructs.Atmosphere(ct)), 
+                            ctypes.POINTER(gstructs.CalOutput(ct)),
                             ctypes.c_int, ctypes.c_int]
     
-    lib.getSourceSignal.argtypes = [ctypes.POINTER(TStructs.Instrument(ct)), 
-                                    ctypes.POINTER(TStructs.Telescope(ct)),
+    lib.getSourceSignal.argtypes = [ctypes.POINTER(gstructs.Instrument(ct)), 
+                                    ctypes.POINTER(gstructs.Telescope(ct)),
                                     ctypes.POINTER(ct), ctypes.POINTER(ct),
                                     ct, ctypes.c_bool]
 
-    lib.getEtaAtm.argtypes = [TStructs.ArrSpec(ct), ctypes.POINTER(ct), ct]
+    lib.getEtaAtm.argtypes = [gstructs.ArrSpec(ct), ctypes.POINTER(ct), ct]
     
-    lib.getNEP.argtypes = [ctypes.POINTER(TStructs.Instrument(ct)), 
-                           ctypes.POINTER(TStructs.Telescope(ct)),
+    lib.getNEP.argtypes = [ctypes.POINTER(gstructs.Instrument(ct)), 
+                           ctypes.POINTER(gstructs.Telescope(ct)),
                            ctypes.POINTER(ct), ct, ct]
     
     lib.calcW2K.restype = None
@@ -54,9 +54,9 @@ def loadTiEMPO2lib():
 
     return lib, ct
 
-def loadTiEMPO2lib_CUDA():
+def load_gateaulib_CUDA():
     """!
-    Load the TiEMPO2 shared library. Will detect the operating system and link the library accordingly.
+    Load the gateau shared library. Will detect the operating system and link the library accordingly.
 
     @returns The ctypes library containing the C/C++ functions.
     """
@@ -65,21 +65,21 @@ def loadTiEMPO2lib_CUDA():
 
     path_cur = pathlib.Path(__file__).parent.resolve()
     try:
-        lib = ctypes.CDLL(os.path.join(path_cur, "libcutiempo2.dll"))
+        lib = ctypes.CDLL(os.path.join(path_cur, "libcugateau.dll"))
     except:
         try:
-            lib = ctypes.CDLL(os.path.join(path_cur, "libcutiempo2.so"))
+            lib = ctypes.CDLL(os.path.join(path_cur, "libcugateau.so"))
         except:
-            lib = ctypes.CDLL(os.path.join(path_cur, "libcutiempo2.dylib"))
+            lib = ctypes.CDLL(os.path.join(path_cur, "libcugateau.dylib"))
 
-    lib.runTiEMPO2_CUDA.argtypes = [ctypes.POINTER(TStructs.Instrument(ct)), 
-                                    ctypes.POINTER(TStructs.Telescope(ct)),
-                                    ctypes.POINTER(TStructs.Atmosphere(ct)), 
-                                    ctypes.POINTER(TStructs.Source(ct)),
-                                    ctypes.POINTER(TStructs.Cascade(ct)),
+    lib.run_gateau.argtypes = [ctypes.POINTER(gstructs.Instrument(ct)), 
+                                    ctypes.POINTER(gstructs.Telescope(ct)),
+                                    ctypes.POINTER(gstructs.Atmosphere(ct)), 
+                                    ctypes.POINTER(gstructs.Source(ct)),
+                                    ctypes.POINTER(gstructs.Cascade(ct)),
                                     ctypes.c_int, ctypes.c_char_p]
     
-    lib.runTiEMPO2_CUDA.restype = None
+    lib.run_gateau.restype = None
 
     return lib, ct
 
@@ -95,20 +95,20 @@ def calcW2K(instrument, telescope, atmosphere, nPWV, nThreads):
     @returns A CalOutput dictionary, containing power-temperature relations.
     """
 
-    lib, ct = loadTiEMPO2lib()
-    mgr = TManager.Manager()
+    lib, ct = load_gateaulib()
+    mgr = gmanager.Manager()
 
-    _instrument = TStructs.Instrument(ct)
-    _telescope = TStructs.Telescope(ct)
-    _atmosphere = TStructs.Atmosphere(ct)
+    _instrument = gstructs.Instrument(ct)
+    _telescope = gstructs.Telescope(ct)
+    _atmosphere = gstructs.Atmosphere(ct)
 
-    _caloutput = TStructs.CalOutput(ct)
+    _caloutput = gstructs.CalOutput(ct)
 
-    TBUtils.allfillInstrument(instrument, _instrument)
-    TBUtils.allfillTelescope(telescope, _telescope)
-    TBUtils.allfillAtmosphere(atmosphere, _atmosphere)
+    gutils.allfillInstrument(instrument, _instrument)
+    gutils.allfillTelescope(telescope, _telescope)
+    gutils.allfillAtmosphere(atmosphere, _atmosphere)
 
-    TBUtils.allocateCalOutput(_caloutput, nPWV, instrument["nf_ch"])
+    gutils.allocateCalOutput(_caloutput, nPWV, instrument["nf_ch"])
 
     cnPWV = ctypes.c_int(nPWV)
     cnThreads = ctypes.c_int(nThreads)
@@ -117,7 +117,7 @@ def calcW2K(instrument, telescope, atmosphere, nPWV, nThreads):
 
     mgr.new_thread(target=lib.calcW2K, args=args)
 
-    res = TBUtils.CalOutputStructToDict(_caloutput, nPWV, instrument["nf_ch"], np_t=np.float64)
+    res = gutils.CalOutputStructToDict(_caloutput, nPWV, instrument["nf_ch"], np_t=np.float64)
 
     return res
 
@@ -137,11 +137,11 @@ def getSourceSignal(instrument, telescope, atmosphere, I_nu, PWV, ON):
     @returns 1D array containing power for each detector.
     """
 
-    lib, ct = loadTiEMPO2lib()
-    mgr = TManager.Manager()
+    lib, ct = load_gateaulib()
+    mgr = gmanager.Manager()
 
-    _instrument = TStructs.Instrument(ct)
-    _telescope = TStructs.Telescope(ct)
+    _instrument = gstructs.Instrument(ct)
+    _telescope = gstructs.Telescope(ct)
 
     coutput = (ct * instrument["nf_ch"]).from_buffer(np.zeros(instrument["nf_ch"]))
 
@@ -150,8 +150,8 @@ def getSourceSignal(instrument, telescope, atmosphere, I_nu, PWV, ON):
     cPWV = ct(PWV)
     cON = ctypes.c_bool(ON)
 
-    TBUtils.allfillInstrument(instrument, _instrument)
-    TBUtils.allfillTelescope(telescope, _telescope)
+    gutils.allfillInstrument(instrument, _instrument)
+    gutils.allfillTelescope(telescope, _telescope)
     
     args = [_instrument, _telescope, coutput, cI_nu, cPWV, cON]
 
@@ -163,7 +163,7 @@ def getSourceSignal(instrument, telescope, atmosphere, I_nu, PWV, ON):
 
 def getEtaAtm(instrument, PWV):
     """!
-    Binding for running the TiEMPO2 simulation.
+    Binding for running the gateau simulation.
 
     @param source Dictionary containing astronomical source parameters.
     @param atmosphere Dictionary containing atmosphere parameters.
@@ -173,14 +173,14 @@ def getEtaAtm(instrument, PWV):
     """
 
 
-    lib, ct = loadTiEMPO2lib()
-    mgr = TManager.Manager()
+    lib, ct = load_gateaulib()
+    mgr = gmanager.Manager()
 
     coutput = (ct * instrument["nf_src"])(*(np.zeros(instrument["nf_src"]).tolist()))
 
     cPWV = ct(PWV)
 
-    f_src_spec = TBUtils.arr2ArrSpec(instrument["f_src"])
+    f_src_spec = gutils.arr2ArrSpec(instrument["f_src"])
 
     args = [f_src_spec, coutput, cPWV]
 
@@ -192,7 +192,7 @@ def getEtaAtm(instrument, PWV):
 
 def getNEP(instrument, telescope, atmosphere, PWV):
     """!
-    Binding for running the TiEMPO2 simulation.
+    Binding for running the gateau simulation.
 
     @param instrument Dictionary containing instrument parameters.
     @param telescope Dictionary containing telescope parameters.
@@ -202,19 +202,19 @@ def getNEP(instrument, telescope, atmosphere, PWV):
     @returns 1D array containing NEP for each detector.
     """
 
-    lib, ct = loadTiEMPO2lib()
-    mgr = TManager.Manager()
+    lib, ct = load_gateaulib()
+    mgr = gmanager.Manager()
 
-    _instrument = TStructs.Instrument(ct)
-    _telescope = TStructs.Telescope(ct)
+    _instrument = gstructs.Instrument(ct)
+    _telescope = gstructs.Telescope(ct)
     
     coutput = (ct * instrument["nf_ch"]).from_buffer(np.zeros(instrument["nf_ch"]))
 
     cPWV = ct(PWV)
     cTatm = ct(atmosphere["Tatm"])
 
-    TBUtils.allfillInstrument(instrument, _instrument)
-    TBUtils.allfillTelescope(telescope, _telescope)
+    gutils.allfillInstrument(instrument, _instrument)
+    gutils.allfillTelescope(telescope, _telescope)
 
     args = [_instrument, _telescope, coutput, cPWV, cTatm]
 
@@ -224,38 +224,38 @@ def getNEP(instrument, telescope, atmosphere, PWV):
     
     return res
 
-def runTiEMPO2_CUDA(instrument, telescope, atmosphere, source, cascade, nTimes, outpath):
+def rungateau_CUDA(instrument, telescope, atmosphere, source, cascade, nTimes, outpath):
     """!
-    Binding for running the TiEMPO2 simulation on GPU.
+    Binding for running the gateau simulation on GPU.
 
     @param instrument Dictionary containing instrument parameters.
     @param telescope Dictionary containing telescope parameters.
     @param atmosphere Dictionary containing atmosphere parameters.
     @param source Dictionary containing astronomical source parameters.
     @param nTimes Number of time evaluations.
-    @param outpath Path to directory where TiEMPO2 output is stored.
+    @param outpath Path to directory where gateau output is stored.
 
     @returns 2D array containing timestreams of power in detector, for each channel frequency
     """
     import time
 
 
-    lib, ct = loadTiEMPO2lib_CUDA()
-    mgr = TManager.Manager()
+    lib, ct = load_gateaulib_CUDA()
+    mgr = gmanager.Manager()
 
-    _instrument = TStructs.Instrument(ct)
-    _telescope = TStructs.Telescope(ct)
-    _atmosphere = TStructs.Atmosphere(ct)
-    _source = TStructs.Source(ct)
-    _cascade = TStructs.Cascade(ct)
+    _instrument = gstructs.Instrument(ct)
+    _telescope = gstructs.Telescope(ct)
+    _atmosphere = gstructs.Atmosphere(ct)
+    _source = gstructs.Source(ct)
+    _cascade = gstructs.Cascade(ct)
 
-    TBUtils.allfillInstrument(instrument, _instrument, ct)
-    TBUtils.allfillTelescope(telescope, _telescope, ct)
+    gutils.allfillInstrument(instrument, _instrument, ct)
+    gutils.allfillTelescope(telescope, _telescope, ct)
     start = time.time()
-    TBUtils.allfillAtmosphere(atmosphere, _atmosphere, ct, coalesce=True)
+    gutils.allfillAtmosphere(atmosphere, _atmosphere, ct, coalesce=True)
     end = time.time()
-    TBUtils.allfillSource(source, _source, ct)
-    TBUtils.allfillCascade(cascade, _cascade, ct)
+    gutils.allfillSource(source, _source, ct)
+    gutils.allfillCascade(cascade, _cascade, ct)
 
     cnTimes = ctypes.c_int(nTimes)
     coutpath = ctypes.c_char_p(outpath.encode())
@@ -266,5 +266,5 @@ def runTiEMPO2_CUDA(instrument, telescope, atmosphere, source, cascade, nTimes, 
 
     args = [_instrument, _telescope, _atmosphere, _source, _cascade, cnTimes, coutpath]
 
-    mgr.new_thread(target=lib.runTiEMPO2_CUDA, args=args)
+    mgr.new_thread(target=lib.run_gateau, args=args)
 

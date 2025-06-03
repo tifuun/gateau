@@ -45,14 +45,14 @@ class build_ext(build_ext_orig):
         os.chdir(str(cwd))
 
 setup(
-    name='TiEMPO2',
+    name='gateau',
     license="MIT",
-    version='0.1.0',
+    version='0.0.1',
     author="Arend Moerman",
     install_requires = ["numpy", "matplotlib", "scipy", "tqdm", "astropy", "psutil", "cmake"],
     package_dir = {'': 'src'},
-    packages=['tiempo2'],
-    ext_modules=[CMakeExtension(os.path.join("tiempo2", "libs"))],
+    packages=['gateau'],
+    ext_modules=[CMakeExtension(os.path.join("gateau", "libs"))],
     cmdclass={'build_ext': build_ext},
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -6,7 +6,7 @@ Most of these functions are concerned with allocating memory.
 """
 
 import numpy as np
-import tiempo2.Structs as TStructs
+import gateau.structs as gstructs
 import ctypes
 import os
 import array as ar
@@ -216,7 +216,7 @@ def allfillArrSpec(arr, ArrSpecStruct, ct_t=ctypes.c_double):
     ArrSpecStruct.num = ctypes.c_int(arr.size)    
 
 def arr2ArrSpec(arr, ct_t=ctypes.c_double):
-    arrspec = TStructs.ArrSpec(ct_t)
+    arrspec = gstructs.ArrSpec(ct_t)
     allfillArrSpec(arr, arrspec, ct_t)
 
     return arrspec

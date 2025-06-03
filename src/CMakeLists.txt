@@ -10,7 +10,7 @@ include(GoogleTest)
 
 find_library(INTERPLIB
       NAMES interputils
-      PATHS tiempo2)
+      PATHS gateau)
 
   # Link runTests with what we want to test and the GTest and pthread library
 add_executable(runTests include/tests/test_InterpUtils.cpp)

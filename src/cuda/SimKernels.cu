@@ -1,7 +1,7 @@
 #include "InterfaceCUDA.h"
 
 /*! \file Kernels.cu
-    \brief Definitions of CUDA kernels for TiEMPO2.
+    \brief Definitions of CUDA kernels for gateau.
 
     author: Arend Moerman
 */
@@ -575,7 +575,7 @@ __global__ void calcPhotonNoise(float *sigout, float *nepout, curandState *state
   @param source CuSource object containing source definitions.
   @param nTimes Number of time evaluations in simulation.
  */
-void runTiEMPO2_CUDA(Instrument<float> *instrument, 
+void run_gateau(Instrument<float> *instrument, 
                      Telescope<float> *telescope, 
                      Atmosphere<float> *atmosphere, 
                      Source<float> *source, 

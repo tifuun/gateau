@@ -11,17 +11,16 @@ import scipy.signal as signal
 from scipy.interpolate import griddata
 from scipy.stats import binned_statistic_2d
 
-import tiempo2.Filterbank as TFilter
-import tiempo2.InputChecker as TCheck
-import tiempo2.Atmosphere as TAtm
-import tiempo2.BindCPU as TBCPU
-import tiempo2.RemoveATM as TRemove
-import tiempo2.Parallel as TParallel
-import tiempo2.Utils as TUtils
+import gateau.filterbank as gfilter
+import gateau.input_checker as gcheck
+import gateau.atmosphere as gatm
+import gateau.bindings as gbind
+import gateau.Parallel as TParallel
+import gateau.utils as gutils
 
 import psutil
 import logging
-from tiempo2.CustomLogger import CustomLogger
+from gateau.custom_logger import CustomLogger
 
 logging.getLogger(__name__)
 
@@ -140,7 +139,7 @@ class Interface(object):
         @ingroup inputdicts
         """
 
-        errlist = TCheck.checkTelescopeDict(telescopeDict)
+        errlist = gcheck.checkTelescopeDict(telescopeDict)
 
         if not errlist:
             self.__telescopeDict = telescopeDict
@@ -159,7 +158,7 @@ class Interface(object):
         @ingroup inputdicts
         """
 
-        errlist = TCheck.checkInstrumentDict(instrumentDict)
+        errlist = gcheck.checkInstrumentDict(instrumentDict)
 
         if not errlist:
             self.__instrumentDict = instrumentDict
@@ -181,7 +180,7 @@ class Interface(object):
         @ingroup inputdicts
         """
 
-        errlist = TCheck.checkAtmosphereDict(atmosphereDict)
+        errlist = gcheck.checkAtmosphereDict(atmosphereDict)
 
         if not errlist:
             self.__atmosphereDict = atmosphereDict
@@ -213,7 +212,7 @@ class Interface(object):
             raise InitialError
             sys.exit()
 
-        TAtm.prepAtmospherePWV(self.__atmosphereDict, self.__telescopeDict, self.clog)
+        gatm.prepAtmospherePWV(self.__atmosphereDict, self.__telescopeDict, self.clog)
 
     # NUMBER PARAMETER IS TEMPORARY
     def initSetup(self, use_ARIS=True, number=1, start=0):
@@ -297,7 +296,7 @@ class Interface(object):
             self.instrumentDict["f_ch_arr"] = f0_ch * (1 + 1 / self.instrumentDict["R"])**idx_ch_arr
         self.instrumentDict["eta_filt"] *= np.ones(self.instrumentDict.get("nf_ch"))
                 
-        self.instrumentDict["filterbank"] = TFilter.generateFilterbankFromR(self.instrumentDict)
+        self.instrumentDict["filterbank"] = gfilter.generateFilterbankFromR(self.instrumentDict)
         #import matplotlib.pyplot as plt
 
         #plt.plot(self.instrumentDict["filterbank"].T)
@@ -347,7 +346,7 @@ class Interface(object):
 
         SZ = self.sourceDict["I_nu"][15,15,:] - self.sourceDict["I_nu"][0,0,:] 
 
-        res = TBCPU.getSourceSignal(self.instrumentDict, self.telescopeDict, self.atmosphereDict, SZ, PWV_value, ON)
+        res = gbind.getSourceSignal(self.instrumentDict, self.telescopeDict, self.atmosphereDict, SZ, PWV_value, ON)
         
         if w2k: 
             if not self.w2k_set:
@@ -367,7 +366,7 @@ class Interface(object):
         @ingroup auxilliarymethods       
         """
 
-        res = TBCPU.getChopperCalibration(self.instrumentDict, Tcal)
+        res = gbind.getChopperCalibration(self.instrumentDict, Tcal)
         return res
     
     def getEtaAtm(self, PWV_value):
@@ -381,7 +380,7 @@ class Interface(object):
         @ingroup auxilliarymethods       
         """
 
-        res = TBCPU.getEtaAtm(self.instrumentDict, PWV_value)
+        res = gbind.getEtaAtm(self.instrumentDict, PWV_value)
         return res, self.instrumentDict["f_src"]
 
     def getNEP(self, PWV_value):
@@ -395,7 +394,7 @@ class Interface(object):
         @ingroup auxilliarymethods       
         """
 
-        res = TBCPU.getNEP(self.instrumentDict, self.telescopeDict, self.atmosphereDict, PWV_value)
+        res = gbind.getNEP(self.instrumentDict, self.telescopeDict, self.atmosphereDict, PWV_value)
         return res, self.instrumentDict["f_ch_arr"]
 
     def runSimulation(self, t_obs, device="CPU", nThreads=None, verbosity=1, outpath="./out/", overwrite=False):
@@ -458,11 +457,11 @@ class Interface(object):
         start = time.time()
 
         if device == "CPU":
-            res = TBCPU.runTiEMPO2(self.instrumentDict, self.telescopeDict, 
+            res = gbind.runTiEMPO2(self.instrumentDict, self.telescopeDict, 
                         self.atmosphereDict, self.sourceDict, nTimes, nThreads)
         
         elif device == "GPU":
-            TBCPU.runTiEMPO2_CUDA(self.instrumentDict, self.telescopeDict, 
+            gbind.runTiEMPO2_CUDA(self.instrumentDict, self.telescopeDict, 
                         self.atmosphereDict, self.sourceDict, nTimes, outpath)
         
         end = time.time()        
@@ -494,7 +493,7 @@ class Interface(object):
         
         start = time.time()
 
-        res = TBCPU.calcW2K(self.instrumentDict, self.telescopeDict, 
+        res = gbind.calcW2K(self.instrumentDict, self.telescopeDict, 
                             self.atmosphereDict, nPWV, nThreads)
         
         a = np.zeros(self.instrumentDict["nf_ch"])
@@ -597,7 +596,7 @@ class Interface(object):
         
         Pxx, f_Pxx = TParallel.parallel_job(outpath, 
                                       num_threads = num_threads, 
-                                      job = TUtils.calcSignalPSD, 
+                                      job = gutils.calcSignalPSD, 
                                       conv = conv,
                                       args_list = [self.instrumentDict["f_sample"], nperseg])
         
@@ -618,7 +617,7 @@ class Interface(object):
         
         source_cube_convolved = TParallel.parallel_job_np(source_cube, 
                                       num_threads = num_threads, 
-                                      job = TUtils.convolveSourceCube, 
+                                      job = gutils.convolveSourceCube, 
                                       arr_par = f_arr,
                                       args_list = [Dtel, az_grid, el_grid],
                                       axis = -1)
@@ -696,7 +695,7 @@ class Interface(object):
         
         avg_l, var_l, N_l = TParallel.parallel_job(outpath, 
                                       num_threads = num_threads, 
-                                      job = TUtils.avgTOD, 
+                                      job = gutils.avgTOD, 
                                       conv = conv,
                                       args_list = [self.instrumentDict["f_sample"]])
         
@@ -740,7 +739,7 @@ class Interface(object):
             
             avg_l, var_l, N_l = TParallel.parallel_job(outpath, 
                                           num_threads = num_threads, 
-                                          job = TUtils.avgDirectSubtract, 
+                                          job = gutils.avgDirectSubtract, 
                                           conv = conv,
                                           args_list = [self.instrumentDict["f_sample"], var_method])
             
@@ -748,12 +747,6 @@ class Interface(object):
             var = np.nansum((N_l - 1) * var_l.T, axis=1) / (np.nansum(N_l) - len(N_l))**2
 
             return avg, var, self.instrumentDict["f_ch_arr"]
-
-        elif resolution == 1:
-            self.clog.info("Averaging and subtracting over ON-OFF pairs.")
-            red_signal, red_Az, red_El = TRemove.avgDirectSubtract_chop(output)
-            
-            return red_signal, red_Az, red_El
 
     def getExposureTime(self, red_Az, red_El, nAz_grid, nEl_grid):
         points = np.array([red_Az, red_El])

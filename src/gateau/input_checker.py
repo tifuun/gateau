@@ -6,7 +6,7 @@ Apart from checking, the functions also set default parameters that are not give
 """
 
 import numpy as np
-import tiempo2.Materials as TMaterials
+import tiempo2.materials as gmaterials
 
 def checkTelescopeDict(telescopeDict):
     checklist = ["Dtel", "Ttel", "Tgnd", "chop_mode", "eta_ap_ON", "eta_mir",
@@ -85,8 +85,8 @@ def checkInstrumentDict(instrumentDict):
         instrumentDict["material"] = "Al_NbTiN"
     
     if instrumentDict.get("material") == "Al_NbTiN":
-        instrumentDict["delta"] = TMaterials.Al_NbTiN["delta"]
-        instrumentDict["eta_pb"] = TMaterials.Al_NbTiN["eta_pb"]
+        instrumentDict["delta"] = gmaterials.Al_NbTiN["delta"]
+        instrumentDict["eta_pb"] = gmaterials.Al_NbTiN["eta_pb"]
 
     else:
         errlist.append("material")
