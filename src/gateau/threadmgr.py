@@ -24,7 +24,7 @@ class Manager(object):
         t.start()
     
         while t.is_alive(): # wait for the thread to exit
-            t.join(.1)
+            t.join(0.1)
 
     def on_thread_finished(self):
         if self.callback is not None:

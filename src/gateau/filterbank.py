@@ -20,7 +20,6 @@ def generateFilterbankFromR(instrumentDict):
     f0_src      = instrumentDict.get("f0_src")
     f1_src      = instrumentDict.get("f1_src")
     nf_src      = instrumentDict.get("nf_src")
-    eta_filt    = instrumentDict.get("eta_filt")
     order       = instrumentDict.get("order")
     
     f_filt      = instrumentDict.get("f_ch_arr")
@@ -29,7 +28,6 @@ def generateFilterbankFromR(instrumentDict):
 
     if instrumentDict["box_eq"]:
         A = 4 / np.pi
-
 
     f_src = np.linspace(f0_src, f1_src, nf_src)
 
@@ -40,6 +38,6 @@ def generateFilterbankFromR(instrumentDict):
     for j in range(nf_ch):
         _fj_ch = f_filt[j] 
         gamma = _fj_ch / (2 * R)
-        filterbank[j,:] = eta_filt[j] * (A * gamma**2 / ((f_src - _fj_ch)**2 + gamma**2))**order
+        filterbank[j,:] = (A * gamma**2 / ((f_src - _fj_ch)**2 + gamma**2))**order
 
     return filterbank
