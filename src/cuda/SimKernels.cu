@@ -265,35 +265,15 @@ __host__ void initCUDA(Instrument<float> *instrument,
      
     // OBSERVATION-INSTRUMENT PARAMETERS
     gpuErrchk( cudaMemcpyToSymbol(cdt, &dt, sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cfreq_chop, &(telescope->freq_chop), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cfreq_nod, &(telescope->freq_nod), sizeof(float)) );
     gpuErrchk( cudaMemcpyToSymbol(cf_sample, &(instrument->f_sample), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cdAz_chop, &(telescope->dAz_chop), sizeof(float)) );
     gpuErrchk( cudaMemcpyToSymbol(cdelta, &(instrument->delta), sizeof(float)) );
     gpuErrchk( cudaMemcpyToSymbol(ceta_pb, &(instrument->eta_pb), sizeof(float)) );
     gpuErrchk( cudaMemcpyToSymbol(cnt, &nTimes, sizeof(int)) );
     gpuErrchk( cudaMemcpyToSymbol(cnf_ch, &(instrument->nf_ch), sizeof(int)) );
-    gpuErrchk( cudaMemcpyToSymbol(cchop_mode, &(telescope->chop_mode), sizeof(int)) );
     
     // ATMOSPHERE PARAMETERS
     gpuErrchk( cudaMemcpyToSymbol(ch_column, &(atmosphere->h_column), sizeof(float)) );
     gpuErrchk( cudaMemcpyToSymbol(cv_wind, &(atmosphere->v_wind), sizeof(float)) );
-
-    // SCAN PARAMETERS
-    float cscEl0 = 1. / sinf(deg2rad(telescope->El0));
-
-    gpuErrchk( cudaMemcpyToSymbol(cscantype, &(telescope->scantype), sizeof(int)) );
-    gpuErrchk( cudaMemcpyToSymbol(ccscEl0, &cscEl0, sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cAx, &(telescope->Ax), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cAxmin, &(telescope->Axmin), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cAy, &(telescope->Ay), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cAymin, &(telescope->Aymin), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cwx, &(telescope->wx), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cwxmin, &(telescope->wxmin), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cwy, &(telescope->wy), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cwymin, &(telescope->wymin), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cphix, &(telescope->phix), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cphiy, &(telescope->phiy), sizeof(float)) );
 }
 
 /**

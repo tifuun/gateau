@@ -3,7 +3,7 @@
 Bindings for the ctypes interface for gateau. 
 """
 
-import ctypes
+from ctypes import Structure, POINTER, c_float, c_int, c_char_p
 import numpy as np
 import os
 import pathlib
@@ -18,8 +18,6 @@ def load_gateaulib():
 
     @returns The ctypes library containing the C/C++ functions.
     """
-    
-    ct = ctypes.c_float
 
     path_cur = pathlib.Path(__file__).parent.resolve()
     try:
@@ -30,16 +28,17 @@ def load_gateaulib():
         except:
             lib = ctypes.CDLL(os.path.join(path_cur, "libcugateau.dylib"))
 
-    lib.run_gateau.argtypes = [ctypes.POINTER(gstructs.Instrument(ct)), 
-                                    ctypes.POINTER(gstructs.Telescope(ct)),
-                                    ctypes.POINTER(gstructs.Atmosphere(ct)), 
-                                    ctypes.POINTER(gstructs.Source(ct)),
-                                    ctypes.POINTER(gstructs.Cascade(ct)),
-                                    ctypes.c_int, ctypes.c_char_p]
+    lib.run_gateau.argtypes = [POINTER(gstructs.Instrument), 
+                               POINTER(gstructs.Telescope),
+                               POINTER(gstructs.Atmosphere), 
+                               POINTER(gstructs.Source),
+                               POINTER(gstructs.Cascade),
+                               c_int, 
+                               c_char_p]
     
     lib.run_gateau.restype = None
 
-    return lib, ct
+    return lib
 
 def run_gateau(instrument, telescope, atmosphere, source, cascade, nTimes, outpath):
     """!
@@ -56,25 +55,25 @@ def run_gateau(instrument, telescope, atmosphere, source, cascade, nTimes, outpa
     """
     import time
 
-    lib, ct = load_gateaulib()
+    lib = load_gateaulib()
     mgr = gmanager.Manager()
 
-    _instrument = gstructs.Instrument(ct)
-    _telescope = gstructs.Telescope(ct)
-    _atmosphere = gstructs.Atmosphere(ct)
-    _source = gstructs.Source(ct)
-    _cascade = gstructs.Cascade(ct)
+    _instrument = gstructs.Instrument()
+    _telescope = gstructs.Telescope()
+    _atmosphere = gstructs.Atmosphere()
+    _source = gstructs.Source()
+    _cascade = gstructs.Cascade()
 
-    gutils.allfillInstrument(instrument, _instrument, ct)
-    gutils.allfillTelescope(telescope, _telescope, ct)
+    gutils.allfillInstrument(instrument, _instrument)
+    gutils.allfillTelescope(telescope, _telescope)
     start = time.time()
-    gutils.allfillAtmosphere(atmosphere, _atmosphere, ct, coalesce=True)
+    gutils.allfillAtmosphere(atmosphere, _atmosphere)
     end = time.time()
-    gutils.allfillSource(source, _source, ct)
-    gutils.allfillCascade(cascade, _cascade, ct)
+    gutils.allfillSource(source, _source)
+    gutils.allfillCascade(cascade, _cascade)
 
-    cnTimes = ctypes.c_int(nTimes)
-    coutpath = ctypes.c_char_p(outpath.encode())
+    cnTimes = c_int(nTimes)
+    coutpath = c_char_p(outpath.encode())
 
     size_out = nTimes * instrument["nf_ch"]
 

@@ -3,107 +3,75 @@
 Structs that are passed to the C++ backend.
 """ 
 
-import ctypes
+from ctypes import Structure, POINTER, c_float, c_int, c_char_p
 import numpy as np
 
-class ArrSpec(ctypes.Structure):
+class ArrSpec(Structure):
     """!
-    Struct used for passing array specifications a0, da, na.
+    Struct used for passing regular array specifications: start, step, num.
     Used when it is not necessary to pass full dictionaries.
     """
 
-    def __init__(self, ct):
-        self._fields_ = [("start", ct),
-                    ("step", ct),
-                    ("num", ctypes.c_int)]
+    def __init__(self):
+        self._fields_ = [("start", c_float),
+                    ("step", c_float),
+                    ("num", c_int)]
 
-class CalOutput(ctypes.Structure):
+class Cascade(Structure):
     """!
-    Struct used as output for a power to temperature conversion database.
+    Struct for storing all (grouped) stages in a cascade.
     """
 
-    def __init__(self, ct):
-        self._fields_ = [("power", ctypes.POINTER(ct)),
-                ("temperature", ctypes.POINTER(ct))]
+    def __init__(self):
+        self._fields_ = [("eta_stage", POINTER(c_float)),
+                         ("psd_stage", POINTER(c_float)),
+                         ("num_stage", c_int)]
 
-class Cascade(ctypes.Structure):
-    """!
-    Struct for storing all cascades
-    """
-    def __init__(self, ct):
-        self._fields_ = [("eta", ctypes.POINTER(ct)),
-                         ("T_parasitic", ctypes.POINTER(ct)),
-                         ("d", ctypes.POINTER(ct)), 
-                         ("tandelta", ctypes.POINTER(ct)),
-                         ("neff", ctypes.POINTER(ct)),
-                         ("T_parasitic_refl", ctypes.POINTER(ct)),
-                         ("T_parasitic_refr", ctypes.POINTER(ct)),
-                         ("use_AR", ctypes.POINTER(ctypes.c_int)),
-                         ("order_refl", ctypes.POINTER(ctypes.c_int)),
-                         ("order_refr", ctypes.POINTER(ctypes.c_int))]
-
-class Instrument(ctypes.Structure):
+class Instrument(Structure):
     """!
     Struct representing the simulated instrument.
     """
 
-    def __init__(self, ct):
-        self._fields_ = [("nf_ch", ctypes.c_int),
-                ("f_spec", ArrSpec(ct)),
-                ("f_sample", ct),
-                ("filterbank", ctypes.POINTER(ct)),
-                ("delta", ct),
-                ("eta_pb", ct)]
+    def __init__(self):
+        self._fields_ = [("nf_ch", c_int),
+                ("f_spec", ArrSpec),
+                ("f_sample", c_float),
+                ("filterbank", POINTER(c_float)),
+                ("delta", c_float),
+                ("eta_pb", c_float)]
 
-class Telescope(ctypes.Structure):
+class Telescope(Structure):
     """!
     Struct representing the simulated telescope.
     """
 
-    def __init__(self, ct):
+    def __init__(self):
         self._fields_ = [
-                ("Dtel", ct),
-                ("chop_mode", ctypes.c_int),
-                ("dAz_chop", ct),
-                ("freq_chop", ct),
-                ("freq_nod", ct),
-                ("eta_ap_ON", ctypes.POINTER(ct)),
-                ("eta_ap_OFF", ctypes.POINTER(ct)),
-                ("scantype", ctypes.c_int),
-                ("El0", ct),
-                ("Ax", ct),
-                ("Axmin", ct),
-                ("Ay", ct),
-                ("Aymin", ct),
-                ("wx", ct),
-                ("wxmin", ct),
-                ("wy", ct),
-                ("wymin", ct),
-                ("phix", ct),
-                ("phiy", ct)]
+                ("eta_ap", POINTER(c_float)),
+                ("az_scan", POINTER(c_float)),
+                ("el_scan", POINTER(c_float))]
 
-
-class Atmosphere(ctypes.Structure):
+class Atmosphere(Structure):
     """!
     Struct representing the simulated atmosphere.
     """
 
-    def __init__(self, ct):
-        self._fields_ = [("Tatm", ct),
-                ("v_wind", ct),
-                ("h_column", ct),
-                ("dx", ct),
-                ("dy", ct),
-                ("path", ctypes.c_char_p)]
+    def __init__(self):
+        self._fields_ = [("Tatm", c_float),
+                ("v_wind", c_float),
+                ("h_column", c_float),
+                ("dx", c_float),
+                ("dy", c_float),
+                ("path", c_char_p)]
 
-class Source(ctypes.Structure):
+class Source(Structure):
     """!
     Struct representing simulated astronomical source.
     """
 
-    def __init__(self, ct):
-        self._fields_ = [("Az_spec", ArrSpec(ct)),
-                ("El_spec", ArrSpec(ct)),
-                ("I_nu", ctypes.POINTER(ct)),
-                ("nI_nu", ctypes.c_int)]
+    def __init__(self):
+        self._fields_ = [("az_src_spec", ArrSpec),
+                ("el_src_spec", ArrSpec),
+                ("I_nu", POINTER(c_float)),
+                ("nI_nu", c_int)]
 
