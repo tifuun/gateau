@@ -16,17 +16,15 @@
 
 #include "CuScan.h"
 #include "CuInterpUtils.h"
-#include "Timer.h"
 #include "FileIO.h"
 #include "Structs.h"
-#include "Filterbank.h"
 
 #define CEFFSSIZE 4
 
 #ifdef _WIN32
-#   define TIEMPO2_DLL __declspec(dllexport)
+#   define GATEAU_DLL __declspec(dllexport)
 #else
-#   define TIEMPO2_DLL
+#   define GATEAU_DLL
 #endif
 
 #ifndef __InterfaceCUDA_h
@@ -34,13 +32,13 @@
 
 extern "C"
 {
-    TIEMPO2_DLL void run_gateau(Instrument<float> *instrument, 
-                                     Telescope<float> *telescope, 
-                                     Atmosphere<float> *atmosphere, 
-                                     Source<float> *source,
-                                     Cascade<float> *cascade,
-                                     int nTimesTotal, 
-                                     char *outpath);
+    GATEAU_DLL void run_gateau(Instrument *instrument, 
+                               Telescope *telescope, 
+                               Atmosphere *atmosphere, 
+                               Source *source,
+                               Cascade *cascade,
+                               int nTimesTotal, 
+                               char *outpath);
 }
 
 #endif

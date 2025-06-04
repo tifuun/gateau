@@ -9,9 +9,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-add_library(timer SHARED src/include/Timer.cpp)
-target_include_directories(timer PUBLIC src/include)
-
 include(CheckLanguage)
 
 check_language(CUDA)
@@ -23,7 +20,6 @@ if(CMAKE_CUDA_COMPILER)
     add_library(cugateau SHARED ${CUDAfiles})
     add_library(cugateauptx OBJECT ${CUDAfiles})
     target_include_directories(cugateau PRIVATE src/cuda src/include)
-    target_link_libraries(cugateau PRIVATE timer)
     set_target_properties(cugateau PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     set_property(TARGET cugateau PROPERTY CUDA_ARCHITECTURES OFF)
     

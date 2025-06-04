@@ -20,8 +20,8 @@ struct ArrSpec {
 };
 
 struct Cascade {
-    float *eta_stage; /**< Efficiency terms associated with each stage of this cascade.*/
-    float *psd_stage; /**< Power spectral density of each parasitic source of this cascade.*/
+    float *eta_cascade; /**< Efficiency terms associated with each stage of this cascade.*/
+    float *psd_cascade; /**< Power spectral density of each parasitic source of this cascade.*/
     int num_stage; /**< Number of (grouped) stages in cascade.*/
 };
 

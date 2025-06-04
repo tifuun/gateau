@@ -26,7 +26,7 @@
   @returns val_interp Interpolated value of function on x0 and y0.
  */
 __device__ void interpValue(float x, float y, 
-            ArrSpec<float> *arrx, ArrSpec<float> *arry,
+            ArrSpec *arrx, ArrSpec *arry,
             float *vals, int offset, float &out) {
     
     int idx_x = floorf((x - arrx->start) / arrx->step);
