@@ -178,6 +178,7 @@ __global__ void calcPowerNEP(ArrSpec f_src,
                             float *psd_cascade,
                             float *eta_atm,
                             float *sigout, 
+                            float *nepout, 
                             float *source,
                             unsigned long long int seed = 0
                             ) 
@@ -212,9 +213,6 @@ __global__ void calcPowerNEP(ArrSpec f_src,
             
         curandState state;
 
-        float *nep = new float[cnf_ch]{};
-        if (nep == 0){printf("fail!");}
-        
         if (!seed) {
             seed = clock64();
         }
@@ -309,31 +307,24 @@ __global__ void calcPowerNEP(ArrSpec f_src,
             for(int k=0; k<cnf_ch; k++) {
                 eta_kj = tex1Dfetch( tex_filterbank, k*f_src.num + idy) * eta_filterbank;
                 psd_in = rad_trans(psd_in, eta_kj, psd_filterbank);
-                
-                sigfactor = eta_kj * psd_in * f_src.step;
+
+                sigfactor = psd_in * f_src.step; // Note that psd_in already has the eta_kj incorporated!
 
                 sigout[k*cnt + idx] += sigfactor; 
-
-                //printf("%d\n", k);
-                nep[k] += sigfactor * (HP * freq + eta_kj * psd_in + cGR_factor);
+                nepout[k*cnt + idx] += sigfactor * (HP * freq + eta_kj * psd_in + cGR_factor); 
             }
         }
-        // Outside freq loop now: start noise calc
-        //curandState localState = state;
+        
         float sqrt_samp = sqrtf(0.5 * cf_sample); // Constant term needed for noise calculation
         float sigma_k, P_k;
 
         #pragma unroll 
         for(int k=0; k<cnf_ch; k++) {
-            //if(idx == 0){printf("%.12e, %d\n", nep[k], k);}
-            sigma_k = sqrtf(2 * nep[k]) * sqrt_samp;
+            sigma_k = sqrtf(2 * nepout[k*cnt + idx]) * sqrt_samp;
             P_k = sigma_k * curand_normal(&state);
 
             sigout[k*cnt + idx] += P_k;
-            //if(idx == 0){printf("%.12e, %d\n", nep[k], k);}
         }
-        delete[] nep;
-        //printf("thread %d of %d finished\n", idx, cnt);
     }
 }
 
@@ -357,6 +348,7 @@ void run_gateau(Instrument *instrument,
                      char *outpath) {
     // FLOATS
     float *d_sigout;        // Device pointer for output power array
+    float *d_nepout;        // Device pointer for output power array
     float *d_I_nu;          // Device pointer for source intensities
     
     // INTEGERS
@@ -481,7 +473,6 @@ void run_gateau(Instrument *instrument,
     printf("\033[92m");
     int idx_wrap = 0;
     int time_counter = 0;
-    gpuErrchk( cudaDeviceSetLimit(cudaLimitMallocHeapSize, 128 * 1024 * 1024) );
     for(int idx=0; idx<nJobs; idx++) {
         if (idx_wrap == meta[0]) {
             idx_wrap = 0;
@@ -504,6 +495,7 @@ void run_gateau(Instrument *instrument,
 
         // Allocate output arrays
         gpuErrchk( cudaMalloc((void**)&d_sigout, nffnt * sizeof(float)) );
+        gpuErrchk( cudaMalloc((void**)&d_nepout, nffnt * sizeof(float)) );
 
         // Allocate PWV screen now, delete CUDA allocation after first kernel call
         float *PWV_screen;
@@ -535,6 +527,7 @@ void run_gateau(Instrument *instrument,
                                                   dpsd_cascade, 
                                                   deta_atm,
                                                   d_sigout,
+                                                  d_nepout,
                                                   d_I_nu);
         
         gpuErrchk( cudaDeviceSynchronize() );
@@ -552,6 +545,7 @@ void run_gateau(Instrument *instrument,
         write1DArray<float>(sigout, str_outpath, signame);
         
         gpuErrchk( cudaFree(d_sigout) );
+        gpuErrchk( cudaFree(d_nepout) );
 
         idx_wrap++;
     }
