@@ -2,7 +2,7 @@
 *.swo
 .coverage
 __pycache__/*
-src/tiempo2/__pycache__/*
+src/gateau/__pycache__/*
 build/
 *.egg-info/
 *.so

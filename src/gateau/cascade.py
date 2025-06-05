@@ -98,7 +98,7 @@ def eta_Al_ohmic(F_sky: np.ndarray) -> np.ndarray:
     Array with eta values for Ohmic losses.
     """
 
-    return 1.0 - (1.0 - eta_Al_ohmic_850) * np.sqrt(F_sky / 850)
+    return 1.0 - (1.0 - eta_Al_ohmic_850) * np.sqrt(F_sky / 850e9)
 
 def sizer(eta: Union[np.ndarray, float], 
            F_sky: np.ndarray, 
@@ -197,7 +197,7 @@ def get_cascade(cascade_list: List[Dict[any, any]],
             if (T_casc := cascade_list[idx_group[0]].get("T_parasitic")) == "atmosphere":
                 all_psd.append(-1*np.ones(F_sky.size)) # Group couples to atmosphere: set all psd here to -1 and deal with it in CUDA backend.
             else:
-                all_psd.append(johnson_nyquist_psd(F_sky*1e9, T_casc)) # Calculate psd for T_parasitic
+                all_psd.append(johnson_nyquist_psd(F_sky, T_casc)) # Calculate psd for T_parasitic
 
             for idx_g in idx_group:
                 eta_interp_flag = False
@@ -224,7 +224,7 @@ def get_cascade(cascade_list: List[Dict[any, any]],
         if casc_t == 1:
             for idx_g in idx_group:
                 casc = cascade_list[idx_g]
-                etas, psds = window_trans(F_sky * 1e9,
+                etas, psds = window_trans(F_sky,
                                           casc.get("thickness"), 
                                           casc.get("tandelta"), 
                                           casc.get("neff"), 

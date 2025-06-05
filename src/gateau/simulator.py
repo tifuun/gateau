@@ -173,10 +173,12 @@ class simulator(object):
 
         eta_cascade, psd_cascade = gcascade.get_cascade(cascade_list, self.source["f_src"])
 
-        print(eta_cascade)
+        eta_stage = np.array([x for arr in eta_cascade for x in arr])
+        psd_stage = np.array([x for arr in psd_cascade for x in arr])
+
         self.cascade = {
-                "eta_stage"     : np.concatenate(eta_cascade),
-                "psd_stage"     : np.concatenate(psd_cascade),
+                "eta_stage"     : eta_stage,
+                "psd_stage"     : psd_stage,
                 "num_stage"     : len(eta_cascade) - 1
                 }
 
@@ -231,7 +233,6 @@ class simulator(object):
         # Some handy returns
         eta_total = np.ones(self.source["f_src"].size)
         for eta in eta_cascade:
-            print(eta)
             eta_total *= eta
 
         return eta_total, az_scan, el_scan
@@ -276,7 +277,7 @@ class simulator(object):
             elif not overwrite:
                 self.clog.warning(f"Output path {outpath} exists! Overwrite or change path?")
                 choice = input("\033[93mOverwrite (y/n)? > ").lower()
-                if choice == "y":
+                if choice == "y" or choice == "":
                     shutil.rmtree(outpath)
                 else:
                     outpath = input("\033[93mSpecify new output path: > ")

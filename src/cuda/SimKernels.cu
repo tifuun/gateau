@@ -212,7 +212,8 @@ __global__ void calcPowerNEP(ArrSpec f_src,
             
         curandState state;
 
-        float *nep = new float[cnf_ch];
+        float *nep = new float[cnf_ch]{};
+        if (nep == 0){printf("fail!");}
         
         if (!seed) {
             seed = clock64();
@@ -246,7 +247,6 @@ __global__ void calcPowerNEP(ArrSpec f_src,
         bool offsource = ((az_point < az_src.start) or (az_point > az_src_max)) or 
                          ((el_point < el_src.start) or (el_point > el_src_max));
 
-        printf("%.12e, %.12e, %.12e\n", az_point, az_src.start, az_src_max);
         // This can be improved quite alot...
         if(offsource) 
         {
@@ -313,7 +313,9 @@ __global__ void calcPowerNEP(ArrSpec f_src,
                 sigfactor = eta_kj * psd_in * f_src.step;
 
                 sigout[k*cnt + idx] += sigfactor; 
-                nep[k] += sigfactor * (HP * freq + eta_kj * psd_in +  cGR_factor);
+
+                //printf("%d\n", k);
+                nep[k] += sigfactor * (HP * freq + eta_kj * psd_in + cGR_factor);
             }
         }
         // Outside freq loop now: start noise calc
@@ -323,12 +325,15 @@ __global__ void calcPowerNEP(ArrSpec f_src,
 
         #pragma unroll 
         for(int k=0; k<cnf_ch; k++) {
+            //if(idx == 0){printf("%.12e, %d\n", nep[k], k);}
             sigma_k = sqrtf(2 * nep[k]) * sqrt_samp;
             P_k = sigma_k * curand_normal(&state);
 
             sigout[k*cnt + idx] += P_k;
+            //if(idx == 0){printf("%.12e, %d\n", nep[k], k);}
         }
         delete[] nep;
+        //printf("thread %d of %d finished\n", idx, cnt);
     }
 }
 
@@ -445,11 +450,11 @@ void run_gateau(Instrument *instrument,
     gpuErrchk( cudaBindTexture((size_t)0, tex_eta_ap, deta_ap, nf_src * sizeof(float)) );
 
     float *daz_scan, *del_scan;
-    gpuErrchk( cudaMalloc((void**)&daz_scan, nf_src * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(daz_scan, telescope->az_scan, nf_src * sizeof(float), cudaMemcpyHostToDevice) );
-    gpuErrchk( cudaMalloc((void**)&del_scan, nf_src * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(del_scan, telescope->el_scan, nf_src * sizeof(float), cudaMemcpyHostToDevice) );
-    
+    gpuErrchk( cudaMalloc((void**)&daz_scan, nTimesTotal * sizeof(float)) );
+    gpuErrchk( cudaMemcpy(daz_scan, telescope->az_scan, nTimesTotal * sizeof(float), cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaMalloc((void**)&del_scan, nTimesTotal * sizeof(float)) );
+    gpuErrchk( cudaMemcpy(del_scan, telescope->el_scan, nTimesTotal * sizeof(float), cudaMemcpyHostToDevice) );
+
     // Allocate and copy atmosphere arrays
     float *deta_atm;
     int neta_atm = _f_atm.num * _PWV_atm.num;
@@ -470,10 +475,13 @@ void run_gateau(Instrument *instrument,
 
     std::string datp;
 
+    int size_heap = 1024 * 2 * instrument->nf_ch * sizeof(float);
+
     // Loop starts here
     printf("\033[92m");
     int idx_wrap = 0;
     int time_counter = 0;
+    gpuErrchk( cudaDeviceSetLimit(cudaLimitMallocHeapSize, 128 * 1024 * 1024) );
     for(int idx=0; idx<nJobs; idx++) {
         if (idx_wrap == meta[0]) {
             idx_wrap = 0;
