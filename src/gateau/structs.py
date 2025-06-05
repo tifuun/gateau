@@ -12,66 +12,60 @@ class ArrSpec(Structure):
     Used when it is not necessary to pass full dictionaries.
     """
 
-    def __init__(self):
-        self._fields_ = [("start", c_float),
-                    ("step", c_float),
-                    ("num", c_int)]
+    _fields_ = [("start", c_float),
+                ("step", c_float),
+                ("num", c_int)]
 
 class Cascade(Structure):
     """!
     Struct for storing all (grouped) stages in a cascade.
     """
 
-    def __init__(self):
-        self._fields_ = [("eta_stage", POINTER(c_float)),
-                         ("psd_stage", POINTER(c_float)),
-                         ("num_stage", c_int)]
+    _fields_ = [("eta_stage", POINTER(c_float)),
+                 ("psd_stage", POINTER(c_float)),
+                 ("num_stage", c_int)]
 
 class Instrument(Structure):
     """!
     Struct representing the simulated instrument.
     """
 
-    def __init__(self):
-        self._fields_ = [("nf_ch", c_int),
-                ("f_spec", ArrSpec),
-                ("f_sample", c_float),
-                ("filterbank", POINTER(c_float)),
-                ("delta", c_float),
-                ("eta_pb", c_float)]
+    _fields_ = [("nf_ch", c_int),
+            ("f_sample", c_float),
+            ("filterbank", POINTER(c_float)),
+            ("delta", c_float),
+            ("eta_pb", c_float)]
 
 class Telescope(Structure):
     """!
     Struct representing the simulated telescope.
     """
 
-    def __init__(self):
-        self._fields_ = [
-                ("eta_ap", POINTER(c_float)),
-                ("az_scan", POINTER(c_float)),
-                ("el_scan", POINTER(c_float))]
+    _fields_ = [
+            ("eta_ap", POINTER(c_float)),
+            ("az_scan", POINTER(c_float)),
+            ("el_scan", POINTER(c_float))]
 
 class Atmosphere(Structure):
     """!
     Struct representing the simulated atmosphere.
     """
 
-    def __init__(self):
-        self._fields_ = [("Tatm", c_float),
-                ("v_wind", c_float),
-                ("h_column", c_float),
-                ("dx", c_float),
-                ("dy", c_float),
-                ("path", c_char_p)]
+    _fields_ = [("Tatm", c_float),
+            ("v_wind", c_float),
+            ("h_column", c_float),
+            ("dx", c_float),
+            ("dy", c_float),
+            ("path", c_char_p)]
 
 class Source(Structure):
     """!
     Struct representing simulated astronomical source.
     """
 
-    def __init__(self):
-        self._fields_ = [("az_src_spec", ArrSpec),
-                ("el_src_spec", ArrSpec),
-                ("I_nu", POINTER(c_float)),
-                ("nI_nu", c_int)]
+    _fields_ = [("az_src_spec", ArrSpec),
+            ("el_src_spec", ArrSpec),
+            ("f_spec", ArrSpec),
+            ("I_nu", POINTER(c_float)),
+            ("nI_nu", c_int)]
 

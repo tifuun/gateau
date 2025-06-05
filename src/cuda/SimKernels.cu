@@ -6,12 +6,12 @@
     author: Arend Moerman
 */
 
-#define PI 3.14159265  /* pi */
 
-// DEFINITIONS OF PHYSICAL CONSTANTS
+// DEFINITIONS OF PHYSICAL AND MATHEMATICAL CONSTANTS
 #define KB              1.380649E-23f
 #define CL              2.9979246E8f
 #define HP              6.62607015E-34f
+#define PI              3.14159265
 
 // HANDY STUFF
 #define DEG2RAD PI/180
@@ -35,8 +35,6 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> tex_psd_atm;
 
 // CONSTANTS FOR KERNEL LAUNCHES
 #define NTHREADS1D      256
-#define NTHREADS2DX     32
-#define NTHREADS2DY     16
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
@@ -110,24 +108,10 @@ __host__ inline float get_jn_noise(float T, float nu)
   @returns Cascade output PSD.
  */
 __device__ __inline__ float rad_trans(float psd_in, 
-        float eta, 
-        float psd_parasitic)
+                                      float eta, 
+                                      float psd_parasitic)
 {
     return eta * psd_in + (1 - eta) * psd_parasitic;
-}
-/**
-  Convert an Az-El co-ordinate to a projected x-y co-ordinate on the atmosphere.
-
-  @param angles Az-El co-ordinate to convert.
-  @param out Container for storing the calculated x-y point.
- */
-__device__ __inline__ void convertAnglesToSpatialAtm(AzEl* angles, xy_atm* out) {
-    
-    float coord = __tanf(DEG2RAD * angles->Az) * ch_column;
-    
-    out->xAz = coord;
-    coord = __tanf(DEG2RAD * angles->El) * ch_column;
-    out->yEl = coord;
 }
 
 /**
@@ -219,12 +203,13 @@ __global__ void calcPowerNEP(ArrSpec f_src,
         float sigfactor;        // Factor for calculating power. Perform outside of channel loop for speed.
         float csc_el;           // Cosecant of elevation angle.
         float psd_parasitic_use;
+        float az_point, el_point;
+        float x_point, y_point;
+        float psd_atm;
 
         // INTEGERS
         int x0y0, x1y0, x0y1, x1y1; // Indices for interpolation
             
-        AzEl pointing;
-        xy_atm point_atm;       // Struct for storing projected pointing x-y coordinates on atmosphere screen.
         curandState state;
 
         float *nep = new float[cnf_ch];
@@ -237,35 +222,36 @@ __global__ void calcPowerNEP(ArrSpec f_src,
 
         time = idx * cdt;
 
-        pointing.Az = az_scan[idx];
-        pointing.El = el_scan[idx];
+        az_point = az_scan[idx];
+        el_point = el_scan[idx];
+
+        x_point = __tanf(DEG2RAD * az_point) * ch_column + cv_wind * time;
+        y_point = __tanf(DEG2RAD * el_point) * ch_column;
 
         // Interpolate on atmosphere
-        convertAnglesToSpatialAtm(&pointing, &point_atm);
-        
-        point_atm.xAz = point_atm.xAz + cv_wind * time;
-    
-        interpValue(point_atm.xAz, point_atm.yEl,
+        interpValue(x_point, y_point,
                     &x_atm, &y_atm, PWV_screen, 0, PWV_tr);            
     
         curand_init(seed, idx, 0, &state);
         
-        csc_el = 1. / __sinf(DEG2RAD * pointing.El);
+        csc_el = 1. / __sinf(DEG2RAD * el_point);
 
-        int iAz = floorf((pointing.Az - az_src.start) / az_src.step);
-        int iEl = floorf((pointing.El - el_src.start) / el_src.step);
+
+        int iAz = floorf((az_point - az_src.start) / az_src.step);
+        int iEl = floorf((el_point - el_src.start) / el_src.step);
 
         float az_src_max = az_src.start + az_src.step * (az_src.num - 1);
         float el_src_max = el_src.start + el_src.step * (el_src.num - 1);
 
-        bool offsource = ((pointing.Az < az_src.start) or (pointing.Az > az_src_max)) or 
-                         ((pointing.El < el_src.start) or (pointing.El > el_src_max));
+        bool offsource = ((az_point < az_src.start) or (az_point > az_src_max)) or 
+                         ((el_point < el_src.start) or (el_point > el_src_max));
 
+        printf("%.12e, %.12e, %.12e\n", az_point, az_src.start, az_src_max);
         // This can be improved quite alot...
         if(offsource) 
         {
-            pointing.Az = az_src_max;
-            pointing.El = el_src_max;
+            az_point = az_src_max;
+            el_point = el_src_max;
         }
         
         x0y0 = f_src.num * (iAz + iEl * az_src.num);
@@ -273,12 +259,16 @@ __global__ void calcPowerNEP(ArrSpec f_src,
         x0y1 = f_src.num * (iAz + (iEl+1) * az_src.num);
         x1y1 = f_src.num * (iAz + 1 + (iEl+1) * az_src.num);
         
-        t = (pointing.Az - (az_src.start + az_src.step*iAz)) / az_src.step;
-        u = (pointing.El - (el_src.start + el_src.step*iEl)) / el_src.step;
+        t = (az_point - (az_src.start + az_src.step*iAz)) / az_src.step;
+        u = (el_point - (el_src.start + el_src.step*iEl)) / el_src.step;
         
         // Hier ongeveer starten met loopen over f_src
         for (int idy=0; idy<f_src.num; idy++)
         {
+            //if (idx == 0) {
+                //printf("%d, %d\n", idy, idx);
+                //printf("%.12e, %.12e, %.12e\n", el_point, el_src.start, el_src_max);
+            //}
             I_nu = (1-t)*(1-u) * source[x0y0 + idy];
             I_nu += t*(1-u) * source[x1y0 + idy];
             I_nu += (1-t)*u * source[x0y1 + idy];
@@ -293,10 +283,11 @@ __global__ void calcPowerNEP(ArrSpec f_src,
             eta_ap = tex1Dfetch(tex_eta_ap, idy); 
 
             eta_atm_interp = __powf(eta_atm_interp, csc_el);
-            
+            psd_atm = tex1Dfetch(tex_psd_atm, idy);
+
             // Initial pass through atmosphere
             psd_in = eta_ap * I_nu * CL*CL / (freq*freq); 
-            psd_in = rad_trans(psd_in, eta_atm_interp, tex1Dfetch(tex_psd_atm, idy));
+            psd_in = rad_trans(psd_in, eta_atm_interp, psd_atm);
 
             // Radiative transfer cascade
             #pragma unroll 
@@ -305,7 +296,7 @@ __global__ void calcPowerNEP(ArrSpec f_src,
                 psd_parasitic_use = psd_cascade[idy + n*f_src.num];
                 if (psd_parasitic_use < 0) 
                 {
-                    psd_parasitic_use = eta_atm_interp * tex1Dfetch(tex_psd_atm, idy); // Make more efficient
+                    psd_parasitic_use = eta_atm_interp * psd_atm;
                 }
 
                 psd_in = rad_trans(psd_in, eta_cascade[idy + n*f_src.num], psd_parasitic_use);
@@ -361,8 +352,6 @@ void run_gateau(Instrument *instrument,
                      char *outpath) {
     // FLOATS
     float *d_sigout;        // Device pointer for output power array
-    float *d_az_scan;         // Device pointer for scan Azimuth array 
-    float *d_el_scan;         // Device pointer for scan Elevation array
     float *d_I_nu;          // Device pointer for source intensities
     
     // INTEGERS
@@ -376,7 +365,7 @@ void run_gateau(Instrument *instrument,
     dim3 gridSize1D;        // Number of 1D blocks per grid
 
     // ALLOCATE ARRAY SPECIFICATION COPIES
-    struct ArrSpec _f_spec = instrument->f_spec;
+    struct ArrSpec _f_spec = source->f_spec;
     struct ArrSpec _Az_src = source->az_src_spec;
     struct ArrSpec _El_src = source->el_src_spec;
     

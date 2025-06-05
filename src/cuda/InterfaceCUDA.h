@@ -14,12 +14,9 @@
 #include "cuda.h"
 #include "curand_kernel.h"
 
-#include "CuScan.h"
 #include "CuInterpUtils.h"
 #include "FileIO.h"
 #include "Structs.h"
-
-#define CEFFSSIZE 4
 
 #ifdef _WIN32
 #   define GATEAU_DLL __declspec(dllexport)

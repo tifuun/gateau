@@ -195,7 +195,7 @@ def get_cascade(cascade_list: List[Dict[any, any]],
             eta_grouped = np.ones(F_sky.size)
 
             if (T_casc := cascade_list[idx_group[0]].get("T_parasitic")) == "atmosphere":
-                all_psd.append(T_casc) # Group couples to atmosphere: calculate psd in rad trans loop.
+                all_psd.append(-1*np.ones(F_sky.size)) # Group couples to atmosphere: set all psd here to -1 and deal with it in CUDA backend.
             else:
                 all_psd.append(johnson_nyquist_psd(F_sky*1e9, T_casc)) # Calculate psd for T_parasitic
 
@@ -223,6 +223,7 @@ def get_cascade(cascade_list: List[Dict[any, any]],
         
         if casc_t == 1:
             for idx_g in idx_group:
+                casc = cascade_list[idx_g]
                 etas, psds = window_trans(F_sky * 1e9,
                                           casc.get("thickness"), 
                                           casc.get("tandelta"), 
@@ -230,7 +231,6 @@ def get_cascade(cascade_list: List[Dict[any, any]],
                                           casc.get("window_AR"), 
                                           casc.get("T_parasitic_refl"), 
                                           casc.get("T_parasitic_refr")) 
-
                 all_eta.extend(etas)
                 all_psd.extend(psds)
     

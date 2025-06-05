@@ -27,7 +27,6 @@ struct Cascade {
 
 struct Instrument {
     int nf_ch;          /**< Number of elements in freqs.*/
-    struct ArrSpec f_spec;
     float f_sample; /**< Readout frequency of instrument in Hertz.*/
     float *filterbank; /**< Array with filterbank matrix, flattened.*/
     float delta;       /**< Superconducting bandgap energy in Joules.*/
@@ -54,6 +53,7 @@ struct Atmosphere {
 struct Source {
     struct ArrSpec az_src_spec;
     struct ArrSpec el_src_spec;
+    struct ArrSpec f_spec;
     
     float *I_nu;       /**< Flat array of specific intensities.*/
     int nI_nu;         /**< Number of source intensities.*/

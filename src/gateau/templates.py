@@ -10,9 +10,6 @@ File containing templates for input dictionaries.
 instrument = {
         "f0_ch"         : "Lowest frequency in filterbank in GHz (float or array). If an array is passed, 'nf_ch' is ignored and the filters are evaluated at the frequencies in the array",
         "nf_ch"         : "Number of frequencies in filterbank (int).",
-        "f0_src"        : "Lowest frequency in source in GHz (float).",
-        "f1_src"        : "Largest frequency in source in GHz (float).",
-        "nf_src"        : "Number of source frequency points (int).",
         "R"             : "Resolving power f / df (int).",
         "f_sample"      : "Readout frequency in Hertz (float).",
         "box_eq"        : "If True, eta_filt is height of equivalent box filter. If False, eta_filt is peak height. Default is True.",
@@ -55,6 +52,7 @@ atmosphere = {
 Source = {
         "az_src"            : "Azimuthal range of source in arcseconds",
         "el_src"            : "Elevation range of source in arcseconds",
+        "f_src"             : "Array with source frequencies in GHz, must be regular, i.e. uniform stepsize."
         "I_nu"              : "Source cube, in azimuth, elevation, and frequencies. Units in SI, i.e. W / m**2 / sr / Hz.",
         }
 

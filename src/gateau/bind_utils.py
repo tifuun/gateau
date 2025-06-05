@@ -32,10 +32,7 @@ def allfillInstrument(InstDict, InstStruct):
 
     arr_filterbank = ar.array('f', InstDict["filterbank"].ravel())
 
-    df_src = (InstDict["f1_src"] - InstDict["f0_src"]) / InstDict["nf_src"]
-
     InstStruct.nf_ch = c_int(InstDict["nf_ch"])
-    InstStruct.f_spec = arr2ArrSpec(InstDict["f_src"])
     InstStruct.f_sample = c_float(InstDict["f_sample"])
     InstStruct.filterbank = (c_float * InstDict["filterbank"].size).from_buffer(arr_filterbank)
     InstStruct.delta = c_float(InstDict["delta"])
@@ -66,7 +63,7 @@ def allfillAtmosphere(AtmDict, AtmStruct):
     @param ct_t Type of data. Use ctypes.c_double for CPU, ctypes.c_float for GPU.
     """
 
-    AtmStruct.Tatm = c_float(AtmDict["Tatm"])
+    AtmStruct.Tatm = c_float(AtmDict["T_atm"])
     AtmStruct.v_wind = c_float(AtmDict["v_wind"])
     AtmStruct.h_column = c_float(AtmDict["h_column"])
     AtmStruct.dx = c_float(AtmDict["dx"])
@@ -87,6 +84,7 @@ def allfillSource(SourceDict, SourceStruct):
 
     SourceStruct.az_src_spec = arr2ArrSpec(SourceDict["az_src"])
     SourceStruct.el_src_spec = arr2ArrSpec(SourceDict["el_src"])
+    SourceStruct.f_spec = arr2ArrSpec(SourceDict["f_src"])
     SourceStruct.I_nu = (c_float * SourceDict["I_nu"].size).from_buffer(arr_I_nu) 
     SourceStruct.nI_nu = c_int(SourceDict["I_nu"].size)
 

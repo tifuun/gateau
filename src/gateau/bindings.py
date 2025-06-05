@@ -3,7 +3,7 @@
 Bindings for the ctypes interface for gateau. 
 """
 
-from ctypes import Structure, POINTER, c_float, c_int, c_char_p
+from ctypes import Structure, POINTER, c_float, c_int, c_char_p, CDLL
 import numpy as np
 import os
 import pathlib
@@ -12,7 +12,7 @@ import gateau.threadmgr as gmanager
 import gateau.structs as gstructs
 import gateau.bind_utils as gutils
 
-def load_gateaulib():
+def load_gateaulib() -> CDLL:
     """!
     Load the gateau shared library. Will detect the operating system and link the library accordingly.
 
@@ -21,12 +21,12 @@ def load_gateaulib():
 
     path_cur = pathlib.Path(__file__).parent.resolve()
     try:
-        lib = ctypes.CDLL(os.path.join(path_cur, "libcugateau.dll"))
+        lib = CDLL(os.path.join(path_cur, "libcugateau.dll"))
     except:
         try:
-            lib = ctypes.CDLL(os.path.join(path_cur, "libcugateau.so"))
+            lib = CDLL(os.path.join(path_cur, "libcugateau.so"))
         except:
-            lib = ctypes.CDLL(os.path.join(path_cur, "libcugateau.dylib"))
+            lib = CDLL(os.path.join(path_cur, "libcugateau.dylib"))
 
     lib.run_gateau.argtypes = [POINTER(gstructs.Instrument), 
                                POINTER(gstructs.Telescope),
@@ -53,7 +53,6 @@ def run_gateau(instrument, telescope, atmosphere, source, cascade, nTimes, outpa
 
     @returns 2D array containing timestreams of power in detector, for each channel frequency
     """
-    import time
 
     lib = load_gateaulib()
     mgr = gmanager.Manager()
@@ -66,9 +65,7 @@ def run_gateau(instrument, telescope, atmosphere, source, cascade, nTimes, outpa
 
     gutils.allfillInstrument(instrument, _instrument)
     gutils.allfillTelescope(telescope, _telescope)
-    start = time.time()
     gutils.allfillAtmosphere(atmosphere, _atmosphere)
-    end = time.time()
     gutils.allfillSource(source, _source)
     gutils.allfillCascade(cascade, _cascade)
 
@@ -76,8 +73,6 @@ def run_gateau(instrument, telescope, atmosphere, source, cascade, nTimes, outpa
     coutpath = c_char_p(outpath.encode())
 
     size_out = nTimes * instrument["nf_ch"]
-
-    timed = end-start
 
     args = [_instrument, _telescope, _atmosphere, _source, _cascade, cnTimes, coutpath]
 

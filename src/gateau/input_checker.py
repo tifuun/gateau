@@ -6,10 +6,10 @@ Apart from checking, the functions also set default parameters that are not give
 """
 
 import numpy as np
-import tiempo2.materials as gmaterials
+import gateau.materials as gmaterials
 
 def checkTelescopeDict(telescopeDict):
-    checklist = ["eta_ap", "az_scan", "el_scan"]
+    checklist = ["eta_ap"]#, "az_scan", "el_scan"]
 
     errlist = []
         
@@ -62,3 +62,15 @@ def checkAtmosphereDict(atmosphereDict):
             errlist.append(key)
     
     return errlist
+
+def checkSourceDict(sourceDict):
+    checklist = ["I_nu", "az_src", "el_src", "f_src"]
+    
+    errlist = []
+
+    for key in checklist:
+        if sourceDict.get(key) is None:
+            errlist.append(key)
+    
+    return errlist
+    
