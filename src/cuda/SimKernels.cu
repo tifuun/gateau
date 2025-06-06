@@ -258,6 +258,7 @@ __global__ void calc_power(float *az_trace,
         float eta_atm_interp;   // Interpolated eta_atm, over frequency and PWV
         float freq;             // Bin frequency
         float psd_in;           // Local variable for storing PSD.
+        float psd_in_k;         // Local variable for calculating psd per channel
         float eta_kj;           // Filter efficiency for bin j, at channel k.
         float eta_ap;           // Local variable for storing aperture efficiency
         float sigfactor;        // Factor for calculating power. Perform outside of channel loop for speed.
@@ -341,15 +342,18 @@ __global__ void calc_power(float *az_trace,
             temp1 = eta_cascade[idy + cnum_stage*f_src.num];
             temp2 = psd_cascade[idy + cnum_stage*f_src.num];
 
+            if(idy==0 and idx== 0){printf("%.12e\n", psd_in);}
             #pragma unroll 
-            for(int k=0; k<cnf_ch; k++) {
-                eta_kj = tex1Dfetch( tex_filterbank, k*f_src.num + idy) * temp1;
-                psd_in = rad_trans(psd_in, eta_kj, temp2);
 
-                sigfactor = psd_in * f_src.step; // Note that psd_in already has the eta_kj incorporated!
+            for(int k=0; k<cnf_ch; k++) {
+                if(idy==0 and k==2 and idx== 0){printf("%.12e\n", psd_in);}
+                eta_kj = tex1Dfetch( tex_filterbank, k*f_src.num + idy) * temp1;
+                psd_in_k = rad_trans(psd_in, eta_kj, temp2);
+
+                sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
 
                 sigout[k*cnt + idx] += sigfactor; 
-                nepout[k*cnt + idx] += sigfactor * (HP * freq + eta_kj * psd_in + cGR_factor); 
+                nepout[k*cnt + idx] += sigfactor * (HP * freq + eta_kj * psd_in_k + cGR_factor); 
             }
         }
         
