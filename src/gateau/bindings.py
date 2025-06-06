@@ -3,7 +3,7 @@
 Bindings for the ctypes interface for gateau. 
 """
 
-from ctypes import Structure, POINTER, c_float, c_int, c_char_p, CDLL
+from ctypes import Structure, POINTER, c_float, c_int, c_char_p, c_longlong, CDLL
 import numpy as np
 import os
 import pathlib
@@ -34,13 +34,14 @@ def load_gateaulib() -> CDLL:
                                POINTER(gstructs.Source),
                                POINTER(gstructs.Cascade),
                                c_int, 
-                               c_char_p]
+                               c_char_p,
+                               c_longlong]
     
     lib.run_gateau.restype = None
 
     return lib
 
-def run_gateau(instrument, telescope, atmosphere, source, cascade, nTimes, outpath):
+def run_gateau(instrument, telescope, atmosphere, source, cascade, nTimes, outpath, seed=0):
     """!
     Binding for running the gateau simulation on GPU.
 
@@ -71,10 +72,11 @@ def run_gateau(instrument, telescope, atmosphere, source, cascade, nTimes, outpa
 
     cnTimes = c_int(nTimes)
     coutpath = c_char_p(outpath.encode())
+    cseed = c_longlong(seed)
 
     size_out = nTimes * instrument["nf_ch"]
 
-    args = [_instrument, _telescope, _atmosphere, _source, _cascade, cnTimes, coutpath]
+    args = [_instrument, _telescope, _atmosphere, _source, _cascade, cnTimes, coutpath, cseed]
 
     mgr.new_thread(target=lib.run_gateau, args=args)
 
