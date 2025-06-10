@@ -302,7 +302,7 @@ __global__ void calc_power(float *az_trace,
         t = (temp1 - (az_src.start + az_src.step*iAz)) / az_src.step;
         u = (temp2 - (el_src.start + el_src.step*iEl)) / el_src.step;
         
-        time_wrt_to(idx, 0);
+        //time_wrt_to(idx, 0);
         // Hier ongeveer starten met loopen over f_src
         for (int idy=0; idy<f_src.num; idy++)
         {
@@ -342,11 +342,9 @@ __global__ void calc_power(float *az_trace,
             temp1 = eta_cascade[idy + cnum_stage*f_src.num];
             temp2 = psd_cascade[idy + cnum_stage*f_src.num];
 
-            if(idy==0 and idx== 0){printf("%.12e\n", psd_in);}
             #pragma unroll 
 
             for(int k=0; k<cnf_ch; k++) {
-                if(idy==0 and k==2 and idx== 0){printf("%.12e\n", psd_in);}
                 eta_kj = tex1Dfetch( tex_filterbank, k*f_src.num + idy) * temp1;
                 psd_in_k = rad_trans(psd_in, eta_kj, temp2);
 
@@ -357,7 +355,7 @@ __global__ void calc_power(float *az_trace,
             }
         }
         
-        time_wrt_to(idx, 0);
+        //time_wrt_to(idx, 0);
         #pragma unroll 
         for(int k=0; k<cnf_ch; k++) {
             temp1 = sqrtf(2 * nepout[k*cnt + idx]) * csqrt_samp;
@@ -530,7 +528,6 @@ void run_gateau(Instrument *instrument,
         if (idx == (nJobs - 1)) {
             nTimesScreen = nTimesTotal - nTimesScreen*(nJobs-1);
         }
-        printf("%.12e\n", ftime_counter);
 
         gpuErrchk( cudaMemcpyToSymbol(ct_start, &ftime_counter, sizeof(float)) );
 
