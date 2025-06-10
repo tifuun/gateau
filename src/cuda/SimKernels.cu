@@ -36,7 +36,10 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> tex_eta_ap;
 texture<float, cudaTextureType1D, cudaReadModeElementType> tex_psd_atm;
 
 // CONSTANTS FOR KERNEL LAUNCHES
-#define NTHREADS1D      256
+#define NTHREADS1D      512
+
+#define NTHREADS2DX     32
+#define NTHREADS2DY     16
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
@@ -241,14 +244,16 @@ __global__ void calc_power(float *az_trace,
                             float *eta_atm,
                             float *sigout, 
                             float *nepout, 
-                            float *source,
-                            curandState *state) 
+                            float *source)
 {
     
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x; 
+    int idy = blockIdx.y * blockDim.y + threadIdx.y; 
 
-    if (idx < cnt) {
+    extern __shared__ float eta_psd_shared[];
+
+    if (idx < cnt && idy < f_src.num) {
         ///////////////////////////////////////
         // DEFINITIONS OF REGISTER VARIABLES //
         ///////////////////////////////////////
@@ -269,8 +274,6 @@ __global__ void calc_power(float *az_trace,
 
         // INTEGERS
         int x0y0, x1y0, x0y1, x1y1; // Indices for interpolation
-
-        curandState locstate = state[idx];
 
         temp1 = az_trace[idx];
         temp2 = el_trace[idx];
@@ -302,67 +305,84 @@ __global__ void calc_power(float *az_trace,
         t = (temp1 - (az_src.start + az_src.step*iAz)) / az_src.step;
         u = (temp2 - (el_src.start + el_src.step*iEl)) / el_src.step;
         
-        //time_wrt_to(idx, 0);
-        // Hier ongeveer starten met loopen over f_src
-        for (int idy=0; idy<f_src.num; idy++)
-        {
-            I_nu = (1-t)*(1-u) * source[x0y0 + idy];
-            I_nu += t*(1-u) * source[x1y0 + idy];
-            I_nu += (1-t)*u * source[x0y1 + idy];
-            I_nu += t*u * source[x1y1 + idy];
+        I_nu = (1-t)*(1-u) * source[x0y0 + idy];
+        I_nu += t*(1-u) * source[x1y0 + idy];
+        I_nu += (1-t)*u * source[x0y1 + idy];
+        I_nu += t*u * source[x1y1 + idy];
 
-            freq = f_src.start + f_src.step * idy;
+        freq = f_src.start + f_src.step * idy;
 
-            interpValue(temp3, freq,
-                        &pwv_atm, &f_atm,
-                        eta_atm, 0, eta_atm_interp);
+        interpValue(temp3, freq,
+                    &pwv_atm, &f_atm,
+                    eta_atm, 0, eta_atm_interp);
 
-            eta_ap = tex1Dfetch(tex_eta_ap, idy); 
+        eta_ap = tex1Dfetch(tex_eta_ap, idy); 
 
-            eta_atm_interp = __powf(eta_atm_interp, csc_el);
-            psd_atm = tex1Dfetch(tex_psd_atm, idy);
+        eta_atm_interp = __powf(eta_atm_interp, csc_el);
+        psd_atm = tex1Dfetch(tex_psd_atm, idy);
 
-            // Initial pass through atmosphere
-            psd_in = eta_ap * I_nu * CL*CL / (freq*freq); 
-            psd_in = rad_trans(psd_in, eta_atm_interp, psd_atm);
+        // Initial pass through atmosphere
+        psd_in = eta_ap * I_nu * CL*CL / (freq*freq); 
+        psd_in = rad_trans(psd_in, eta_atm_interp, psd_atm);
 
-            // Radiative transfer cascade
-            #pragma unroll 
-            for (int n=0; n<cnum_stage; n++) 
-            {
-                psd_parasitic_use = psd_cascade[idy + n*f_src.num];
-                if (psd_parasitic_use < 0) 
-                {
-                    psd_parasitic_use = eta_atm_interp * psd_atm;
-                }
-
-                psd_in = rad_trans(psd_in, eta_cascade[idy + n*f_src.num], psd_parasitic_use);
-            }
-
-            temp1 = eta_cascade[idy + cnum_stage*f_src.num];
-            temp2 = psd_cascade[idy + cnum_stage*f_src.num];
-
-            #pragma unroll 
-
-            for(int k=0; k<cnf_ch; k++) {
-                eta_kj = tex1Dfetch( tex_filterbank, k*f_src.num + idy) * temp1;
-                psd_in_k = rad_trans(psd_in, eta_kj, temp2);
-
-                sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
-
-                sigout[k*cnt + idx] += sigfactor; 
-                nepout[k*cnt + idx] += sigfactor * (HP * freq + eta_kj * psd_in_k + cGR_factor); 
-            }
-        }
-        
-        //time_wrt_to(idx, 0);
+        // Radiative transfer cascade
         #pragma unroll 
-        for(int k=0; k<cnf_ch; k++) {
-            temp1 = sqrtf(2 * nepout[k*cnt + idx]) * csqrt_samp;
-            temp2 = temp1 * curand_normal(&locstate);
+        for (int n=0; n<cnum_stage; n++) 
+        {
+            psd_parasitic_use = psd_cascade[n*f_src.num + idy];
+            if (psd_parasitic_use < 0) 
+            {
+                psd_parasitic_use = eta_atm_interp * psd_atm;
+            }
 
-            sigout[k*cnt + idx] += temp2;
-            state[idx] = locstate;
+            psd_in = rad_trans(psd_in, eta_cascade[n*f_src.num + idy], psd_parasitic_use);
+        }
+
+        temp1 = eta_cascade[cnum_stage*f_src.num + idy];
+        temp2 = psd_cascade[cnum_stage*f_src.num + idy];
+
+        #pragma unroll 
+
+        for(int k=0; k<cnf_ch; k++) {
+            eta_kj = tex1Dfetch( tex_filterbank, k*f_src.num + idy) * temp1;
+            psd_in_k = rad_trans(psd_in, eta_kj, temp2);
+
+            sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
+
+            atomicAdd(&sigout[k*cnt + idx], sigfactor); 
+            atomicAdd(&nepout[k*cnt + idx], sigfactor * (HP * freq + eta_kj * psd_in_k + cGR_factor)); 
+        }
+    }
+}
+
+/**
+  Calculate the total photon noise in a filter channel.
+
+  After calculating the noise std from the NEP, a random number from a Gaussian is drawn and added to the total power in a channel.
+  Note that, because we do not need the NEP after this step, we replace the value with a random Gaussian. 
+  This is necessary for the TLS noise calculation, which comes after.
+
+  @param sigout Array for storing output power, for each channel, for each time, in SI units.
+  @param nepout Array for storing output NEP, for each channel, for each time, in SI units.
+  @param state Array with states for drawing random Gaussian values for noise calculations.
+ */
+__global__ void calc_photon_noise(float *sigout, 
+                                 float *nepout, 
+                                 curandState *state) 
+{    
+    int idx = blockIdx.x * blockDim.x + threadIdx.x; 
+    
+    if (idx < cnt) {
+        curandState localState = state[idx];
+        float sigma_k, P_k;
+
+
+        for(int k=0; k<cnf_ch; k++) {
+            sigma_k = sqrtf(2 * nepout[k*cnt + idx]) * csqrt_samp;
+            P_k = sigma_k * curand_normal(&localState);
+
+            sigout[k*cnt + idx] += P_k;
+            state[idx] = localState;
         }
     }
 }
@@ -401,10 +421,14 @@ void run_gateau(Instrument *instrument,
     int nf_src;             // Number of frequency points in source.
     int numSMs;             // Number of streaming multiprocessors on GPU
     int nBlocks1D;          // Number of 1D blocks, in terms of number of SMs
+    int nBlocks2Dx;          // Number of 1D blocks, in terms of number of SMs
+    int nBlocks2Dy;          // Number of 1D blocks, in terms of number of SMs
 
     // OTHER DECLARATIONS
     dim3 blockSize1D;       // Size of 1D block (same as nThreads1D, but dim3 type)
     dim3 gridSize1D;        // Number of 1D blocks per grid
+    dim3 blockSize2D;       // Size of 1D block (same as nThreads1D, but dim3 type)
+    dim3 gridSize2D;        // Number of 1D blocks per grid
 
     // ALLOCATE ARRAY SPECIFICATION COPIES
     struct ArrSpec f_src = source->f_spec;
@@ -515,6 +539,8 @@ void run_gateau(Instrument *instrument,
 
     std::string datp;
 
+    int n_bytes_shared = 2 * NTHREADS1D * sizeof(float);
+
     // Loop starts here
     printf("\033[92m");
     int idx_wrap = 0;
@@ -544,6 +570,11 @@ void run_gateau(Instrument *instrument,
         blockSize1D = NTHREADS1D;
         gridSize1D = nBlocks1D*numSMs;
 
+        nBlocks2Dx = ceilf((float)nTimesScreen / NTHREADS2DX / numSMs);
+        nBlocks2Dy = ceilf((float)nf_src / NTHREADS2DY / numSMs);
+        blockSize2D = dim3(NTHREADS2DX, NTHREADS2DY);
+        gridSize2D = dim3(nBlocks2Dx*numSMs, nBlocks2Dy*numSMs);
+        
         // Allocate output arrays
         gpuErrchk( cudaMalloc((void**)&d_az_trace, nTimesScreen * sizeof(float)) );
         gpuErrchk( cudaMalloc((void**)&d_el_trace, nTimesScreen * sizeof(float)) );
@@ -567,7 +598,7 @@ void run_gateau(Instrument *instrument,
         
         gpuErrchk( cudaMalloc((void**)&d_pwv_screen, npwv_screen * sizeof(float)) );
         gpuErrchk( cudaMemcpy(d_pwv_screen, pwv_screen, npwv_screen * sizeof(float), cudaMemcpyHostToDevice) );
-       
+
         calc_traces_rng<<<gridSize1D, blockSize1D>>>(d_az_scan,
                                                      d_el_scan,
                                                      x_atm,
@@ -584,7 +615,7 @@ void run_gateau(Instrument *instrument,
         gpuErrchk( cudaFree(d_pwv_screen) );
 
         // CALL TO MAIN SIMULATION KERNEL
-        calc_power<<<gridSize1D, blockSize1D>>>(d_az_trace,
+        calc_power<<<gridSize2D, blockSize2D, n_bytes_shared>>>(d_az_trace,
                                                   d_el_trace,
                                                   d_pwv_trace,
                                                   f_atm, 
@@ -597,9 +628,11 @@ void run_gateau(Instrument *instrument,
                                                   d_eta_atm,
                                                   d_sigout,
                                                   d_nepout,
-                                                  d_I_nu,
-                                                  devstates);
+                                                  d_I_nu);
         
+        gpuErrchk( cudaDeviceSynchronize() );
+
+        calc_photon_noise<<<gridSize1D, blockSize1D>>>(d_sigout, d_nepout, devstates);
         gpuErrchk( cudaDeviceSynchronize() );
         
         gpuErrchk( cudaFree(devstates) );
