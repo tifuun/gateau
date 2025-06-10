@@ -36,7 +36,7 @@ extern "C"
                                Cascade *cascade,
                                int nTimesTotal, 
                                char *outpath,
-                               long long int seed);
+                               unsigned long long int seed);
 }
 
 #endif

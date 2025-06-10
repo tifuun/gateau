@@ -41,6 +41,8 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> tex_psd_atm;
 #define NTHREADS2DX     32
 #define NTHREADS2DY     16
 
+#define NCOALESCE       3
+
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
 /////////////////////////////////
@@ -152,7 +154,7 @@ __host__ void initCUDA(Instrument *instrument,
     float dt = 1. / instrument->f_sample;
     float GR_factor = 2 * instrument->delta / instrument->eta_pb;
     float sqrt_samp = sqrtf(0.5 / dt); // Constant term needed for noise calculation
-     
+
     // OBSERVATION-INSTRUMENT PARAMETERS
     gpuErrchk( cudaMemcpyToSymbol(cdt, &dt, sizeof(float)) );
     gpuErrchk( cudaMemcpyToSymbol(cf_sample, &(instrument->f_sample), sizeof(float)) );
@@ -251,7 +253,7 @@ __global__ void calc_power(float *az_trace,
     int idx = blockIdx.x * blockDim.x + threadIdx.x; 
     int idy = blockIdx.y * blockDim.y + threadIdx.y; 
 
-    extern __shared__ float eta_psd_shared[];
+    __shared__ float csc_el_shared[NTHREADS2DX];
 
     if (idx < cnt && idy < f_src.num) {
         ///////////////////////////////////////
@@ -279,7 +281,12 @@ __global__ void calc_power(float *az_trace,
         temp2 = el_trace[idx];
         temp3 = pwv_trace[idx];
 
-        csc_el = 1. / __sinf(DEG2RAD * temp2);
+        if(threadIdx.y == 0) 
+        {
+            csc_el_shared[threadIdx.x] = 1. / __sinf(DEG2RAD * temp2);
+        }
+
+        __syncthreads();
 
         int iAz = floorf((temp1 - az_src.start) / az_src.step);
         int iEl = floorf((temp2 - el_src.start) / el_src.step);
@@ -318,7 +325,7 @@ __global__ void calc_power(float *az_trace,
 
         eta_ap = tex1Dfetch(tex_eta_ap, idy); 
 
-        eta_atm_interp = __powf(eta_atm_interp, csc_el);
+        eta_atm_interp = __powf(eta_atm_interp, csc_el_shared[threadIdx.x]);
         psd_atm = tex1Dfetch(tex_psd_atm, idy);
 
         // Initial pass through atmosphere
@@ -342,7 +349,6 @@ __global__ void calc_power(float *az_trace,
         temp2 = psd_cascade[cnum_stage*f_src.num + idy];
 
         #pragma unroll 
-
         for(int k=0; k<cnf_ch; k++) {
             eta_kj = tex1Dfetch( tex_filterbank, k*f_src.num + idy) * temp1;
             psd_in_k = rad_trans(psd_in, eta_kj, temp2);
@@ -374,14 +380,13 @@ __global__ void calc_photon_noise(float *sigout,
     
     if (idx < cnt) {
         curandState localState = state[idx];
-        float sigma_k, P_k;
+        float sigma_k;
 
 
         for(int k=0; k<cnf_ch; k++) {
             sigma_k = sqrtf(2 * nepout[k*cnt + idx]) * csqrt_samp;
-            P_k = sigma_k * curand_normal(&localState);
 
-            sigout[k*cnt + idx] += P_k;
+            sigout[k*cnt + idx] += sigma_k * curand_normal(&localState);
             state[idx] = localState;
         }
     }
@@ -399,13 +404,13 @@ __global__ void calc_photon_noise(float *sigout,
   @param nTimes Number of time evaluations in simulation.
  */
 void run_gateau(Instrument *instrument, 
-                     Telescope *telescope, 
-                     Atmosphere *atmosphere, 
-                     Source *source, 
-                     Cascade *cascade,
-                     int nTimesTotal, 
-                     char *outpath,
-                     long long int seed) 
+                 Telescope *telescope, 
+                 Atmosphere *atmosphere, 
+                 Source *source, 
+                 Cascade *cascade,
+                 int nTimesTotal, 
+                 char *outpath,
+                 unsigned long long int seed) 
 {
     // FLOATS
     float *d_sigout;        // Device pointer for output power array
@@ -539,8 +544,6 @@ void run_gateau(Instrument *instrument,
 
     std::string datp;
 
-    int n_bytes_shared = 2 * NTHREADS1D * sizeof(float);
-
     // Loop starts here
     printf("\033[92m");
     int idx_wrap = 0;
@@ -599,40 +602,49 @@ void run_gateau(Instrument *instrument,
         gpuErrchk( cudaMalloc((void**)&d_pwv_screen, npwv_screen * sizeof(float)) );
         gpuErrchk( cudaMemcpy(d_pwv_screen, pwv_screen, npwv_screen * sizeof(float), cudaMemcpyHostToDevice) );
 
-        calc_traces_rng<<<gridSize1D, blockSize1D>>>(d_az_scan,
-                                                     d_el_scan,
-                                                     x_atm,
-                                                     y_atm,
-                                                     d_pwv_screen,
-                                                     d_az_trace,
-                                                     d_el_trace,
-                                                     d_pwv_trace,
-                                                     d_time_trace,
-                                                     devstates,
-                                                     seed);
+        calc_traces_rng<<<gridSize1D, 
+                          blockSize1D>>>
+                              (d_az_scan,
+                               d_el_scan,
+                               x_atm,
+                               y_atm,
+                               d_pwv_screen,
+                               d_az_trace,
+                               d_el_trace,
+                               d_pwv_trace,
+                               d_time_trace,
+                               devstates,
+                               seed);
 
         gpuErrchk( cudaDeviceSynchronize() );
         gpuErrchk( cudaFree(d_pwv_screen) );
 
         // CALL TO MAIN SIMULATION KERNEL
-        calc_power<<<gridSize2D, blockSize2D, n_bytes_shared>>>(d_az_trace,
-                                                  d_el_trace,
-                                                  d_pwv_trace,
-                                                  f_atm, 
-                                                  pwv_atm, 
-                                                  az_src, 
-                                                  el_src,
-                                                  f_src,
-                                                  d_eta_cascade,
-                                                  d_psd_cascade, 
-                                                  d_eta_atm,
-                                                  d_sigout,
-                                                  d_nepout,
-                                                  d_I_nu);
+        calc_power<<<gridSize2D, 
+                     blockSize2D>>>
+                         (d_az_trace,
+                          d_el_trace,
+                          d_pwv_trace,
+                          f_atm, 
+                          pwv_atm, 
+                          az_src, 
+                          el_src,
+                          f_src,
+                          d_eta_cascade,
+                          d_psd_cascade, 
+                          d_eta_atm,
+                          d_sigout,
+                          d_nepout,
+                          d_I_nu);
         
         gpuErrchk( cudaDeviceSynchronize() );
 
-        calc_photon_noise<<<gridSize1D, blockSize1D>>>(d_sigout, d_nepout, devstates);
+        calc_photon_noise<<<gridSize1D, 
+                            blockSize1D>>>
+                                (d_sigout, 
+                                 d_nepout, 
+                                 devstates);
+
         gpuErrchk( cudaDeviceSynchronize() );
         
         gpuErrchk( cudaFree(devstates) );

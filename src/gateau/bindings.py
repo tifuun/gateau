@@ -3,7 +3,7 @@
 Bindings for the ctypes interface for gateau. 
 """
 
-from ctypes import Structure, POINTER, c_float, c_int, c_char_p, c_longlong, CDLL
+from ctypes import Structure, POINTER, c_float, c_int, c_char_p, c_ulonglong, CDLL
 import numpy as np
 import os
 import pathlib
@@ -35,7 +35,7 @@ def load_gateaulib() -> CDLL:
                                POINTER(gstructs.Cascade),
                                c_int, 
                                c_char_p,
-                               c_longlong]
+                               c_ulonglong]
     
     lib.run_gateau.restype = None
 
@@ -72,7 +72,7 @@ def run_gateau(instrument, telescope, atmosphere, source, cascade, nTimes, outpa
 
     cnTimes = c_int(nTimes)
     coutpath = c_char_p(outpath.encode())
-    cseed = c_longlong(seed)
+    cseed = c_ulonglong(seed)
 
     size_out = nTimes * instrument["nf_ch"]
 
