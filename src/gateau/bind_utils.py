@@ -11,7 +11,8 @@ import gateau.structs as gstructs
 import os
 import array as ar
 
-def allfillCascade(CascadeDict, CascadeStruct):
+def allfillCascade(CascadeDict: dict[str, any], 
+                   CascadeStruct: Structure) -> None:
     """!
     """
     arr_eta = ar.array('f', CascadeDict["eta_stage"].ravel())
@@ -21,7 +22,8 @@ def allfillCascade(CascadeDict, CascadeStruct):
     CascadeStruct.psd_stage = (c_float * CascadeDict["psd_stage"].size).from_buffer(arr_psd)
     CascadeStruct.num_stage = c_int(CascadeDict["num_stage"])
 
-def allfillInstrument(InstDict, InstStruct):
+def allfillInstrument(InstDict: dict[str, any], 
+                      InstStruct: Structure) -> None:
     """!
     Allocate and fill an instrument struct for ctypes.
     
@@ -38,7 +40,8 @@ def allfillInstrument(InstDict, InstStruct):
     InstStruct.delta = c_float(InstDict["delta"])
     InstStruct.eta_pb = c_float(InstDict["eta_pb"])
 
-def allfillTelescope(TelDict, TelStruct):
+def allfillTelescope(TelDict: dict[str, any], 
+                     TelStruct: Structure) -> None:
     """!
     Allocate and fill a telescope struct for ctypes.
     
@@ -54,7 +57,8 @@ def allfillTelescope(TelDict, TelStruct):
     TelStruct.az_scan = (c_float * TelDict["az_scan"].size).from_buffer(arr_az_scan)
     TelStruct.el_scan = (c_float * TelDict["el_scan"].size).from_buffer(arr_el_scan)
 
-def allfillAtmosphere(AtmDict, AtmStruct):
+def allfillAtmosphere(AtmDict: dict[str, any], 
+                      AtmStruct: Structure) -> None:
     """!
     Allocate and fill an atmosphere struct for ctypes.
     
@@ -70,7 +74,8 @@ def allfillAtmosphere(AtmDict, AtmStruct):
     AtmStruct.dy = c_float(AtmDict["dy"])
     AtmStruct.path = c_char_p(os.path.join(AtmDict["path"], "prepd").encode())
 
-def allfillSource(SourceDict, SourceStruct):
+def allfillSource(SourceDict: dict[str, any], 
+                  SourceStruct: Structure) -> None:
     """!
     Allocate and fill a source object struct for ctypes.
     
@@ -88,12 +93,13 @@ def allfillSource(SourceDict, SourceStruct):
     SourceStruct.I_nu = (c_float * SourceDict["I_nu"].size).from_buffer(arr_I_nu) 
     SourceStruct.nI_nu = c_int(SourceDict["I_nu"].size)
 
-def allfillArrSpec(arr, ArrSpecStruct):
+def allfillArrSpec(arr: np.ndarray, 
+                   ArrSpecStruct: Structure) -> None:
     ArrSpecStruct.start = c_float(arr[0])    
     ArrSpecStruct.step = c_float(arr[1] - arr[0])    
     ArrSpecStruct.num = c_int(arr.size)    
 
-def arr2ArrSpec(arr):
+def arr2ArrSpec(arr: np.ndarray) -> Structure:
     arrspec = gstructs.ArrSpec()
     allfillArrSpec(arr, arrspec)
 

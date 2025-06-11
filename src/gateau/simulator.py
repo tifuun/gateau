@@ -16,9 +16,8 @@ import logging
 from gateau.custom_logger import CustomLogger
 from gateau.utilities import get_eta_atm, average_over_filterbank
 
-from typing import Callable, Optional, Sequence, List, Union, Dict, Tuple, Any
-
-ArrayLike = Union[np.ndarray, List[float], List[int], float, int]
+from collections.abc import Iterator, Callable
+from typing import Union
 
 logging.getLogger(__name__)
 
@@ -43,12 +42,8 @@ class simulator(object):
     Interface for gateau simulations
 
     Attributes:
-        __<type>Dict    :   Storage for input dictionaries. These dictionaries are raw copies of user input dicts.
-                            When the input dictionary passes the input test, it will be copied to this dictionary.
         <type>Dict      :   Storage for input dictionaries. 
                             These are evaluated versions of the user input, containing references to actual data.
-        <type>_set      :   Flags for signifying that a dictionary has been validly set. 
-                            Will only be set to 'True' if the dictionary passes the input test.
         clog_mgr        :   Logger manager. Top-level wrapper for actual logger.
                             Manager handles meta information, such as pwd.
         clog            :   Custom logger for communicating information, warnings, and errors to user.
@@ -118,7 +113,7 @@ class simulator(object):
         self.outPath = outPath
 
     def set_gateau_dict(self, 
-                        input_dict: Dict[str, any], 
+                        input_dict: dict[str, any], 
                         check_func: Callable, 
                         label_dict: str) -> None:
         """!
@@ -142,12 +137,15 @@ class simulator(object):
 
     def initialise(self, 
                    t_obs: float, 
-                   scan_func: Callable,
-                   instrument_dict: Dict[str, any],
-                   telescope_dict: Dict[str, any],
-                   atmosphere_dict: Dict[str, any],
-                   source_dict: Dict[str, any],
-                   cascade_list: List[Dict[str, any]]) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
+                   scan_func: Union[Callable, list[Callable]],
+                   instrument_dict: dict[str, any],
+                   telescope_dict: dict[str, any],
+                   atmosphere_dict: dict[str, any],
+                   source_dict: dict[str, any],
+                   cascade_list: list[dict[str, any]]) -> tuple[np.ndarray, 
+                                                                np.ndarray, 
+                                                                np.ndarray, 
+                                                                np.ndarray]:
         """!
         Initialise a gateau setup. 
 
@@ -195,7 +193,14 @@ class simulator(object):
             self.nTimes -= 1
         
         times_array = np.arange(0, self.nTimes / self.instrument["f_sample"], 1 / self.instrument["f_sample"])
-        az_scan, el_scan = scan_func(times_array)
+
+        if isinstance(scan_func, list):
+            az_scan, el_scan = scan_func[0](times_array)
+            for s_f in scan_func[1:]:
+                az_scan, el_scan = s_f(times_array, az_scan, el_scan)
+        
+        else:
+            az_scan, el_scan = scan_func(times_array)
 
         self.telescope["az_scan"] = az_scan
         self.telescope["el_scan"] = el_scan

@@ -1,167 +1,145 @@
 import numpy as np
 
-from typing import List, Union, Dict, Tuple
+from typing import Union
 
 # constants
 h = 6.62607004 * 10**-34  # Planck constant
 k = 1.38064852 * 10**-23  # Boltzmann constant
 e = 1.60217662 * 10**-19  # electron charge
 c = 299792458.0  # velocity of light
-ArrayLike = Union[np.ndarray, List[float], List[int], float, int]
 
-eta_Al_ohmic_850 = 0.9975  # Ohmic loss of an Al surface at 850 GHz.
 
-def johnson_nyquist_psd(F: ArrayLike, 
-                        T: ArrayLike) -> ArrayLike:
+def johnson_nyquist_psd(f_src: np.ndarray, 
+                        T: float) -> np.ndarray:
     """!
     Johnson-Nyquist power spectral density.
 
-    @param F Frequency. Units: Hz.
+    @param f_src Source frequencies. Units: Hz.
     @param T Temperature. Units: K.
 
-    @returns Power Spectral Density. Units: W / Hz.
+    @returns Power spectral density. Units: W / Hz.
     """
-    return h * F / np.expm1(h * F / (k * T))
+    return h * f_src / np.expm1(h * f_src / (k * T))
 
 def window_trans(
-    F: ArrayLike,
-    thickness: ArrayLike,
+    f_src: np.ndarray,
+    thickness: float,
     tandelta: float,
-    neffHDPE: float,
+    neff: float,
     window_AR: bool,
     T_parasitic_refl: float,
-    T_parasitic_refr: float
-) -> Tuple[ArrayLike, ArrayLike]:
-    """Calculates the window transmission.
+    T_parasitic_refr: float) -> Tuple[np.ndarray, 
+                                      np.ndarray]:
+    """!
+    Calculates the window transmission.
 
-    Parameters
-    ----------
-    F
-        Frequency. Units: Hz.
-    thickness
-        Thickness of the HDPE window. Units: m.
-    tandelta
-        Loss tangent of window/lens dielectric.
-    neffHDPE
-        Refractive index of HDPE. Set to 1 to remove reflections. Units : None.
-    window_AR
-        Whether the window is supposed to be coated by Ar (True) or not (False).
-    T_parasitic_refl
-        Temperature of parasitic source seen in reflection, w.r.t. instrument.
-    T_parasitic_refr
-        Temperature of parasitic source seen in refraction..
+    @param f Frequency. Units: Hz.
+    @param thickness Thickness of the window/lens. Units: m.
+    @param tandelta Loss tangent of window/lens dielectric.
+    @param neff Refractive index of dielectric. Set to 1 to remove reflections. Units : None.
+    @param window_AR Whether the window is supposed to be coated by Ar (True) or not (False).
+    @param T_parasitic_refl Temperature of parasitic source seen in reflection, w.r.t. instrument.
+    @param T_parasitic_refr Temperature of parasitic source seen in refraction..
 
-
-    Returns
-    -------
-    List containing list of arrays of efficiencies as first element, and list of arrays of psd's seen by each stage.
+    @returns List containing list of arrays of efficiencies as first element, and list of arrays of psd's seen by each stage as second element.
     """
 
     eta = []
     psd = []
     
-    HDPErefl = ((1 - neffHDPE) / (1 + neffHDPE)) ** 2 * np.ones(F.size)
-    psd_refl = johnson_nyquist_psd(F, T_parasitic_refl)
-    psd_refr = johnson_nyquist_psd(F, T_parasitic_refr)
+    refl = ((1 - neff) / (1 + neff)) ** 2 * np.ones(f_src.size)
+    psd_refl = johnson_nyquist_psd(f_src, T_parasitic_refl)
+    psd_refr = johnson_nyquist_psd(f_src, T_parasitic_refr)
 
     if window_AR == False:
-        eta.append(1 - HDPErefl)
+        eta.append(1 - refl)
         psd.append(psd_refl)
 
-    eta_HDPE = np.exp(
+    eta = np.exp(
         -thickness
         * 2
         * np.pi
-        * neffHDPE
-        * (tandelta * F / c + (tandelta * F / c) ** 2)
+        * neff
+        * (tandelta * f_src / c + (tandelta * f_src / c) ** 2)
     )
 
-    eta.append(eta_HDPE)
+    eta.append(eta)
     psd.append(psd_refr)
 
     if window_AR == False:
-        eta.append(1 - HDPErefl)
+        eta.append(1 - refl)
         psd.append(psd_refl)
 
     return eta, psd
 
-def eta_Al_ohmic(F_sky: np.ndarray) -> np.ndarray: 
-    """Calculate Ohmic losses for aluminium over array of sky frequencies.
+def eta_Al_ohmic(f_src: np.ndarray) -> np.ndarray: 
+    """!
+    Calculate Ohmic losses for aluminium over array of sky frequencies.
     
-    Parameters
-    ----------
-    F_sky
-        Numpy array containing sky frequencies. Units: GHz
+    @param f_src Numpy array containing source frequencies. Units: GHz
     
-    Returns
-    ----------
-    Array with eta values for Ohmic losses.
+    @returns Array with eta values for Ohmic losses.
     """
+    
+    eta_Al_ohmic_850 = 0.9975  # Ohmic loss of an Al surface at 850 GHz.
 
     return 1.0 - (1.0 - eta_Al_ohmic_850) * np.sqrt(F_sky / 850e9)
 
 def sizer(eta: Union[np.ndarray, float], 
-           F_sky: np.ndarray, 
-           F_eta: np.ndarray = None
-) -> np.ndarray:
-    """Resize efficiency term to new size.
+           f_src: np.ndarray, 
+           f_eta: np.ndarray = None) -> np.ndarray:
+    """!
+    Resize efficiency term to new size.
 
     Used to vectorize or interpolate on efficiency terms.
-    If efficiency is a scalar, an array is returned with the same size as F_sky.
-    If efficiency is an array with different size then F_sky, an array containing frequencies at which eta is evaluated should also be passed.
-    A 1D interpolation on F_sky is then performed to evaluate eta on F_sky.
-    If efficiency is array with same size as F_sky, it is returned as-is. 
-    Responisibility to verify if the efficiencies are evaluated on the same frequencies as present in F_sky is placed on the user.
+    If efficiency is a scalar, an array is returned with the same size as f_src.
+    If efficiency is an array with different size then f_src, an array containing frequencies at which eta is evaluated should also be passed.
+    A 1D interpolation on f_src is then performed to evaluate eta on f_src.
+    If efficiency is array with same size as f_src, it is returned as-is. 
+    Responisibility to verify if the efficiencies are evaluated on the same frequencies as present in f_src is placed on the user.
 
-    Parameters
-    ----------
-    eta
-        Efficiency term.
-    F_sky
-        Numpy array containing sky frequencies. Units: GHz
-    F_eta
-        Numpy array containing frequencies at which eta is evaluated.
-        Should only be passed when 1D interpolation is required and defaults to None.
+    @param eta Efficiency term of some stage.
+    @param f_src Numpy array containing source frequencies. Units: GHz
+    @param f_eta Numpy array containing frequencies at which eta is evaluated.
+                 Should only be passed when 1D interpolation is required and defaults to None.
     
-    Returns
-    ----------
-    Array with eta values, depending on input (see above).
+    @returns Array with eta values, depending on input (see above).
     """
 
     if not hasattr(eta, "__len__"):
-        return eta * np.ones(F_sky.size)
+        return eta * np.ones(f_src.size)
 
-    elif F_eta is not None:
-        idx_sorted = np.argsort(F_eta)
-        return np.interp(F_sky, 
-                         F_eta[idx_sorted], 
+    elif f_eta is not None:
+        idx_sorted = np.argsort(f_eta)
+        return np.interp(f_src, 
+                         f_eta[idx_sorted], 
                          eta[idx_sorted])
 
     else:
         return eta
 
-def get_cascade(cascade_list: List[Dict[any, any]],
-                F_sky: np.ndarray,
-                ) -> Tuple[np.ndarray, np.ndarray]:
-    """Calculate a cascade list, consisting of efficiency and psd per stage.
+def get_cascade(cascade_list: list[dict[str, any]],
+                f_src: np.ndarray) -> Tuple[np.ndarray, 
+                                            np.ndarray]:
+    """!
+    Calculate a cascade list, consisting of efficiency and psd per stage.
 
-    Parameters
-    ----------
-    cascade_list
-        List containing, per element, the efficiency and coupling temperature of each stage in the cascade.
-        For reflective stages, the dictionary should contain either:
-            - A single eta and temperature
-            - A tuple with efficiencies and frequencies at which these are defines, and a temperature
+    @param cascade_list List containing, per element, the efficiency and coupling temperature of each stage in the cascade.
+                        For reflective stages, the dictionary should contain either:
+                            - A single eta and temperature
+                            - A tuple with efficiencies and frequencies at which these are defines, and a temperature
         
-        For refractive stages, the dictionary should contain:
-            - thickness of dielectric in meters, loss tangent, effective refractive index, whether to use AR coating, temperature seen in reflection coming from the ISS, and temperature seen in refraction.
+                        For refractive stages, the dictionary should contain:
+                            - thickness of dielectric in meters, 
+                            - loss tangent, 
+                            - effective refractive index, 
+                            - whether to use AR coating, 
+                            - temperature seen in reflection coming from the ISS, 
+                            - and temperature seen in refraction.
 
-    F_sky
-        Array with sky frequencies. Units: GHz.
+    @param f_src Array with source frequencies. Units: GHz.
     
-    Returns
-    ----------
-    List with list of arrays containing efficiencies as first element, and list containing arrays of psd as second element. 
+    @returns List with list of arrays containing efficiencies as first element, and list containing arrays of psd as second element. 
     """
 
     group_list = []
@@ -192,12 +170,12 @@ def get_cascade(cascade_list: List[Dict[any, any]],
     for casc_t, idx_group in zip(cascade_type_list_uniq, idx_group_list_uniq):
         # This cascade group is reflective
         if casc_t == 0:
-            eta_grouped = np.ones(F_sky.size)
+            eta_grouped = np.ones(f_src.size)
 
             if (T_casc := cascade_list[idx_group[0]].get("T_parasitic")) == "atmosphere":
-                all_psd.append(-1*np.ones(F_sky.size)) # Group couples to atmosphere: set all psd here to -1 and deal with it in CUDA backend.
+                all_psd.append(-1*np.ones(f_src.size)) # Group couples to atmosphere: set all psd here to -1 and deal with it in CUDA backend.
             else:
-                all_psd.append(johnson_nyquist_psd(F_sky, T_casc)) # Calculate psd for T_parasitic
+                all_psd.append(johnson_nyquist_psd(f_src, T_casc)) # Calculate psd for T_parasitic
 
             for idx_g in idx_group:
                 eta_interp_flag = False
@@ -212,19 +190,19 @@ def get_cascade(cascade_list: List[Dict[any, any]],
                     eta_interp_flag = True
 
                 elif eta == "Ohmic-Al": # generate vector with eta of Aluminium
-                    eta = eta_Al_ohmic(F_sky) 
+                    eta = eta_Al_ohmic(f_src) 
 
                 if eta_interp_flag:
-                    eta_grouped *= sizer(eta, F_sky, F_eta)
+                    eta_grouped *= sizer(eta, f_src, F_eta)
                 else:
-                    eta_grouped *= sizer(eta, F_sky)
+                    eta_grouped *= sizer(eta, f_src)
             
             all_eta.append(eta_grouped)
         
         if casc_t == 1:
             for idx_g in idx_group:
                 casc = cascade_list[idx_g]
-                etas, psds = window_trans(F_sky,
+                etas, psds = window_trans(f_src,
                                           casc.get("thickness"), 
                                           casc.get("tandelta"), 
                                           casc.get("neff"), 

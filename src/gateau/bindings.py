@@ -41,7 +41,14 @@ def load_gateaulib() -> CDLL:
 
     return lib
 
-def run_gateau(instrument, telescope, atmosphere, source, cascade, nTimes, outpath, seed=0):
+def run_gateau(instrument: dict[str, any], 
+               telescope: dict[str, any], 
+               atmosphere: dict[str, any], 
+               source: dict[str, any], 
+               cascade: dict[str, any], 
+               nTimes: int, 
+               outpath: str, 
+               seed: int = 0) -> None:
     """!
     Binding for running the gateau simulation on GPU.
 
