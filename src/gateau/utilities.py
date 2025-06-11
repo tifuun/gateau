@@ -6,8 +6,10 @@ import os
 import numpy as np
 import csv
 
+import pathlib
 from astropy.io import fits
 from scipy.ndimage import gaussian_filter
+from scipy.interpolate import RectBivariateSpline
 
 from gateau.parallel import get_num_chunks, parallel_job_np 
 from gateau.fileio import unpack_output
@@ -80,5 +82,60 @@ def prep_atm_ARIS(atmosphereDict, telescopeDict, clog=None):
         clog.info("\033[1;32m*** FINISHED PREPARING ARIS SCREENS ***")
     else:
         print(f"Finished preparing atmospheric screens.")
+
+def get_eta_atm(f_src: np.ndarray,
+                pwv0: float,
+                el0: float) -> np.ndarray:
+    atm_file = os.path.join(pathlib.Path(__file__).parent.resolve(),
+                            "..",
+                            "resources",
+                            "eta_atm")
+    
+    with open(atm_file) as file:
+        reader = csv.reader(file, delimiter=' ')
+        pwv = []
+        f_atm = []
+        eta = []
+        for i, row in enumerate(reader):
+            if i == 0:
+                pwv = np.array([float(x) for x in row])
+                continue
+
+            f_atm.append(float(row[0]))
+            eta.append([float(x) for x in row[1:]])
+
+        f_atm = np.array(f_atm) * 1e9
+        eta = np.array(eta)
+
+        eta_atm_interp = RectBivariateSpline(f_atm, 
+                                             pwv,
+                                             eta, 
+                                             kx=1, ky=1)(f_src, 
+                                                         pwv0,)
+
+        return np.squeeze(eta_atm_interp) ** (1 / np.sin(el0 * np.pi / 180))
+
+def average_over_filterbank(array_to_average: np.ndarray, 
+                            filterbank: np.ndarray,
+                            norm: bool = False) -> np.ndarray:
+    if norm:
+        div = np.nansum(filterbank, axis=1)
+    else:
+        div = 1
+    sh_f = filterbank.shape
+    assert array_to_average.size == sh_f[1]
+
+    array_tiled = np.squeeze(array_to_average)[None,:] * filterbank
+    return np.nansum(array_tiled, axis=1) / div
+
+
+
+
+
+
+
+
+
+
 
 

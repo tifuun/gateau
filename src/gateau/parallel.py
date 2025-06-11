@@ -20,7 +20,7 @@ def parallel_job_np(npfile, num_threads, job, arr_par, args_list, axis):
     Perform a job on a numpy file in parallel.
     Note that this method does not calculate number of cores. This is purely user-specified.
 
-    @param result_path Path to simulation results.
+    @param npfile Numpy file on which to apply a job in parallel.
     @param num_threads Number of CPU threads to use.
     @param job Function handle of function to apply to data.
     @param arr_par Array containing the axis of the numpy file over which to apply job in parallel.

@@ -14,6 +14,7 @@ import gateau.cascade as gcascade
 import psutil
 import logging
 from gateau.custom_logger import CustomLogger
+from gateau.utilities import get_eta_atm, average_over_filterbank
 
 from typing import Callable, Optional, Sequence, List, Union, Dict, Tuple, Any
 
@@ -231,11 +232,15 @@ class simulator(object):
             self.telescope["eta_ap"] *= eta_surf 
 
         # Some handy returns
-        eta_total = np.ones(self.source["f_src"].size)
+        eta_total = self.telescope["eta_ap"]
         for eta in eta_cascade:
             eta_total *= eta
 
-        return eta_total, az_scan, el_scan
+        eta_atm = get_eta_atm(self.source["f_src"],
+                              self.atmosphere["PWV0"],
+                              np.mean(el_scan))
+
+        return eta_total, eta_atm, az_scan, el_scan
         
     def run(self, 
             verbosity: int = 1, 
