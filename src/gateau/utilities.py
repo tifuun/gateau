@@ -20,17 +20,22 @@ def yield_output(path):
     for chunk_idx in range(num_chunks_in_path):
         yield unpack_output(path, chunk_idx)
 
-def prep_atm_ARIS(atmosphereDict, telescopeDict, clog=None):
+def prep_atm_ARIS(atmosphereDict, telescopeDict):
     """!   
     Prepare ARIS atmospheric screens for usage in gateau.
     This function works in the following way:
         1. Load an ARIS subchunk, stored under the 'path' key in atmosphereDict.
            This requires the 'filename' key to include the extension of the file.
+           This subchunk is a normal output artefact from ARIS, and therefore does not require further processing after being produced by ARIS.
         2. Remove ARIS metadata
         3. Convolve with 2D Gaussian
         4. Store ARIS data in subfolder (/prepd/) with same name.
     Run this function ONCE per ARIS collection/telescope site.
+    
+    @param atmosphereDict Dictionary containing atmosphere parameters.
+    @param telescopeDict Dictionary containing telescope parameters.
     """
+
     clog.info("\033[1;32m*** PREPARING ARIS SCREENS ***")
    
     filename = atmosphereDict.get("filename")

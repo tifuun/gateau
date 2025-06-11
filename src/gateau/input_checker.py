@@ -42,6 +42,7 @@ def checkInstrumentDict(instrumentDict):
     if instrumentDict.get("material") == "Al_NbTiN":
         instrumentDict["delta"] = gmaterials.Al_NbTiN["delta"]
         instrumentDict["eta_pb"] = gmaterials.Al_NbTiN["eta_pb"]
+        instrumentDict["cutoff"] = gmaterials.Al_NbTiN["cutoff"]
 
     else:
         errlist.append("material")

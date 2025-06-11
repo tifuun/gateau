@@ -3,7 +3,8 @@ import matplotlib.pyplot as pt
 import os
 import struct
 
-def unpack_output(path, chunk_idx):
+def unpack_output(path: str, 
+                  chunk_idx: int) -> dict[str, np.ndarray]:
     """!
     Process binary files written with results from simulation into output jsons for further processing.
     """

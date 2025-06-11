@@ -7,15 +7,21 @@ import math
 from multiprocessing import get_context
 import numpy as np
 import os
+from collections.abc import Callable
 from functools import partial
 from itertools import starmap
 
 NFIELDS = 4
 
-def get_num_chunks(path):
+def get_num_chunks(path: str) -> int:
     return len(os.listdir(path)) // NFIELDS
 
-def parallel_job_np(npfile, num_threads, job, arr_par, args_list, axis):
+def parallel_job_np(npfile: np.ndarray, 
+                    num_threads: int, 
+                    job: Callable, 
+                    arr_par: np.ndarray, 
+                    args_list: list[any], 
+                    axis: int) -> np.ndarray:
     """!
     Perform a job on a numpy file in parallel.
     Note that this method does not calculate number of cores. This is purely user-specified.
