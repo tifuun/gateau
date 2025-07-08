@@ -32,8 +32,12 @@ __constant__ float cv_wind;                 // Windspeed
 
 // TEXTURE MEMORY
 texture<float, cudaTextureType1D, cudaReadModeElementType> tex_filterbank;
+texture<float, cudaTextureType1D, cudaReadModeElementType> tex_eta_kj_sum;
 texture<float, cudaTextureType1D, cudaReadModeElementType> tex_eta_ap;
 texture<float, cudaTextureType1D, cudaReadModeElementType> tex_psd_atm;
+texture<float, cudaTextureType1D, cudaReadModeElementType> tex_c0;
+texture<float, cudaTextureType1D, cudaReadModeElementType> tex_c1;
+
 
 // CONSTANTS FOR KERNEL LAUNCHES
 #define NTHREADS1D      512
@@ -41,7 +45,7 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> tex_psd_atm;
 #define NTHREADS2DX     32
 #define NTHREADS2DY     16
 
-#define NCOALESCE       3
+#define MEMBUFF         0.8
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
@@ -115,23 +119,6 @@ __device__ __inline__ void time_wrt_to(int thread_index,
 }
 
 /**
-  Cascade a PSD through a reflector system, and couple to a specific parasitic PSD.
-
-  @param P_nu_in PSD of incoming signal to be cascaded.
-  @param eta Efficiency term associated with cascade.
-  @param T_parasitic Temperature of parasitic source.
-  @param nu Frequency in Hz.
-
-  @returns Cascade output PSD.
- */
-__device__ __inline__ float rad_trans(float psd_in, 
-                                      float eta, 
-                                      float psd_parasitic)
-{
-    return eta * psd_in + (1 - eta) * psd_parasitic;
-}
-
-/**
   Initialize CUDA.
  
   Instantiate program and populate constant memory.
@@ -170,7 +157,9 @@ __host__ void initCUDA(Instrument *instrument,
 }
 
 __global__ void calc_traces_rng(float *az_scan, 
-                                float *el_scan, 
+                                float *el_scan,
+                                float az_fpa,
+                                float el_fpa,
                                 ArrSpec x_atm,
                                 ArrSpec y_atm,
                                 float *pwv_screen,
@@ -201,8 +190,8 @@ __global__ void calc_traces_rng(float *az_scan,
         time_point = idx * cdt;
         //printf("%.12e\n", time_point);
 
-        az_point = az_scan[idx];
-        el_point = el_scan[idx];
+        az_point = az_scan[idx] + az_fpa;
+        el_point = el_scan[idx] + el_fpa;
 
         x_point = __tanf(DEG2RAD * az_point) * ch_column + cv_wind * time_point;
         y_point = __tanf(DEG2RAD * el_point) * ch_column;
@@ -269,7 +258,6 @@ __global__ void calc_power(float *az_trace,
         float eta_kj;           // Filter efficiency for bin j, at channel k.
         float eta_ap;           // Local variable for storing aperture efficiency
         float sigfactor;        // Factor for calculating power. Perform outside of channel loop for speed.
-        float csc_el;           // Cosecant of elevation angle.
         float psd_parasitic_use;
         float temp1, temp2, temp3;
         float psd_atm;
@@ -412,6 +400,7 @@ void run_gateau(Instrument *instrument,
                  char *outpath,
                  unsigned long long int seed) 
 {
+    printf("hi");
     // FLOATS
     float *d_sigout;        // Device pointer for output power array
     float *d_nepout;        // Device pointer for output power array
@@ -453,6 +442,8 @@ void run_gateau(Instrument *instrument,
 
     int *meta;
     readAtmMeta(&meta, str_path);
+    
+    float timeTotal = nTimesTotal / instrument->f_sample;       // Total time required for simulation
 
     // Calculate lengths of x and y of single screen
     float lx = meta[1]*atmosphere->dx;              // Length of a single screen along x, in meters
@@ -460,7 +451,7 @@ void run_gateau(Instrument *instrument,
     float lx_av = lx - ly;                          // Available length along x, taking into account center of screen
     float t_obs_av = lx_av / atmosphere->v_wind;    // Max available time per screen
 
-    float timeTotal = nTimesTotal / instrument->f_sample;       // Total time required for simulation
+    if(isinf(t_obs_av)) {t_obs_av = timeTotal;}
 
     int nJobs = ceil(timeTotal / t_obs_av);                     // Total number of times kernel needs to be run
     int nTimesScreen = floor(t_obs_av * instrument->f_sample);  // Number of time evaluations available per atmosphere screen. Floored to be safe.
@@ -529,6 +520,33 @@ void run_gateau(Instrument *instrument,
     
     gpuErrchk( cudaMalloc((void**)&d_eta_atm, neta_atm * sizeof(float)) );
     gpuErrchk( cudaMemcpy(d_eta_atm, eta_atm, neta_atm * sizeof(float), cudaMemcpyHostToDevice) );
+
+    // Perform responsivity calibration, if desired. 
+    // Do now before we delete eta_atm!
+    float *c0 = new float[instrument->nf_ch];
+    float *c1 = new float[instrument->nf_ch];
+    
+    if(true)
+    {
+        resp_calibration(&f_atm, &pwv_atm, &f_src,
+                   atmosphere->T_atm, instrument->nf_ch,
+                   cascade->eta_cascade, cascade->psd_cascade,
+                   cascade->num_stage, psd_atm.data(), eta_atm,
+                   instrument->filterbank, c0, c1); 
+        for(int i=0; i<instrument->nf_ch; i++)
+        {
+            printf("%.12e, %.12e\n", c0[i], c1[i]);
+        }
+    }
+
+    else
+    {
+        for(int i=0; i<instrument->nf_ch; i++)
+        {
+            c0[i] = 0.;
+            c1[i] = 1.;
+        }
+    }
     
     delete[] eta_atm;
 
@@ -538,7 +556,7 @@ void run_gateau(Instrument *instrument,
     gpuErrchk( cudaMalloc((void**)&d_filterbank, nfilterbank * sizeof(float)) );
     gpuErrchk( cudaMemcpy(d_filterbank, instrument->filterbank, nfilterbank * sizeof(float), cudaMemcpyHostToDevice) );
     gpuErrchk( cudaBindTexture((size_t)0, tex_filterbank, d_filterbank, nfilterbank * sizeof(float)) );
-    
+
     gpuErrchk( cudaMalloc((void**)&d_I_nu, source->nI_nu * sizeof(float)) );
     gpuErrchk( cudaMemcpy(d_I_nu, source->I_nu, source->nI_nu * sizeof(float), cudaMemcpyHostToDevice) );
 
@@ -546,138 +564,169 @@ void run_gateau(Instrument *instrument,
 
     // Loop starts here
     printf("\033[92m");
-    int idx_wrap = 0;
-    int time_counter = 0;
-    float ftime_counter = 0.;
-    for(int idx=0; idx<nJobs; idx++) {
-        if (idx_wrap == meta[0]) {
-            idx_wrap = 0;
+    int idx_wrap;
+    int time_counter;
+
+    size_t free_mem, total_mem;
+
+    int num_spax = instrument->num_spax;
+    float az_fpa, el_fpa;
+    
+    float ftime_counter;
+    for(int idx_spax=0; idx_spax<num_spax; idx_spax++) 
+    {
+        printf("Simulating spaxel %d\n", idx_spax);
+        az_fpa = instrument->az_fpa[idx_spax];
+        el_fpa = instrument->el_fpa[idx_spax];
+
+        idx_wrap = 0;
+        time_counter = 0;
+
+        for(int idx=0; idx<nJobs; idx++) {
+            ftime_counter = 0.;
+
+            if (idx_wrap == meta[0]) {
+                idx_wrap = 0;
+            }
+
+            if (idx == (nJobs - 1)) {
+                nTimesScreen = nTimesTotal - nTimesScreen*(nJobs-1);
+            }
+
+            gpuErrchk( cudaMemcpyToSymbol(ct_start, &ftime_counter, sizeof(float)) );
+
+            time_counter += nTimesScreen;
+            ftime_counter = static_cast<float>(time_counter);
+
+            printf("*** Progress: %d / 100 ***\r", time_counter*100 / nTimesTotal);
+            fflush(stdout);
+
+            nffnt = instrument->nf_ch * nTimesScreen; // Number of elements in single-screen output.
+            gpuErrchk( cudaMemcpyToSymbol(cnt, &nTimesScreen, sizeof(int)) );
+            
+            nBlocks1D = ceilf((float)nTimesScreen / NTHREADS1D / numSMs);
+            blockSize1D = NTHREADS1D;
+            gridSize1D = nBlocks1D*numSMs;
+
+            nBlocks2Dx = ceilf((float)nTimesScreen / NTHREADS2DX / numSMs);
+            nBlocks2Dy = ceilf((float)nf_src / NTHREADS2DY / numSMs);
+            blockSize2D = dim3(NTHREADS2DX, NTHREADS2DY);
+            gridSize2D = dim3(nBlocks2Dx*numSMs, nBlocks2Dy*numSMs);
+            
+            // Allocate output arrays
+            // Check how much free memory - if insufficient, loop again here
+            gpuErrchk( cudaMemGetInfo(&free_mem, &total_mem) );
+
+            //printf("%zu %zu\n", free_mem, total_mem);
+
+            gpuErrchk( cudaMalloc((void**)&d_az_trace, nTimesScreen * sizeof(float)) );
+            gpuErrchk( cudaMalloc((void**)&d_el_trace, nTimesScreen * sizeof(float)) );
+            gpuErrchk( cudaMalloc((void**)&d_pwv_trace, nTimesScreen * sizeof(float)) );
+            gpuErrchk( cudaMalloc((void**)&d_time_trace, nTimesScreen * sizeof(float)) );
+            gpuErrchk( cudaMalloc((void**)&d_sigout, nffnt * sizeof(float)) );
+            gpuErrchk( cudaMalloc((void**)&d_nepout, nffnt * sizeof(float)) );
+            gpuErrchk( cudaMalloc((void**)&devstates, nTimesScreen * sizeof(curandState)) );
+
+            // Allocate PWV screen now, delete CUDA allocation after first kernel call
+            float *pwv_screen;
+            float *d_pwv_screen;
+            
+            int npwv_screen = x_atm.num * y_atm.num;
+            
+            //curandState *devStates;
+            //gpuErrchk( cudaMalloc((void **)&devStates, nTimesScreen * sizeof(curandState)) );
+
+            datp = std::to_string(idx_wrap) + ".datp";
+            readAtmScreen<float, ArrSpec>(&pwv_screen, &x_atm, &y_atm, str_path, datp);
+            
+            gpuErrchk( cudaMalloc((void**)&d_pwv_screen, npwv_screen * sizeof(float)) );
+            gpuErrchk( cudaMemcpy(d_pwv_screen, pwv_screen, npwv_screen * sizeof(float), cudaMemcpyHostToDevice) );
+
+            calc_traces_rng<<<gridSize1D, 
+                              blockSize1D>>>
+                                  (d_az_scan,
+                                   d_el_scan,
+                                   az_fpa,
+                                   el_fpa,
+                                   x_atm,
+                                   y_atm,
+                                   d_pwv_screen,
+                                   d_az_trace,
+                                   d_el_trace,
+                                   d_pwv_trace,
+                                   d_time_trace,
+                                   devstates,
+                                   seed);
+
+            gpuErrchk( cudaDeviceSynchronize() );
+            gpuErrchk( cudaFree(d_pwv_screen) );
+
+            // CALL TO MAIN SIMULATION KERNEL
+            calc_power<<<gridSize2D, 
+                         blockSize2D>>>
+                             (d_az_trace,
+                              d_el_trace,
+                              d_pwv_trace,
+                              f_atm, 
+                              pwv_atm, 
+                              az_src, 
+                              el_src,
+                              f_src,
+                              d_eta_cascade,
+                              d_psd_cascade, 
+                              d_eta_atm,
+                              d_sigout,
+                              d_nepout,
+                              d_I_nu);
+            
+            gpuErrchk( cudaDeviceSynchronize() );
+
+            calc_photon_noise<<<gridSize1D, 
+                                blockSize1D>>>
+                                    (d_sigout, 
+                                     d_nepout, 
+                                     devstates);
+
+            gpuErrchk( cudaDeviceSynchronize() );
+            
+            gpuErrchk( cudaFree(devstates) );
+            gpuErrchk( cudaFree(d_nepout) );
+            gpuErrchk( cudaFree(d_pwv_trace) );
+            
+            // ALLOCATE STRINGS FOR WRITING OUTPUT
+            std::string signame = std::to_string(idx) + "signal.out";
+            std::string azname = std::to_string(idx) + "az.out";
+            std::string elname = std::to_string(idx) + "el.out";
+
+            // Only write time for first spaxel
+            if(idx_spax == 0) 
+            {
+                std::string timename = std::to_string(idx) + "time.out";
+                std::vector<float> timeout(nTimesScreen);
+                gpuErrchk( cudaMemcpy(timeout.data(), d_time_trace, nTimesScreen * sizeof(float), cudaMemcpyDeviceToHost) );
+                write1DArray<float>(timeout, str_outpath, timename);
+                gpuErrchk( cudaFree(d_time_trace) );
+            }
+
+            std::vector<float> sigout(nffnt);
+            std::vector<float> azout(nTimesScreen);
+            std::vector<float> elout(nTimesScreen);
+
+            gpuErrchk( cudaMemcpy(sigout.data(), d_sigout, nffnt * sizeof(float), cudaMemcpyDeviceToHost) );
+            gpuErrchk( cudaMemcpy(azout.data(), d_az_trace, nTimesScreen * sizeof(float), cudaMemcpyDeviceToHost) );
+            gpuErrchk( cudaMemcpy(elout.data(), d_el_trace, nTimesScreen * sizeof(float), cudaMemcpyDeviceToHost) );
+
+            write1DArray<float>(sigout, str_outpath, signame, std::to_string(idx_spax));
+            write1DArray<float>(azout, str_outpath, azname, std::to_string(idx_spax));
+            write1DArray<float>(elout, str_outpath, elname, std::to_string(idx_spax));
+            
+            gpuErrchk( cudaFree(d_sigout) );
+            gpuErrchk( cudaFree(d_az_trace) );
+            gpuErrchk( cudaFree(d_el_trace) );
+
+            idx_wrap++;
+            printf("\n");
         }
-
-        if (idx == (nJobs - 1)) {
-            nTimesScreen = nTimesTotal - nTimesScreen*(nJobs-1);
-        }
-
-        gpuErrchk( cudaMemcpyToSymbol(ct_start, &ftime_counter, sizeof(float)) );
-
-        time_counter += nTimesScreen;
-        ftime_counter = static_cast<float>(time_counter);
-
-        printf("*** Progress: %d / 100 ***\r", time_counter*100 / nTimesTotal);
-        fflush(stdout);
-
-        nffnt = instrument->nf_ch * nTimesScreen; // Number of elements in single-screen output.
-        gpuErrchk( cudaMemcpyToSymbol(cnt, &nTimesScreen, sizeof(int)) );
-        
-        nBlocks1D = ceilf((float)nTimesScreen / NTHREADS1D / numSMs);
-        blockSize1D = NTHREADS1D;
-        gridSize1D = nBlocks1D*numSMs;
-
-        nBlocks2Dx = ceilf((float)nTimesScreen / NTHREADS2DX / numSMs);
-        nBlocks2Dy = ceilf((float)nf_src / NTHREADS2DY / numSMs);
-        blockSize2D = dim3(NTHREADS2DX, NTHREADS2DY);
-        gridSize2D = dim3(nBlocks2Dx*numSMs, nBlocks2Dy*numSMs);
-        
-        // Allocate output arrays
-        gpuErrchk( cudaMalloc((void**)&d_az_trace, nTimesScreen * sizeof(float)) );
-        gpuErrchk( cudaMalloc((void**)&d_el_trace, nTimesScreen * sizeof(float)) );
-        gpuErrchk( cudaMalloc((void**)&d_pwv_trace, nTimesScreen * sizeof(float)) );
-        gpuErrchk( cudaMalloc((void**)&d_time_trace, nTimesScreen * sizeof(float)) );
-        gpuErrchk( cudaMalloc((void**)&d_sigout, nffnt * sizeof(float)) );
-        gpuErrchk( cudaMalloc((void**)&d_nepout, nffnt * sizeof(float)) );
-        gpuErrchk( cudaMalloc((void**)&devstates, nTimesScreen * sizeof(curandState)) );
-
-        // Allocate PWV screen now, delete CUDA allocation after first kernel call
-        float *pwv_screen;
-        float *d_pwv_screen;
-        
-        int npwv_screen = x_atm.num * y_atm.num;
-        
-        //curandState *devStates;
-        //gpuErrchk( cudaMalloc((void **)&devStates, nTimesScreen * sizeof(curandState)) );
-
-        datp = std::to_string(idx_wrap) + ".datp";
-        readAtmScreen<float, ArrSpec>(&pwv_screen, &x_atm, &y_atm, str_path, datp);
-        
-        gpuErrchk( cudaMalloc((void**)&d_pwv_screen, npwv_screen * sizeof(float)) );
-        gpuErrchk( cudaMemcpy(d_pwv_screen, pwv_screen, npwv_screen * sizeof(float), cudaMemcpyHostToDevice) );
-
-        calc_traces_rng<<<gridSize1D, 
-                          blockSize1D>>>
-                              (d_az_scan,
-                               d_el_scan,
-                               x_atm,
-                               y_atm,
-                               d_pwv_screen,
-                               d_az_trace,
-                               d_el_trace,
-                               d_pwv_trace,
-                               d_time_trace,
-                               devstates,
-                               seed);
-
-        gpuErrchk( cudaDeviceSynchronize() );
-        gpuErrchk( cudaFree(d_pwv_screen) );
-
-        // CALL TO MAIN SIMULATION KERNEL
-        calc_power<<<gridSize2D, 
-                     blockSize2D>>>
-                         (d_az_trace,
-                          d_el_trace,
-                          d_pwv_trace,
-                          f_atm, 
-                          pwv_atm, 
-                          az_src, 
-                          el_src,
-                          f_src,
-                          d_eta_cascade,
-                          d_psd_cascade, 
-                          d_eta_atm,
-                          d_sigout,
-                          d_nepout,
-                          d_I_nu);
-        
-        gpuErrchk( cudaDeviceSynchronize() );
-
-        calc_photon_noise<<<gridSize1D, 
-                            blockSize1D>>>
-                                (d_sigout, 
-                                 d_nepout, 
-                                 devstates);
-
-        gpuErrchk( cudaDeviceSynchronize() );
-        
-        gpuErrchk( cudaFree(devstates) );
-        gpuErrchk( cudaFree(d_nepout) );
-        gpuErrchk( cudaFree(d_pwv_trace) );
-        
-        // ALLOCATE STRINGS FOR WRITING OUTPUT
-        std::string signame = std::to_string(idx) + "signal.out";
-        std::string azname = std::to_string(idx) + "az.out";
-        std::string elname = std::to_string(idx) + "el.out";
-        std::string timename = std::to_string(idx) + "time.out";
-
-        std::vector<float> sigout(nffnt);
-        std::vector<float> azout(nTimesScreen);
-        std::vector<float> elout(nTimesScreen);
-        std::vector<float> timeout(nTimesScreen);
-
-        gpuErrchk( cudaMemcpy(sigout.data(), d_sigout, nffnt * sizeof(float), cudaMemcpyDeviceToHost) );
-        gpuErrchk( cudaMemcpy(azout.data(), d_az_trace, nTimesScreen * sizeof(float), cudaMemcpyDeviceToHost) );
-        gpuErrchk( cudaMemcpy(elout.data(), d_el_trace, nTimesScreen * sizeof(float), cudaMemcpyDeviceToHost) );
-        gpuErrchk( cudaMemcpy(timeout.data(), d_time_trace, nTimesScreen * sizeof(float), cudaMemcpyDeviceToHost) );
-
-        write1DArray<float>(sigout, str_outpath, signame);
-        write1DArray<float>(azout, str_outpath, azname);
-        write1DArray<float>(elout, str_outpath, elname);
-        write1DArray<float>(timeout, str_outpath, timename);
-        
-        gpuErrchk( cudaFree(d_sigout) );
-        gpuErrchk( cudaFree(d_az_trace) );
-        gpuErrchk( cudaFree(d_el_trace) );
-        gpuErrchk( cudaFree(d_time_trace) );
-
-        idx_wrap++;
     }
     gpuErrchk( cudaDeviceReset() );
     printf("\033[0m\n");

@@ -21,12 +21,12 @@ def load_gateaulib() -> CDLL:
 
     path_cur = pathlib.Path(__file__).parent.resolve()
     try:
-        lib = CDLL(os.path.join(path_cur, "libcugateau.dll"))
+        lib = CDLL(os.path.join(path_cur, "libgateau.dll"))
     except:
         try:
-            lib = CDLL(os.path.join(path_cur, "libcugateau.so"))
+            lib = CDLL(os.path.join(path_cur, "libgateau.so"))
         except:
-            lib = CDLL(os.path.join(path_cur, "libcugateau.dylib"))
+            lib = CDLL(os.path.join(path_cur, "libgateau.dylib"))
 
     lib.run_gateau.argtypes = [POINTER(gstructs.Instrument), 
                                POINTER(gstructs.Telescope),

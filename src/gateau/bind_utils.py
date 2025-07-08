@@ -33,12 +33,17 @@ def allfillInstrument(InstDict: dict[str, any],
     """
 
     arr_filterbank = ar.array('f', InstDict["filterbank"].ravel())
+    arr_az_fpa = ar.array('f', InstDict["pointings"][0].ravel())
+    arr_el_fpa = ar.array('f', InstDict["pointings"][1].ravel())
 
     InstStruct.nf_ch = c_int(InstDict["nf_ch"])
     InstStruct.f_sample = c_float(InstDict["f_sample"])
     InstStruct.filterbank = (c_float * InstDict["filterbank"].size).from_buffer(arr_filterbank)
     InstStruct.delta = c_float(InstDict["delta"])
     InstStruct.eta_pb = c_float(InstDict["eta_pb"])
+    InstStruct.az_fpa = (c_float * InstDict["pointings"][0].size).from_buffer(arr_az_fpa)
+    InstStruct.el_fpa = (c_float * InstDict["pointings"][1].size).from_buffer(arr_el_fpa)
+    InstStruct.num_spax = c_int(InstDict["pointings"][0].size)
 
 def allfillTelescope(TelDict: dict[str, any], 
                      TelStruct: Structure) -> None:

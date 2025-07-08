@@ -10,13 +10,14 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <filesystem>
 
 #include "cuda.h"
 #include "curand_kernel.h"
 
-#include "CuInterpUtils.h"
-#include "FileIO.h"
-#include "Structs.h"
+#include "utilities.h"
+#include "fio.h"
+#include "structs.h"
 
 #ifdef _WIN32
 #   define GATEAU_DLL __declspec(dllexport)

@@ -6,7 +6,7 @@ import copy
 import sys
 import numpy as np
 
-import gateau.filterbank as gfilter
+import gateau.ifu as gifu
 import gateau.input_checker as gcheck
 import gateau.bindings as gbind
 import gateau.cascade as gcascade
@@ -223,7 +223,14 @@ class simulator(object):
             idx_ch_arr = np.arange(self.instrument["nf_ch"])
             self.instrument["f_ch_arr"] = f0_ch * (1 + 1 / self.instrument["R"])**idx_ch_arr
                 
-        self.instrument["filterbank"] = gfilter.generateFilterbankFromR(self.instrument, self.source)
+        self.instrument["filterbank"] = gifu.generateFilterbankFromR(self.instrument, self.source)
+        
+        if self.instrument.get("pointings") is None:
+            if self.instrument.get("spacing") is None or self.instrument.get("radius") is None:
+                self.instrument["pointings"] = [0], [0]
+            
+            else:
+                self.instrument["pointings"] = gifu.generate_fpa_pointings(self.instrument) 
 
         #### INITIALISING TELESCOPE PARAMETERS ####
         if isinstance(self.telescope.get("eta_ap"), float):
@@ -292,7 +299,9 @@ class simulator(object):
                 else:
                     outpath = input("\033[93mSpecify new output path: > ")
 
-
+        # Create folders for each spaxel
+        for idx_spax in range(self.instrument.get("pointings")[0].size):
+            os.makedirs(os.path.join(outpath, str(idx_spax)))
         self.clog.info("\033[1;32m*** STARTING gateau SIMULATION ***")
         
         start = time.time()

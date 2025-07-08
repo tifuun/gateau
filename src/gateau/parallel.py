@@ -11,7 +11,7 @@ from collections.abc import Callable
 from functools import partial
 from itertools import starmap
 
-NFIELDS = 4
+NFIELDS = 3
 
 def get_num_chunks(path: str) -> int:
     return len(os.listdir(path)) // NFIELDS

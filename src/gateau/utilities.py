@@ -14,11 +14,12 @@ from scipy.interpolate import RectBivariateSpline
 from gateau.parallel import get_num_chunks, parallel_job_np 
 from gateau.fileio import unpack_output
 
-def yield_output(path):
-    num_chunks_in_path = get_num_chunks(path)
+def yield_output(path, spaxel = 0):
+    path_spaxel = os.path.join(path, str(spaxel))
+    num_chunks_in_path = get_num_chunks(path_spaxel)
 
     for chunk_idx in range(num_chunks_in_path):
-        yield unpack_output(path, chunk_idx)
+        yield unpack_output(path, path_spaxel, chunk_idx)
 
 def prep_atm_ARIS(atmosphereDict, telescopeDict):
     """!   

@@ -3,8 +3,8 @@
  * \brief Data structures for receiving data from Python interface.
  **/
 
-#ifndef __Structs_h
-#define __Structs_h
+#ifndef __STRUCTS_h
+#define __STRUCTS_h
 
 struct Instrument;
 struct Telescope;
@@ -31,6 +31,9 @@ struct Instrument {
     float *filterbank; /**< Array with filterbank matrix, flattened.*/
     float delta;       /**< Superconducting bandgap energy in Joules.*/
     float eta_pb;      /**< Pair breaking efficiency of superconductor.*/
+    float *az_fpa;      /**< Array with azimuth pointings for FPA.*/
+    float *el_fpa;      /**< Array with elevation pointings for FPA.*/
+    int num_spax; 
 };
 
 struct Telescope {

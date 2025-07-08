@@ -28,7 +28,7 @@ def window_trans(
     neff: float,
     window_AR: bool,
     T_parasitic_refl: float,
-    T_parasitic_refr: float) -> Tuple[np.ndarray, 
+    T_parasitic_refr: float) -> tuple[np.ndarray, 
                                       np.ndarray]:
     """!
     Calculates the window transmission.
@@ -55,7 +55,7 @@ def window_trans(
         eta.append(1 - refl)
         psd.append(psd_refl)
 
-    eta = np.exp(
+    refr = np.exp(
         -thickness
         * 2
         * np.pi
@@ -63,7 +63,7 @@ def window_trans(
         * (tandelta * f_src / c + (tandelta * f_src / c) ** 2)
     )
 
-    eta.append(eta)
+    eta.append(refr)
     psd.append(psd_refr)
 
     if window_AR == False:
@@ -83,7 +83,7 @@ def eta_Al_ohmic(f_src: np.ndarray) -> np.ndarray:
     
     eta_Al_ohmic_850 = 0.9975  # Ohmic loss of an Al surface at 850 GHz.
 
-    return 1.0 - (1.0 - eta_Al_ohmic_850) * np.sqrt(F_sky / 850e9)
+    return 1.0 - (1.0 - eta_Al_ohmic_850) * np.sqrt(f_src / 850e9)
 
 def sizer(eta: Union[np.ndarray, float], 
            f_src: np.ndarray, 
@@ -119,7 +119,7 @@ def sizer(eta: Union[np.ndarray, float],
         return eta
 
 def get_cascade(cascade_list: list[dict[str, any]],
-                f_src: np.ndarray) -> Tuple[np.ndarray, 
+                f_src: np.ndarray) -> tuple[np.ndarray, 
                                             np.ndarray]:
     """!
     Calculate a cascade list, consisting of efficiency and psd per stage.

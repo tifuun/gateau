@@ -20,8 +20,8 @@ def stare(times: np.ndarray,
     @ingroup scan_patterns
     """
 
-    az = np.ones(times.size) * az0
-    el = np.ones(times.size) * el0
+    az, el = check_size(times, az0, el0)
+
     return az, el 
 
 def chop(times: np.ndarray, 
@@ -46,9 +46,47 @@ def chop(times: np.ndarray,
     
     n = np.floor(times * 2 * 2 * duty_cycle)
     mods = np.mod(n, 2)
+    
+    az0, el0 = check_size(times, az0, el0)
 
-    az = mods * throw + np.ones(times.size) * az0
-    el = np.ones(times.size) * el0
+    az = mods * throw + az0
+    el = el0
     return az, el
 
+def daisy(times: np.ndarray,
+          az0: Union[float, np.ndarray], 
+          el0: Union[float, np.ndarray],
+          v_scan: float,
+          r_inner: float,
+          r_outer: float,
+          n_petal: float) -> Union[np.ndarray, np.ndarray]: 
 
+    az0, el0 = check_size(times, az0, el0)
+    
+    phi_outer = times * v_scan / r_outer
+    phi_inner = times * v_scan / r_inner
+
+    x_outer = r_outer * np.sin(phi_outer) * np.exp(1j * phi_outer/n_petal)
+    x_inner = r_inner * np.sin(phi_outer + np.pi/2) * np.exp(1j * phi_inner/n_petal)
+
+    az = np.real(x_outer + x_inner) + az0
+    el = np.imag(x_outer + x_inner) + el0
+
+    return az, el
+
+def check_size(times, az0, el0):
+    """!
+    Check size of az0 and el0 values.
+    If az0 and/or el0 are float, resizes to times array.
+
+    """
+    az_ret = az0
+    el_ret = el0
+    
+    if isinstance(az0, float):
+        az_ret *= np.ones(times.size)
+    
+    if isinstance(el0, float):
+        el_ret *= np.ones(times.size)
+
+    return az_ret, el_ret

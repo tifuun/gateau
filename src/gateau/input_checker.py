@@ -9,10 +9,13 @@ import numpy as np
 import gateau.materials as gmaterials
 
 def checkTelescopeDict(telescopeDict):
-    checklist = ["eta_ap"]#, "az_scan", "el_scan"]
+    checklist = ["eta_ap", "eff_focal_l"]#, "az_scan", "el_scan"]
 
     errlist = []
         
+    if telescopeDict.get("eff_focal_l") is None:
+        telescopeDict["eff_focal_l"] = 0
+
     for key in checklist:
         if telescopeDict.get(key) is None:
             errlist.append(key)
@@ -20,7 +23,7 @@ def checkTelescopeDict(telescopeDict):
     return errlist
 
 def checkInstrumentDict(instrumentDict):
-    checklist = ["material", "f0_ch", "f_sample", "box_eq", "order"]
+    checklist = ["material", "f0_ch", "f_sample", "box_eq", "order", "radius"]
 
     errlist = []
 
@@ -44,9 +47,13 @@ def checkInstrumentDict(instrumentDict):
         instrumentDict["eta_pb"] = gmaterials.Al_NbTiN["eta_pb"]
         instrumentDict["cutoff"] = gmaterials.Al_NbTiN["cutoff"]
 
+
     else:
         errlist.append("material")
-    
+
+    if instrumentDict.get("radius") is None:
+        instrumentDict["radius"] = 0
+
     for key in checklist:
         if instrumentDict.get(key) is None:
             errlist.append(key)

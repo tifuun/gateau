@@ -31,10 +31,13 @@ class Instrument(Structure):
     """
 
     _fields_ = [("nf_ch", c_int),
-            ("f_sample", c_float),
-            ("filterbank", POINTER(c_float)),
-            ("delta", c_float),
-            ("eta_pb", c_float)]
+                ("f_sample", c_float),
+                ("filterbank", POINTER(c_float)),
+                ("delta", c_float),
+                ("eta_pb", c_float),
+                ("az_fpa", POINTER(c_float)),
+                ("el_fpa", POINTER(c_float)),
+                ("num_spax", c_int)]
 
 class Telescope(Structure):
     """!

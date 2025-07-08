@@ -11,14 +11,15 @@
 #include <regex>
 #include <cxxabi.h>
 #include <filesystem>
-#include "Structs.h"
+
+#include "structs.h"
 
 #ifndef __FILEIO_H
 #define __FILEIO_H
 
 namespace fs = std::filesystem;
 
-#define NPWV    56
+#define NPWVATM  56
 #define NFREQ   8301
 #define NATMGRID 3
 
@@ -68,17 +69,17 @@ void readEtaATM(T **eta_array, U *pwv_atm, U *freq_atm) {
     
     pwv_atm->start = 0.1;
     pwv_atm->step = 0.1;
-    pwv_atm->num = NPWV;
+    pwv_atm->num = NPWVATM;
 
     freq_atm->start = 70.e9;
     freq_atm->step = 0.1e9;
     freq_atm->num = NFREQ;
 
-    std::regex target("include\/FileIO\.h");
+    std::regex target("include\/fio\.h");
     std::string rel_loc = "resources/eta_atm";
     std::string abs_loc = std::regex_replace(__FILE__, target, rel_loc);
 
-    *eta_array = new T[NPWV * NFREQ];
+    *eta_array = new T[NPWVATM * NFREQ];
     
     std::string store;
     //std::cout << abi::__cxa_demangle(typeid(store).name(), NULL, NULL, &status) << std::endl;
@@ -151,10 +152,12 @@ void readAtmScreen(T **PWV_screen, U *x_spec, U *y_spec, std::string path, std::
 }
 
 template <typename T>
-void write1DArray(std::vector<T> array, std::string path, std::string name) {
+void write1DArray(std::vector<T> array, std::string path, std::string name, std::string subpath = "") {
     fs::path dir(path);
+    fs::path subdir(subpath);
     fs::path file(name);
-    fs::path abs_loc = dir / file;
+
+    fs::path abs_loc = dir / subdir / file;
     std::ofstream myfile (abs_loc, std::ios::binary | std::ios::trunc);
     myfile.write(reinterpret_cast<const char*>(array.data()), array.size() * sizeof(T));
     myfile.close();
