@@ -377,7 +377,7 @@ __global__ void calc_photon_noise(float *sigout,
             c0_loc = c0[k];
             c1_loc = c1[k];
             sigma_k = sqrtf(2 * nepout[k*cnt + idx]) * csqrt_samp;
-            P_k = sigout[k*cnt + idx];// + sigma_k * curand_normal(&localState);
+            P_k = sigout[k*cnt + idx] + sigma_k * curand_normal(&localState);
             sigout[k*cnt + idx] = c0_loc + c1_loc * P_k;
 
             state[idx] = localState;
