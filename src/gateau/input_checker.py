@@ -9,13 +9,10 @@ import numpy as np
 import gateau.materials as gmaterials
 
 def checkTelescopeDict(telescopeDict):
-    checklist = ["eta_ap", "eff_focal_l"]#, "az_scan", "el_scan"]
+    checklist = ["eta_ap"]#, "az_scan", "el_scan"]
 
     errlist = []
         
-    if telescopeDict.get("eff_focal_l") is None:
-        telescopeDict["eff_focal_l"] = 0
-
     for key in checklist:
         if telescopeDict.get(key) is None:
             errlist.append(key)

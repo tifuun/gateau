@@ -19,7 +19,7 @@
 
 namespace fs = std::filesystem;
 
-#define NPWVATM  56
+#define NPWVATM  55
 #define NFREQ   8301
 #define NATMGRID 3
 

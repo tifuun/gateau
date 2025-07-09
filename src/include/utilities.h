@@ -1,6 +1,7 @@
 /*! \file CuInterpUtils.h
  * \brief Utilities for linear interpolation for CUDA.
  **/
+#include <stdexcept>
 
 #include "cuda.h"
 #include "math.h"
@@ -11,7 +12,7 @@
 #define NPWV            1000
 #define PWV_START       0.1
 #define PWV_END         5.5
-#define DPWV            0.054
+#define DPWV            0.0054
 
 #ifndef __UTILITIES_H
 #define __UTILITIES_H
@@ -38,7 +39,7 @@ __host__ __device__ void interpValue(float x, float y,
     
     int idx_x = floorf((x - arrx->start) / arrx->step);
     int idx_y = floorf((y - arry->start) / arry->step);
-    
+
     float t = (x - (arrx->start + arrx->step*idx_x)) / arrx->step;
     float u = (y - (arry->start + arry->step*idx_y)) / arry->step;
 
@@ -65,7 +66,9 @@ __host__ __device__ float rad_trans(float psd_in,
     return eta * psd_in + (1 - eta) * psd_parasitic;
 }
 
-__host__ void resp_calibration(ArrSpec *f_atm, 
+__host__ void resp_calibration(int start, 
+                    int stop,
+                    ArrSpec *f_atm, 
                     ArrSpec *pwv_atm, 
                     ArrSpec *f_src,
                     float Tp_atm,
@@ -76,8 +79,9 @@ __host__ void resp_calibration(ArrSpec *f_atm,
                     float *psd_atm,
                     float *eta_atm,
                     float *filterbank,
-                    float *c0, 
-                    float *c1)
+                    float *eta_kj_sum,
+                    float *Psky, 
+                    float *Tsky)
 {
     // FLOATS
     float eta_atm_interp;   // Interpolated eta_atm, over frequency and PWV
@@ -90,30 +94,9 @@ __host__ void resp_calibration(ArrSpec *f_atm,
     float psd_atm_loc;
     float temp1, temp2;
 
-    double c0_loc, c1_loc, cov00, cov01, cov11, sumsq;
-
-    double *Psky_k = new double[NPWV]; 
-    double *Tsky_k = new double[NPWV]; 
-
-    float *Psky = new float[nf_ch * NPWV]();
-    float *Tsky = new float[nf_ch * NPWV]();
-    
-    float *eta_kj_sum = new float[nf_ch];
-    
-    for(int k=0; k<nf_ch; k++)
-    {
-        float eta_kj = 0.;
-        for(int j=0; j<f_src->num; j++)
-        {
-            eta_kj += filterbank[k*f_src->num + j];
-        }
-        eta_kj_sum[k] = eta_kj;
-    }
-    
-    for(int idx=0; idx<NPWV; idx++)
+    for(int idx=start; idx<stop; idx++)
     {
         pwv_loc = PWV_START + idx*DPWV;
-        
         for(int idy=0; idy<f_src->num; idy++)
         {
             freq = f_src->start + f_src->step * idy;
@@ -152,23 +135,30 @@ __host__ void resp_calibration(ArrSpec *f_atm,
             }
         }
     }
-    
-    delete[] eta_kj_sum;
-    
+}
+
+__host__ void fit_calibration(float *Psky,
+        float *Tsky,
+        int nf_ch,
+        float *c0,
+        float *c1)
+{
+    double c0_loc, c1_loc, cov00, cov01, cov11, sumsq;
+
+    double *Psky_k = new double[NPWV]; 
+    double *Tsky_k = new double[NPWV]; 
+
     for(int k=0; k<nf_ch; k++)
     {
         for(int j=0; j<NPWV; j++)
         {
             Psky_k[j] = static_cast<double>(Psky[k*NPWV + j]);
             Tsky_k[j] = static_cast<double>(Tsky[k*NPWV + j]);
-            printf("%.12e %.12e\n", Tsky_k[j], Psky_k[j]);
         }
         gsl_fit_linear(Psky_k, 1, Tsky_k, 1, NPWV, &c0_loc, &c1_loc, &cov00, &cov01, &cov11, &sumsq);
         c0[k] = static_cast<float>(c0_loc);
         c1[k] = static_cast<float>(c1_loc);
     }
-    delete[] Psky;   
-    delete[] Tsky;   
     delete[] Psky_k;   
     delete[] Tsky_k;   
 }

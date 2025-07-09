@@ -54,6 +54,7 @@ def allfillTelescope(TelDict: dict[str, any],
     @param TelStruct Struct to be filled and passed to ctypes.
     @param ct_t Type of data. Use ctypes.c_double for CPU, ctypes.c_float for GPU.
     """
+    print(TelDict["az_scan"])
     arr_eta_ap = ar.array('f', TelDict["eta_ap"].ravel())
     arr_az_scan = ar.array('f', TelDict["az_scan"].ravel())
     arr_el_scan = ar.array('f', TelDict["el_scan"].ravel())

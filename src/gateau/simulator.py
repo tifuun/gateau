@@ -227,7 +227,7 @@ class simulator(object):
         
         if self.instrument.get("pointings") is None:
             if self.instrument.get("spacing") is None or self.instrument.get("radius") is None:
-                self.instrument["pointings"] = [0], [0]
+                self.instrument["pointings"] = np.zeros(1), np.zeros(1)
             
             else:
                 self.instrument["pointings"] = gifu.generate_fpa_pointings(self.instrument) 

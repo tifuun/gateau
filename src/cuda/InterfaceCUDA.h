@@ -9,6 +9,7 @@
 #include <cmath>
 #include <array>
 #include <vector>
+#include <thread>
 #include <string>
 #include <filesystem>
 

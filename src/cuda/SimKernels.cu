@@ -362,19 +362,24 @@ __global__ void calc_power(float *az_trace,
  */
 __global__ void calc_photon_noise(float *sigout, 
                                  float *nepout, 
+                                 float *c0,
+                                 float *c1,
                                  curandState *state) 
 {    
     int idx = blockIdx.x * blockDim.x + threadIdx.x; 
     
     if (idx < cnt) {
         curandState localState = state[idx];
-        float sigma_k;
-
+        float P_k, sigma_k;
+        float c0_loc, c1_loc;
 
         for(int k=0; k<cnf_ch; k++) {
+            c0_loc = c0[k];
+            c1_loc = c1[k];
             sigma_k = sqrtf(2 * nepout[k*cnt + idx]) * csqrt_samp;
+            P_k = sigout[k*cnt + idx];// + sigma_k * curand_normal(&localState);
+            sigout[k*cnt + idx] = c0_loc + c1_loc * P_k;
 
-            sigout[k*cnt + idx] += sigma_k * curand_normal(&localState);
             state[idx] = localState;
         }
     }
@@ -400,7 +405,6 @@ void run_gateau(Instrument *instrument,
                  char *outpath,
                  unsigned long long int seed) 
 {
-    printf("hi");
     // FLOATS
     float *d_sigout;        // Device pointer for output power array
     float *d_nepout;        // Device pointer for output power array
@@ -432,6 +436,8 @@ void run_gateau(Instrument *instrument,
     struct ArrSpec f_atm;
     struct ArrSpec pwv_atm;
     float *eta_atm;
+
+    const auto processor_count = std::thread::hardware_concurrency();
 
     curandState *devstates;
 
@@ -528,15 +534,68 @@ void run_gateau(Instrument *instrument,
     
     if(true)
     {
-        resp_calibration(&f_atm, &pwv_atm, &f_src,
-                   atmosphere->T_atm, instrument->nf_ch,
-                   cascade->eta_cascade, cascade->psd_cascade,
-                   cascade->num_stage, psd_atm.data(), eta_atm,
-                   instrument->filterbank, c0, c1); 
-        for(int i=0; i<instrument->nf_ch; i++)
+        float *Psky = new float[instrument->nf_ch * NPWV]();
+        float *Tsky = new float[instrument->nf_ch * NPWV]();
+        float *eta_kj_sum = new float[instrument->nf_ch]();
+        
+        for(int k=0; k<instrument->nf_ch; k++)
         {
-            printf("%.12e, %.12e\n", c0[i], c1[i]);
+            for(int j=0; j<f_src.num; j++)
+            {
+                eta_kj_sum[k] += instrument->filterbank[k*f_src.num + j];
+            }
         }
+    
+        // Make threadpool
+        std::vector<std::thread> threadPool;
+        threadPool.resize(processor_count);
+
+        int step = ceil(NPWV / processor_count);
+
+        for(int n=0; n < processor_count; n++) 
+        {
+            int final_step; // Final step for
+
+            if(n == (processor_count - 1)) {
+                final_step = NPWV;
+            } else {
+                final_step = (n+1) * step;
+            }
+
+            threadPool[n] = std::thread(&resp_calibration, 
+                    n * step,
+                    final_step,
+                    &f_atm, 
+                    &pwv_atm, 
+                    &f_src,
+                    atmosphere->T_atm, 
+                    instrument->nf_ch,
+                    cascade->eta_cascade, 
+                    cascade->psd_cascade,
+                    cascade->num_stage, 
+                    psd_atm.data(), 
+                    eta_atm,
+                    instrument->filterbank, 
+                    eta_kj_sum,
+                    Psky, 
+                    Tsky);
+        }
+
+        // Wait with execution until all threads are done
+        for (std::thread &t : threadPool) {
+            if (t.joinable()) {
+                t.join();
+            }
+        }
+        delete[] eta_kj_sum;
+
+        fit_calibration(Psky,
+                Tsky,
+                instrument->nf_ch,
+                c0,
+                c1);
+        delete[] Psky;   
+        delete[] Tsky;   
     }
 
     else
@@ -547,8 +606,21 @@ void run_gateau(Instrument *instrument,
             c1[i] = 1.;
         }
     }
+
+    
+    for(int i=0;i<instrument->nf_ch;i++){
+        printf("%.12e %.12e\n", c0[i], c1[i]);
+    }
+
+    float *d_c0, *d_c1;
+    gpuErrchk( cudaMalloc((void**)&d_c0, instrument->nf_ch * sizeof(float)) );
+    gpuErrchk( cudaMemcpy(d_c0, c0, instrument->nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaMalloc((void**)&d_c1, instrument->nf_ch * sizeof(float)) );
+    gpuErrchk( cudaMemcpy(d_c1, c1, instrument->nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
     
     delete[] eta_atm;
+    delete[] c0;
+    delete[] c1;
 
     // Allocate and copy instrument arrays
     float *d_filterbank;
@@ -575,7 +647,7 @@ void run_gateau(Instrument *instrument,
     float ftime_counter;
     for(int idx_spax=0; idx_spax<num_spax; idx_spax++) 
     {
-        printf("Simulating spaxel %d\n", idx_spax);
+        printf("Simulating spaxel %d / %d\n", idx_spax+1, num_spax);
         az_fpa = instrument->az_fpa[idx_spax];
         el_fpa = instrument->el_fpa[idx_spax];
 
@@ -685,6 +757,8 @@ void run_gateau(Instrument *instrument,
                                 blockSize1D>>>
                                     (d_sigout, 
                                      d_nepout, 
+                                     d_c0,
+                                     d_c1,
                                      devstates);
 
             gpuErrchk( cudaDeviceSynchronize() );
@@ -725,7 +799,6 @@ void run_gateau(Instrument *instrument,
             gpuErrchk( cudaFree(d_el_trace) );
 
             idx_wrap++;
-            printf("\n");
         }
     }
     gpuErrchk( cudaDeviceReset() );

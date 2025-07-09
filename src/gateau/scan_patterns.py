@@ -83,10 +83,10 @@ def check_size(times, az0, el0):
     az_ret = az0
     el_ret = el0
     
-    if isinstance(az0, float):
+    if isinstance(az0, float) or isinstance(az0, int):
         az_ret *= np.ones(times.size)
     
-    if isinstance(el0, float):
+    if isinstance(el0, float) or isinstance(el0, int):
         el_ret *= np.ones(times.size)
 
     return az_ret, el_ret
