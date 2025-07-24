@@ -235,7 +235,8 @@ __global__ void calc_power(float *az_trace,
                             float *eta_atm,
                             float *sigout, 
                             float *nepout, 
-                            float *source)
+                            float *source,
+                            int chunk_idx)
 {
     
 
@@ -318,6 +319,7 @@ __global__ void calc_power(float *az_trace,
 
         // Initial pass through atmosphere
         psd_in = eta_ap * I_nu * CL*CL / (freq*freq); 
+        
         psd_in = rad_trans(psd_in, eta_atm_interp, psd_atm);
 
         // Radiative transfer cascade
@@ -340,12 +342,14 @@ __global__ void calc_power(float *az_trace,
         for(int k=0; k<cnf_ch; k++) {
             eta_kj = tex1Dfetch( tex_filterbank, k*f_src.num + idy) * temp1;
             psd_in_k = rad_trans(psd_in, eta_kj, temp2);
+            if(chunk_idx == 44 && idx == 0){printf("%.12e\n", f_src.step);}
 
             sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
 
             atomicAdd(&sigout[k*cnt + idx], sigfactor); 
             atomicAdd(&nepout[k*cnt + idx], sigfactor * (HP * freq + eta_kj * psd_in_k + cGR_factor)); 
         }
+        //if(chunk_idx == 44 && idy==0){printf("%.12e\n", sigout[idx]);}
     }
 }
 
@@ -749,7 +753,8 @@ void run_gateau(Instrument *instrument,
                               d_eta_atm,
                               d_sigout,
                               d_nepout,
-                              d_I_nu);
+                              d_I_nu,
+                              idx);
             
             gpuErrchk( cudaDeviceSynchronize() );
 
