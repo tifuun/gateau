@@ -3,3 +3,12 @@
 Welcome to the `gateau` Github repository: the GPU-Accelerated Time-dEpendent observAtion simUlator! 
 This is the end-to-end simulator for TIFUUn observations, and is currently still in progress.
 For more info, please see [the documentation pages](https://arend95.github.io/tiempo2/) (to be fixed).
+
+## Setup
+
+System-wide dependencies: `cmake gcc gsl-devel`
+then `pip install -e .`
+
+## Roadmap
+
+
