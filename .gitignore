@@ -9,3 +9,4 @@ build/
 tests/__pycache__/*
 tests/resources/test1.fits
 htmlcov/*
+doxy/docs
