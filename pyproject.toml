@@ -1,0 +1,31 @@
+[build-system]
+requires = ["scikit-build-core"]
+build-backend = "scikit_build_core.build"
+
+[project]
+license = "MIT"
+name = "gateau"
+version = "0.0.1"
+authors = [
+	{name = "Arend Moerman"},
+	{name = "maybetree", email = "maybetree48@proton.me"}
+	]
+dependencies = [
+	"numpy",
+	"matplotlib",
+	"scipy",
+	"tqdm",
+	"astropy",
+	"psutil",
+	]
+
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"Programming Language :: C",
+	"Programming Language :: C++",
+	"Environment :: GPU :: NVIDIA CUDA :: 11",
+	"Operating System :: OS Independent",
+	]
+
+requires-python = '>=3.8'
+

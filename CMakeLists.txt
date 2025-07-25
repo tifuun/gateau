@@ -32,3 +32,4 @@ if(CMAKE_CUDA_COMPILER)
 else()
     message(STATUS "WARNING: no CUDA compiler detected. Not building GATEAU.")
 endif()
+
