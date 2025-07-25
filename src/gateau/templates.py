@@ -13,7 +13,7 @@ instrument = {
         "R"             : "Resolving power f / df (int).",
         "f_sample"      : "Readout frequency in Hertz (float).",
         "box_eq"        : "If True, eta_filt is height of equivalent box filter. If False, eta_filt is peak height. Default is True.",
-        "order"         : "Order of Lorentzian filterbank. Raises Lorentzian to given power, but keeps height same as normal Lorentzian. Defaults to 1."
+        "order"         : "Order of Lorentzian filterbank. Raises Lorentzian to given power, but keeps height same as normal Lorentzian. Defaults to 1.",
         "material"      : "Material(s) of MKID (string). If MKID is hybrid, for example Al and NbTiN, enter as: 'Al_NbTiN'."
         }
 
@@ -28,7 +28,7 @@ instrument = {
 # Note that, when scantype = 'point', all fields beyond this field are set to zero.
 telescope = {
         "eta_ap"     : "Aperture efficiency of telescope. If a single number is given, assume same aperture efficiency across entire frequency range.",
-        "s_rms"         : "Surface rms roughness, in micrometer for Ruze efficiency. Leaving empty means no surface efficiency in calculation."
+        "s_rms"         : "Surface rms roughness, in micrometer for Ruze efficiency. Leaving empty means no surface efficiency in calculation.",
         "az_scan"     : "Azimuth angles for scan, in arcesconds.",
         "el_scan"     : "Elevation angles for scan, in arcesconds.",
         }
@@ -52,7 +52,7 @@ atmosphere = {
 Source = {
         "az_src"            : "Azimuthal range of source in arcseconds",
         "el_src"            : "Elevation range of source in arcseconds",
-        "f_src"             : "Array with source frequencies in GHz, must be regular, i.e. uniform stepsize."
+        "f_src"             : "Array with source frequencies in GHz, must be regular, i.e. uniform stepsize.",
         "I_nu"              : "Source cube, in azimuth, elevation, and frequencies. Units in SI, i.e. W / m**2 / sr / Hz.",
         }
 
