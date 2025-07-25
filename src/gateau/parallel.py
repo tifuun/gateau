@@ -9,7 +9,6 @@ import numpy as np
 import os
 from collections.abc import Callable
 from functools import partial
-from itertools import starmap
 
 NFIELDS = 3
 

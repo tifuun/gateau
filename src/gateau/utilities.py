@@ -7,11 +7,10 @@ import numpy as np
 import csv
 
 import pathlib
-from astropy.io import fits
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RectBivariateSpline
 
-from gateau.parallel import get_num_chunks, parallel_job_np 
+from gateau.parallel import get_num_chunks 
 from gateau.fileio import unpack_output
 
 def yield_output(path, spaxel = 0):
@@ -87,7 +86,7 @@ def prep_atm_ARIS(atmosphereDict, telescopeDict):
     if clog is not None:
         clog.info("\033[1;32m*** FINISHED PREPARING ARIS SCREENS ***")
     else:
-        print(f"Finished preparing atmospheric screens.")
+        print("Finished preparing atmospheric screens.")
 
 def get_eta_atm(f_src: np.ndarray,
                 pwv0: float,

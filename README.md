@@ -11,4 +11,6 @@ then `pip install -e .`
 
 ## Roadmap
 
+- [ ] automatic tests
+    - [ ] 
 

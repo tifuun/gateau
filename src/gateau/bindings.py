@@ -3,8 +3,7 @@
 Bindings for the ctypes interface for gateau. 
 """
 
-from ctypes import Structure, POINTER, c_float, c_int, c_char_p, c_ulonglong, CDLL
-import numpy as np
+from ctypes import POINTER, c_int, c_char_p, c_ulonglong, CDLL
 import os
 import pathlib
 

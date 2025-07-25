@@ -5,7 +5,7 @@ import scipy.constants as scc
 import math
 from functools import partial
 
-from typing import Tuple, List
+from typing import Tuple
 
 def convolve_source_cube(args: Tuple[np.ndarray, 
                                      np.ndarray, 

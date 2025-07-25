@@ -4,7 +4,6 @@ Structs that are passed to the C++ backend.
 """ 
 
 from ctypes import Structure, POINTER, c_float, c_int, c_char_p
-import numpy as np
 
 class ArrSpec(Structure):
     """!

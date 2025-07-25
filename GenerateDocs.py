@@ -8,7 +8,6 @@ For this script to work properly, you should have installed the docs prerequisit
 import os
 import shutil
 import traceback
-import argparse
 
 def GenerateDocs():
     docPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "docs")
@@ -17,7 +16,7 @@ def GenerateDocs():
     try:
         try:
             shutil.rmtree(docPath)
-        except Exception as err:
+        except Exception:
             print(traceback.format_exc())
 
         # Convert demos to html format for inclusion in the documentation.
@@ -48,7 +47,7 @@ def GenerateDocs():
         with open(filelistPath, 'w') as file:
             file.write(filedata)
         
-    except Exception as err:
+    except Exception:
         print(traceback.format_exc())
     
 if __name__ == "__main__":

@@ -3,8 +3,6 @@
 Test atmosphere module.
 """
 
-import os
-import numpy as np
 import unittest
 import tiempo2.Atmosphere as TAtm
 import resources.InputDicts as TInp

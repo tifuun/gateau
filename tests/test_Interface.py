@@ -3,7 +3,6 @@
 Test atmosphere module.
 """
 
-import os
 import numpy as np
 import unittest
 import tiempo2.Interface as TInterf
@@ -11,7 +10,6 @@ import resources.InputDicts as TInp
 import tiempo2.BindCPU as tbcpu
 from nose2.tools import params
 
-import matplotlib.pyplot as pt
 
 class TestAtmosphere(unittest.TestCase):
     @classmethod

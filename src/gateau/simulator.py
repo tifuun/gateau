@@ -14,9 +14,9 @@ import gateau.cascade as gcascade
 import psutil
 import logging
 from gateau.custom_logger import CustomLogger
-from gateau.utilities import get_eta_atm, average_over_filterbank
+from gateau.utilities import get_eta_atm
 
-from collections.abc import Iterator, Callable
+from collections.abc import Callable
 from typing import Union
 
 logging.getLogger(__name__)
