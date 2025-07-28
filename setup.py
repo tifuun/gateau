@@ -49,7 +49,7 @@ setup(
     license="MIT",
     version='0.0.1',
     author="Arend Moerman",
-    install_requires = ["numpy", "matplotlib", "scipy", "tqdm", "astropy", "psutil", "cmake"],
+    install_requires = ["numpy", "matplotlib", "scipy", "tqdm", "astropy", "psutil"],
     package_dir = {'': 'src'},
     packages=['gateau'],
     ext_modules=[CMakeExtension(os.path.join("gateau", "libs"))],
