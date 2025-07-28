@@ -168,7 +168,8 @@ __global__ void calc_traces_rng(float *az_scan,
                                 float *pwv_trace,
                                 float *time_trace,
                                 curandState *state,
-                                unsigned long long int seed)
+                                unsigned long long int seed,
+                                int idx_offset)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;                                 
                                                                                      
@@ -179,7 +180,7 @@ __global__ void calc_traces_rng(float *az_scan,
             seed = clock64();
         }
 
-        seed += idx;
+        seed += idx + idx_offset;
 
         // FLOATS                                                                    
         float time_point;  // Timepoint for thread in simulation.                   
@@ -190,21 +191,20 @@ __global__ void calc_traces_rng(float *az_scan,
         time_point = idx * cdt;
         //printf("%.12e\n", time_point);
 
-        az_point = az_scan[idx] + az_fpa;
-        el_point = el_scan[idx] + el_fpa;
+        az_point = az_scan[idx + idx_offset] + az_fpa;
+        el_point = el_scan[idx + idx_offset] + el_fpa;
 
         x_point = __tanf(DEG2RAD * az_point) * ch_column + cv_wind * time_point;
         y_point = __tanf(DEG2RAD * el_point) * ch_column;
 
         interpValue(x_point, y_point,
                     &x_atm, &y_atm, pwv_screen, 0, pwv_point);            
-        //printf("%.12e\n", ct_start);
                                                                                      
         curand_init(seed, idx, 0, &state[idx]);                                      
         az_trace[idx] = az_point;                                                    
         el_trace[idx] = el_point;
         pwv_trace[idx] = pwv_point;
-        time_trace[idx] = time_point + ct_start*cdt;
+        time_trace[idx] = time_point + ct_start;
     }
 }
 
@@ -342,14 +342,12 @@ __global__ void calc_power(float *az_trace,
         for(int k=0; k<cnf_ch; k++) {
             eta_kj = tex1Dfetch( tex_filterbank, k*f_src.num + idy) * temp1;
             psd_in_k = rad_trans(psd_in, eta_kj, temp2);
-            if(chunk_idx == 44 && idx == 0){printf("%.12e\n", f_src.step);}
 
             sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
 
             atomicAdd(&sigout[k*cnt + idx], sigfactor); 
             atomicAdd(&nepout[k*cnt + idx], sigfactor * (HP * freq + eta_kj * psd_in_k + cGR_factor)); 
         }
-        //if(chunk_idx == 44 && idy==0){printf("%.12e\n", sigout[idx]);}
     }
 }
 
@@ -611,11 +609,6 @@ void run_gateau(Instrument *instrument,
         }
     }
 
-    
-    for(int i=0;i<instrument->nf_ch;i++){
-        printf("%.12e %.12e\n", c0[i], c1[i]);
-    }
-
     float *d_c0, *d_c1;
     gpuErrchk( cudaMalloc((void**)&d_c0, instrument->nf_ch * sizeof(float)) );
     gpuErrchk( cudaMemcpy(d_c0, c0, instrument->nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
@@ -642,13 +635,15 @@ void run_gateau(Instrument *instrument,
     printf("\033[92m");
     int idx_wrap;
     int time_counter;
+    int idx_offset;
 
     size_t free_mem, total_mem;
 
     int num_spax = instrument->num_spax;
     float az_fpa, el_fpa;
     
-    float ftime_counter;
+
+    float ftime_counter = 0.;
     for(int idx_spax=0; idx_spax<num_spax; idx_spax++) 
     {
         printf("Simulating spaxel %d / %d\n", idx_spax+1, num_spax);
@@ -657,22 +652,23 @@ void run_gateau(Instrument *instrument,
 
         idx_wrap = 0;
         time_counter = 0;
+        idx_offset = 0;
 
         for(int idx=0; idx<nJobs; idx++) {
-            ftime_counter = 0.;
 
             if (idx_wrap == meta[0]) {
                 idx_wrap = 0;
             }
 
             if (idx == (nJobs - 1)) {
-                nTimesScreen = nTimesTotal - nTimesScreen*(nJobs-1);
+                //nTimesScreen = 786;//nTimesTotal - nTimesScreen * idx;
+                nTimesScreen = nTimesTotal - nTimesScreen * idx;
             }
 
             gpuErrchk( cudaMemcpyToSymbol(ct_start, &ftime_counter, sizeof(float)) );
 
             time_counter += nTimesScreen;
-            ftime_counter = static_cast<float>(time_counter);
+            ftime_counter = static_cast<float>(time_counter) / instrument->f_sample;
 
             printf("*** Progress: %d / 100 ***\r", time_counter*100 / nTimesTotal);
             fflush(stdout);
@@ -703,6 +699,15 @@ void run_gateau(Instrument *instrument,
             gpuErrchk( cudaMalloc((void**)&d_nepout, nffnt * sizeof(float)) );
             gpuErrchk( cudaMalloc((void**)&devstates, nTimesScreen * sizeof(curandState)) );
 
+
+            gpuErrchk( cudaMemset(d_az_trace, 0, nTimesScreen * sizeof(float)) );
+            gpuErrchk( cudaMemset(d_el_trace, 0, nTimesScreen * sizeof(float)) );
+            gpuErrchk( cudaMemset(d_pwv_trace, 0,nTimesScreen * sizeof(float)) );
+            gpuErrchk( cudaMemset(d_time_trace, 0,nTimesScreen * sizeof(float)) );
+            gpuErrchk( cudaMemset(d_sigout, 0,nffnt * sizeof(float)) );
+            gpuErrchk( cudaMemset(d_nepout, 0,nffnt * sizeof(float)) );
+            gpuErrchk( cudaMemset(devstates, 0,nTimesScreen * sizeof(curandState)) );
+
             // Allocate PWV screen now, delete CUDA allocation after first kernel call
             float *pwv_screen;
             float *d_pwv_screen;
@@ -732,7 +737,8 @@ void run_gateau(Instrument *instrument,
                                    d_pwv_trace,
                                    d_time_trace,
                                    devstates,
-                                   seed);
+                                   seed,
+                                   idx_offset);
 
             gpuErrchk( cudaDeviceSynchronize() );
             gpuErrchk( cudaFree(d_pwv_screen) );
@@ -804,6 +810,7 @@ void run_gateau(Instrument *instrument,
             gpuErrchk( cudaFree(d_el_trace) );
 
             idx_wrap++;
+            idx_offset += nTimesScreen;
         }
     }
     gpuErrchk( cudaDeviceReset() );
