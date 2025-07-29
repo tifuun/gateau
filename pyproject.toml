@@ -29,3 +29,12 @@ classifiers = [
 
 requires-python = '>=3.8'
 
+[tool.scikit-build]
+build.verbose = true
+logging.level = "DEBUG"
+#wheel.packages = ["gateau"]
+
+#[tool.scikit-build.cmake.define]
+#CMAKE_LIBRARY_OUTPUT_DIRECTORY = "src/gateau"
+
+

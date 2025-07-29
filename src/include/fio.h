@@ -75,7 +75,7 @@ void readEtaATM(T **eta_array, U *pwv_atm, U *freq_atm) {
     freq_atm->step = 0.1e9;
     freq_atm->num = NFREQ;
 
-    std::regex target("include\/fio\.h");
+    std::regex target(R"(include\/fio\.h)");
     std::string rel_loc = "resources/eta_atm";
     std::string abs_loc = std::regex_replace(__FILE__, target, rel_loc);
 
