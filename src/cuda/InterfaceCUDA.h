@@ -36,7 +36,7 @@ extern "C"
                                Atmosphere *atmosphere, 
                                Source *source,
                                Cascade *cascade,
-                               int nTimesTotal, 
+                               int nttot, 
                                char *outpath,
                                unsigned long long int seed);
 }

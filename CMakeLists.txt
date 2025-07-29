@@ -8,7 +8,6 @@ project(gateau
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-#SET(CMAKE_CXX_FLAGS_DEBUG "-g")
 find_package(GSL REQUIRED)
 
 include(CheckLanguage)

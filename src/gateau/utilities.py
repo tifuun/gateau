@@ -15,11 +15,48 @@ from gateau.parallel import get_num_chunks, parallel_job_np
 from gateau.fileio import unpack_output
 
 def yield_output(path, spaxel = 0):
+    """!
+    Obtain iterator for a single spaxel output.
+    The iterator yields chunks of observation.
+    Use this function to obtain full access to all voxels inside a spaxel, on a chunk-to-chunk basis.
+
+    @param path Path to folder containing output.
+    @param spaxel Spaxel to yield from. Default: 0.
+    
+    @returns Iterator yielding separate observation chunks.
+    """
     path_spaxel = os.path.join(path, str(spaxel))
     num_chunks_in_path = get_num_chunks(path_spaxel)
 
     for chunk_idx in range(num_chunks_in_path):
         yield unpack_output(path, path_spaxel, chunk_idx)
+
+def extract_voxel_tod(path, voxel, spaxel = 0):
+    """!
+    Obtain full TOD for a single voxel inside a single spaxel.
+    Use this function to obtain access to a full observation TOD, for a single voxel, for a single spaxel.
+    """
+
+    path_spaxel = os.path.join(path, str(spaxel))
+    num_chunks_in_path = get_num_chunks(path_spaxel)
+
+    for chunk_idx in range(num_chunks_in_path):
+        out_full = unpack_output(path, path_spaxel, chunk_idx)
+        if chunk_idx == 0:
+            out = {
+                    "signal"    : out_full["signal"][:,voxel],
+                    "az"        : out_full["az"],  
+                    "el"        : out_full["el"],
+                    "time"      : out_full["time"]
+                    }
+        else:
+            out["signal"] = np.concatenate((out["signal"],
+                                            out_full["signal"][:,voxel]))
+            out["az"] = np.concatenate((out["az"], out_full["az"]))
+            out["el"] = np.concatenate((out["el"], out_full["el"]))
+            out["time"] = np.concatenate((out["time"], out_full["time"]))
+
+    return out
 
 def prep_atm_ARIS(atmosphereDict, telescopeDict):
     """!   
