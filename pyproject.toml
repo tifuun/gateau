@@ -32,6 +32,7 @@ requires-python = '>=3.8'
 [tool.scikit-build]
 build.verbose = true
 logging.level = "DEBUG"
+#editable.mode = "inplace"
 #wheel.packages = ["gateau"]
 
 #[tool.scikit-build.cmake.define]

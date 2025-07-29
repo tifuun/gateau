@@ -83,13 +83,15 @@ htmlcov
 CMakeCache.txt
 CMakeFiles
 cmake_install.cmake
-doxy
-
+.cmake
+.skbuild-info.json
+CMakeInit.txt
 
 ### Project-specific ###
 
 # Allow .dat, it's used for resources
 !*.dat
+doxy
 
 
 
