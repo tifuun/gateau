@@ -32,7 +32,7 @@ if(CMAKE_CUDA_COMPILER)
 		target_link_libraries(gateau PRIVATE ${GSL_LIBRARIES})
 	endif()
 else()
-	message(FATAL_ERROR "WARNING: no CUDA compiler detected. Not building GATEAU.")
+    message(FATAL_ERROR "FATAL ERROR: no CUDA compiler detected. Not building GATEAU.")
 endif()
 
 
