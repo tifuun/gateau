@@ -14,8 +14,17 @@ include(CheckLanguage)
 
 check_language(CUDA)
 
-# FIXME is this right?? Project name??
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${SKBUILD_PLATLIB_DIR}/${SKBUILD_PROJECT_NAME}")
+if("${SKBUILD_STATE}" STREQUAL "editable")
+	set(
+		CMAKE_LIBRARY_OUTPUT_DIRECTORY
+		"${CMAKE_CURRENT_SOURCE_DIR}/src/${SKBUILD_PROJECT_NAME}"
+	)
+else()
+	set(
+		CMAKE_LIBRARY_OUTPUT_DIRECTORY
+		"${SKBUILD_PLATLIB_DIR}/${SKBUILD_PROJECT_NAME}"
+	)
+endif()
 
 if(CMAKE_CUDA_COMPILER)
 	enable_language(CUDA)
