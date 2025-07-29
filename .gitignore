@@ -1,12 +1,96 @@
-*.swp
-*.swo
-.coverage
-__pycache__/*
-src/gateau/__pycache__/*
-build/
-*.egg-info/
+### Generic ###
+
+# VIM
+*.sw*
+*.vim*
+*.obsession*
+
+# misc. garbage
+*.bak
+*.old*
+~*
+*~
+-
+
+# Damn you steve jobs!!!!
+.DS_Store
+
+# vscope
+.vscode/*
+*.code-workspace
+.history/
+
+# potential credentials
+*.pem
+*.secret
+**/credentials.json
+**/client_secrets.json
+**/client_secret.json
+*creds*
+*.dat
+*password*
+*.httr-oauth*
+*.env
+!*.sample.env
+
+# C/C++
+*.o
+*.out
+*.a
 *.so
-tests/__pycache__/*
-tests/resources/test1.fits
-htmlcov/*
-doxy/docs
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.clirope
+*.egg-info
+build
+dist
+coverage.json
+htmlcov
+*.spec
+.coverage
+
+# Archives
+*.zip
+*.tar
+*.rar
+*.tar.*
+*.tzst
+*.tgz
+*.txz
+*.zst
+*.gz
+
+# Multimedia
+*.xcf
+*.svg
+*.jpg
+*.jpeg
+*.png
+*.avif
+*.gif
+*.pdf
+*.gv
+!img/*.jpg
+!img/*.png
+!img/*.svg
+!img/*.gv
+
+# cmake
+
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+doxy
+
+
+### Project-specific ###
+
+# Allow .dat, it's used for resources
+!*.dat
+
+
+
+
