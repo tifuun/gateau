@@ -91,7 +91,9 @@ CMakeInit.txt
 
 # Allow .dat, it's used for resources
 !*.dat
+
 doxy
+podman/output
 
 
 
