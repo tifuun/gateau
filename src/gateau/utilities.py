@@ -1,6 +1,7 @@
 """!
 @file Utilities that can be called by users. 
 """
+from importlib import resources as impresources
 
 import os
 import numpy as np
@@ -13,6 +14,7 @@ from scipy.interpolate import RectBivariateSpline
 
 from gateau.parallel import get_num_chunks, parallel_job_np 
 from gateau.fileio import unpack_output
+from gateau import resources
 
 def yield_output(path, spaxel = 0):
     """!
@@ -129,12 +131,8 @@ def prep_atm_ARIS(atmosphereDict, telescopeDict):
 def get_eta_atm(f_src: np.ndarray,
                 pwv0: float,
                 el0: float) -> np.ndarray:
-    atm_file = os.path.join(pathlib.Path(__file__).parent.resolve(),
-                            "..",
-                            "resources",
-                            "eta_atm")
     
-    with open(atm_file) as file:
+    with (impresources.files(resources) / 'eta_atm').open('r') as file:
         reader = csv.reader(file, delimiter=' ')
         pwv = []
         f_atm = []
