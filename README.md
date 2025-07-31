@@ -21,6 +21,25 @@ Once you have installed the system-wide requirements,
 you can `pip install -e .` this repo.
 All Python dependencies will be downloaded by pip.
 
+<!--
 
+## Testing
+
+We need to test gateau on multiple cuda versions
+and multiple python versions.
+To achieve this, we have a script that
+sets up different envrionments inside Podman containers.
+
+First, you need to acquire the cuda11 and cuda12 images we have
+prepared for testing gateau.
+These are based on official NVIDIA images, but with
+extra dependencies installed to make gateau work.
+
+Download the images from the STRATAL SYSTEMS Docker registry:
+```
+./podman/test-all.sh 
+```
+
+-->
 
 

@@ -21,6 +21,18 @@ outside_build_cuda12() {
 inside_testall() {
 	# This function runs IN THE CONTAINER
 	# and tests gateau
+	#
+	if [ -z "$(podman images -q gateau-cuda11)" ]
+	then
+		echo "CUDA11 IMAGE NOT PRESENT!!"
+		exit 9
+	fi
+
+	if [ -z "$(podman images -q gateau-cuda12)" ]
+	then
+		echo "CUDA12 IMAGE NOT PRESENT!!"
+		exit 9
+	fi
 	
 	set -e
 
@@ -43,6 +55,40 @@ inside_testall() {
 
 		echo "$exit_code" > "/output/${cuda_name}_${py_name}.exitcode"
 	done
+}
+
+outside_build_images() {
+	if [ -n "$(podman images -q gateau-cuda11)" ]
+	then
+		echo "CUDA11 CONTAINER ALREADY PRESENT"
+	else
+		outside_build_cuda11
+	fi
+
+	if [ -n "$(podman images -q gateau-cuda12)" ]
+	then
+		echo "CUDA12 CONTAINER ALREADY PRESENT"
+	else
+		outside_build_cuda12
+	fi
+
+}
+
+outside_pull_images() {
+	if [ -n "$(podman images -q gateau-cuda11)" ]
+	then
+		echo "CUDA11 CONTAINER ALREADY PRESENT"
+	else
+		outside_pull_image gateau-cuda11
+	fi
+
+	if [ -n "$(podman images -q gateau-cuda12)" ]
+	then
+		echo "CUDA12 CONTAINER ALREADY PRESENT"
+	else
+		outside_pull_image gateau-cuda12
+	fi
+
 }
 
 outside_testall() {
@@ -68,24 +114,45 @@ outside_testall() {
 	done
 }
 
+outside_pull_image() {
+	ref="$1"
+
+	set -e
+	podman pull --creds 'public:public' reg.stratal.systems/"$ref"
+	podman tag reg.stratal.systems/"$ref" "$ref"
+}
+
+outside_push_image() {
+	ref="$1"
+
+	set -e
+	podman push "$ref" reg.stratal.systems/"$ref"
+}
+
 if [ -z "$CONTAINER_ACTION" ]
 then
 
-	if [ -z "$(podman images -q gateau-cuda11)" ]
-	then
-		outside_build_cuda11 || exit 5
-	else
-		echo "CUDA11 CONTAINER ALREADY PRESENT"
-	fi
+	set -e
 
-	if [ -z "$(podman images -q gateau-cuda12)" ]
-	then
-		outside_build_cuda12 || exit 5
-	else
-		echo "CUDA12 CONTAINER ALREADY PRESENT"
-	fi
-
-	outside_testall || exit 6
+	case "$1" in
+		test)
+			outside_testall
+			;;
+		build)
+			outside_build_images
+			;;
+		pull)
+			outside_pull_images
+			;;
+		push)
+			outside_push_image gateau-cuda11
+			outside_push_image gateau-cuda12
+			;;
+		*)
+			echo "Usage: $0 <test|build|pull|push>"
+			exit 9
+			;;
+	esac
 
 else
 	$CONTAINER_ACTION
