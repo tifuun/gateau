@@ -1,5 +1,11 @@
 #!/bin/sh
 
+if [ "$(realpath "$0" 2>/dev/null)" != "$(realpath "./podman/test-all.sh" 2>/dev/null)" ]
+then
+	echo "Must run from root of repo!!"
+	exit 9
+fi
+
 outside_build_cuda11() {
 	set -e
 
