@@ -8,6 +8,63 @@ and is currently still in progress.
 For more info, please see
 [the documentation pages](https://arend95.github.io/tiempo2/) (to be fixed).
 
+## Building and testing
+
+### General procedure
+
+1. Install Python, gcc, cmake, `gsl-devel`
+1. (optional) create and activate venv
+1. `pip install -e .`
+1. `python -m unittest`
+1. TODO gtest
+
+What follows is notes and examples for various distros.
+Tip: take a look at the dockerfile under `podman` for more info.
+
+### Oracle Linux 9
+
+- Available pythons: 3.9, 3.11, 3.12
+- Extra repos need to be added for googletest:
+
+```
+dnf install -y oracle-epel-release-el9
+dnf config-manager --set-enabled ol9_developer_EPEL
+dnf install -y gtest gtest-devel gsl-devel python3.11
+
+python3.11 -m venv /venv
+source /venv/bin/activate
+
+pip install -e .
+python -m unittest
+TODO gtest
+```
+
+### Ubuntu 20.04
+
+- `deadsnakes` repo needed for non-ancient Pythons
+    - contains almost all releases of python that you might
+        ever want (3.9, 3.10, 3.11, 3.12, 3.13)
+    - `venv` shipped separately,
+        so you need to install both
+        `pythonX.XX` and `pythonX.XX-venv`
+- `gsl-devel` is called `libgsl-dev`
+- TODO gtest
+
+```
+apt install -y libgsl-dev software-properties-common
+add-apt-repository ppa:deadsnakes/ppa
+apt update -y
+apt install python3.11 python3.11-venv
+
+python3.11 -m venv /venv
+source /venv/bin/activate
+
+pip install -e .
+python -m unittest
+TODO gtest
+```
+
+
 ## Installation
 
 System-wide requirements (get these from your package manager):

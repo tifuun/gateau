@@ -65,6 +65,16 @@ CMAKE_BINARY_DIR = /play/gateau
 #=============================================================================
 # Targets provided globally by CMake.
 
+# Special rule for the target test
+test:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
+	/usr/bin/ctest --force-new-ctest-process $(ARGS)
+.PHONY : test
+
+# Special rule for the target test
+test/fast: test
+.PHONY : test/fast
+
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
@@ -129,29 +139,66 @@ gateau/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/build
 .PHONY : gateau/fast
 
-src/cuda/SimKernels.o: src/cuda/SimKernels.cu.o
-.PHONY : src/cuda/SimKernels.o
+#=============================================================================
+# Target rules for targets named testfile
+
+# Build rule for target.
+testfile: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 testfile
+.PHONY : testfile
+
+# fast build rule for target.
+testfile/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/testfile.dir/build.make CMakeFiles/testfile.dir/build
+.PHONY : testfile/fast
+
+gtest/testBasic.o: gtest/testBasic.cpp.o
+.PHONY : gtest/testBasic.o
 
 # target to build an object file
-src/cuda/SimKernels.cu.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/src/cuda/SimKernels.cu.o
-.PHONY : src/cuda/SimKernels.cu.o
+gtest/testBasic.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/testfile.dir/build.make CMakeFiles/testfile.dir/gtest/testBasic.cpp.o
+.PHONY : gtest/testBasic.cpp.o
 
-src/cuda/SimKernels.i: src/cuda/SimKernels.cu.i
-.PHONY : src/cuda/SimKernels.i
+gtest/testBasic.i: gtest/testBasic.cpp.i
+.PHONY : gtest/testBasic.i
 
 # target to preprocess a source file
-src/cuda/SimKernels.cu.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/src/cuda/SimKernels.cu.i
-.PHONY : src/cuda/SimKernels.cu.i
+gtest/testBasic.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/testfile.dir/build.make CMakeFiles/testfile.dir/gtest/testBasic.cpp.i
+.PHONY : gtest/testBasic.cpp.i
 
-src/cuda/SimKernels.s: src/cuda/SimKernels.cu.s
-.PHONY : src/cuda/SimKernels.s
+gtest/testBasic.s: gtest/testBasic.cpp.s
+.PHONY : gtest/testBasic.s
 
 # target to generate assembly for a file
-src/cuda/SimKernels.cu.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/src/cuda/SimKernels.cu.s
-.PHONY : src/cuda/SimKernels.cu.s
+gtest/testBasic.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/testfile.dir/build.make CMakeFiles/testfile.dir/gtest/testBasic.cpp.s
+.PHONY : gtest/testBasic.cpp.s
+
+src/gateau/cuda/SimKernels.o: src/gateau/cuda/SimKernels.cu.o
+.PHONY : src/gateau/cuda/SimKernels.o
+
+# target to build an object file
+src/gateau/cuda/SimKernels.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/src/gateau/cuda/SimKernels.cu.o
+.PHONY : src/gateau/cuda/SimKernels.cu.o
+
+src/gateau/cuda/SimKernels.i: src/gateau/cuda/SimKernels.cu.i
+.PHONY : src/gateau/cuda/SimKernels.i
+
+# target to preprocess a source file
+src/gateau/cuda/SimKernels.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/src/gateau/cuda/SimKernels.cu.i
+.PHONY : src/gateau/cuda/SimKernels.cu.i
+
+src/gateau/cuda/SimKernels.s: src/gateau/cuda/SimKernels.cu.s
+.PHONY : src/gateau/cuda/SimKernels.s
+
+# target to generate assembly for a file
+src/gateau/cuda/SimKernels.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/src/gateau/cuda/SimKernels.cu.s
+.PHONY : src/gateau/cuda/SimKernels.cu.s
 
 # Help Target
 help:
@@ -161,10 +208,15 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... test"
 	@echo "... gateau"
-	@echo "... src/cuda/SimKernels.o"
-	@echo "... src/cuda/SimKernels.i"
-	@echo "... src/cuda/SimKernels.s"
+	@echo "... testfile"
+	@echo "... gtest/testBasic.o"
+	@echo "... gtest/testBasic.i"
+	@echo "... gtest/testBasic.s"
+	@echo "... src/gateau/cuda/SimKernels.o"
+	@echo "... src/gateau/cuda/SimKernels.i"
+	@echo "... src/gateau/cuda/SimKernels.s"
 .PHONY : help
 
 

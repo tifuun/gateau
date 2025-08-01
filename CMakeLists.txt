@@ -41,7 +41,19 @@ if(CMAKE_CUDA_COMPILER)
 		target_link_libraries(gateau PRIVATE ${GSL_LIBRARIES})
 	endif()
 else()
-    message(FATAL_ERROR "FATAL ERROR: no CUDA compiler detected. Not building GATEAU.")
+	message(FATAL_ERROR "FATAL ERROR: no CUDA compiler detected. Not building GATEAU.")
 endif()
+
+enable_testing()
+
+add_executable(
+	testfile
+	gtest/testBasic.cpp
+)
+
+target_link_libraries(testfile gtest gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(testfile)
 
 
