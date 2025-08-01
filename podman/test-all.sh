@@ -28,17 +28,6 @@ inside_testall() {
 	# This function runs IN THE CONTAINER
 	# and tests gateau
 	#
-	if [ -z "$(podman images -q gateau-cuda11)" ]
-	then
-		echo "CUDA11 IMAGE NOT PRESENT!!"
-		exit 9
-	fi
-
-	if [ -z "$(podman images -q gateau-cuda12)" ]
-	then
-		echo "CUDA12 IMAGE NOT PRESENT!!"
-		exit 9
-	fi
 	
 	set -e
 
@@ -100,6 +89,20 @@ outside_pull_images() {
 outside_testall() {
 	# This function runs ON THE HOST
 	# and launches containers to test gateau
+	#
+	if [ -z "$(podman images -q gateau-cuda11)" ]
+	then
+		echo "CUDA11 IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+
+	if [ -z "$(podman images -q gateau-cuda12)" ]
+	then
+		echo "CUDA12 IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
 	
 	set -e
 	
