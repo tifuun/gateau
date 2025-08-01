@@ -28,10 +28,10 @@ endif()
 
 if(CMAKE_CUDA_COMPILER)
 	enable_language(CUDA)
-	file(GLOB CUDAfiles src/cuda/*.cu)
+	file(GLOB CUDAfiles src/gateau/cuda/*.cu)
 
 	add_library(gateau SHARED ${CUDAfiles})
-	target_include_directories(gateau PRIVATE src/cuda src/include)
+	target_include_directories(gateau PRIVATE src/gateau/cuda src/gateau/include)
 	set_target_properties(gateau PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 	set_property(TARGET gateau PROPERTY CUDA_ARCHITECTURES OFF)
 	if(TARGET GSL::gsl)
