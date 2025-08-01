@@ -106,8 +106,7 @@ outside_testall() {
 	
 	set -e
 	
-	mkdir -p podman/output
-	rm -rf podman/output/*
+	rm -rf podman/output/*.exitcode
 
 	for cuda in cuda11 cuda12
 	do
@@ -141,21 +140,31 @@ outside_push_image() {
 if [ -z "$CONTAINER_ACTION" ]
 then
 
+	mkdir -p podman/output
+
 	set -e
 
 	case "$1" in
 		test)
-			outside_testall
+			{
+				outside_testall
+			} 2>&1 | tee -a podman/output/log.txt
 			;;
 		build)
-			outside_build_images
+			{
+				outside_build_images
+			} 2>&1 | tee -a podman/output/log.txt
 			;;
 		pull)
-			outside_pull_images
+			{
+				outside_pull_images
+			} 2>&1 | tee -a podman/output/log.txt
 			;;
 		push)
-			outside_push_image gateau-cuda11
-			outside_push_image gateau-cuda12
+			{
+				outside_push_image gateau-cuda11
+				outside_push_image gateau-cuda12
+			} 2>&1 | tee -a podman/output/log.txt
 			;;
 		*)
 			echo "Usage: $0 <test|build|pull|push>"
