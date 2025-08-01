@@ -21,7 +21,7 @@ def parallel_job_np(npfile: np.ndarray,
                     job: Callable, 
                     arr_par: np.ndarray, 
                     args_list: list[any], 
-                    axis: int) -> np.ndarray:
+                    axis: int = None) -> np.ndarray:
     """!
     Perform a job on a numpy file in parallel.
     Note that this method does not calculate number of cores. This is purely user-specified.
@@ -35,6 +35,8 @@ def parallel_job_np(npfile: np.ndarray,
 
     @returns Output of job.
     """
+
+    axis = -1 if axis is None else axis
     
     if arr_par.size < num_threads:
         num_threads = arr_par.size
@@ -50,40 +52,6 @@ def parallel_job_np(npfile: np.ndarray,
 
     with get_context("spawn").Pool(num_threads) as pool:
         out = np.concatenate(pool.map(_func, args), axis=-1)
-
-    return out
-
-def parallel_job(result_path, num_threads, job, conv, args_list):
-    """!
-    Perform a job on a simulation result in parallel.
-    Note that this method does not calculate number of cores. This is purely user-specified.
-
-    @param result_path Path to simulation results.
-    @param num_threads Number of CPU threads to use.
-    @param job Function handle of function to apply to data.
-    @param conv Conversion function to go from Watts to another quantity.
-    @param args_list List of extra arguments to pass to function.
-
-    @returns Output of job.
-    """
-
-    num_chunks = get_num_chunks(result_path)
-
-    if num_chunks < num_threads:
-        num_threads = num_chunks
-
-    chunks = np.array_split(np.arange(num_chunks), num_threads)
-    chunks = [chu for chu in chunks]
-    
-    args = zip(chunks, np.arange(0, num_threads))
-
-    _func = partial(job, 
-                    result_path = result_path, 
-                    conv = conv,
-                    xargs = args_list)
-
-    with get_context("spawn").Pool(num_threads) as pool:
-        out = [np.array(x) for x in zip(*pool.map(_func, args))]
 
     return out
 
