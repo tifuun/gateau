@@ -67,6 +67,7 @@ void readAtmMeta(int **meta, std::string path) {
 template <typename T, typename U>
 void readEtaATM(T **eta_array, U *pwv_atm, U *freq_atm) {
     
+    // TODO read these in from file? Ask Arend
     pwv_atm->start = 0.1;
     pwv_atm->step = 0.1;
     pwv_atm->num = NPWVATM;

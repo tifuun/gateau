@@ -10,7 +10,7 @@ class TestBasic(unittest.TestCase):
         """
         self.assertTrue(gt.bindings.load_gateaulib() is not None)
 
-    def test_load_resources(self):
+    def test_load_resources_py(self):
         """
         Test that `resources` folder is located correctly by Python code.
 
