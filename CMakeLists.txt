@@ -44,16 +44,32 @@ else()
 	message(FATAL_ERROR "FATAL ERROR: no CUDA compiler detected. Not building GATEAU.")
 endif()
 
+## Okay I have no clue what I am doing here!!
+
 enable_testing()
 
+enable_language(CUDA)
+
 add_executable(
-	testfile
+	gateau_test
 	gtest/testBasic.cpp
 )
+target_include_directories(gateau_test
+	PUBLIC
+	src/gateau/cuda 
+        src/gateau/include
+)
+target_include_directories(gateau_test PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
-target_link_libraries(testfile gtest gtest_main)
+set_target_properties(gateau_test PROPERTIES
+    LINKER_LANGUAGE CUDA
+    CUDA_SEPARABLE_COMPILATION ON
+)
+target_link_libraries(gateau_test PRIVATE gateau gtest gtest_main)
+
+set_property(TARGET gateau_test PROPERTY CUDA_ARCHITECTURES OFF)
 
 include(GoogleTest)
-gtest_discover_tests(testfile)
+gtest_discover_tests(gateau_test)
 
 

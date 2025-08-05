@@ -7,5 +7,8 @@ rm -rf \
 	CMakeFiles \
 	CMakeInit.txt \
 	dist \
-	*.cmake
+	*.cmake \
+	.cmake \
+	testfile \
+	gateau_test
 
