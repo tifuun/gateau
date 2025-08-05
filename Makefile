@@ -163,30 +163,6 @@ gtest/testBasic.cu.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/gtest/testBasic.cu.s
 .PHONY : gtest/testBasic.cu.s
 
-src/gateau/cuda/SimKernels.o: src/gateau/cuda/SimKernels.cu.o
-.PHONY : src/gateau/cuda/SimKernels.o
-
-# target to build an object file
-src/gateau/cuda/SimKernels.cu.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/src/gateau/cuda/SimKernels.cu.o
-.PHONY : src/gateau/cuda/SimKernels.cu.o
-
-src/gateau/cuda/SimKernels.i: src/gateau/cuda/SimKernels.cu.i
-.PHONY : src/gateau/cuda/SimKernels.i
-
-# target to preprocess a source file
-src/gateau/cuda/SimKernels.cu.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/src/gateau/cuda/SimKernels.cu.i
-.PHONY : src/gateau/cuda/SimKernels.cu.i
-
-src/gateau/cuda/SimKernels.s: src/gateau/cuda/SimKernels.cu.s
-.PHONY : src/gateau/cuda/SimKernels.s
-
-# target to generate assembly for a file
-src/gateau/cuda/SimKernels.cu.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/src/gateau/cuda/SimKernels.cu.s
-.PHONY : src/gateau/cuda/SimKernels.cu.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -200,9 +176,6 @@ help:
 	@echo "... gtest/testBasic.o"
 	@echo "... gtest/testBasic.i"
 	@echo "... gtest/testBasic.s"
-	@echo "... src/gateau/cuda/SimKernels.o"
-	@echo "... src/gateau/cuda/SimKernels.i"
-	@echo "... src/gateau/cuda/SimKernels.s"
 .PHONY : help
 
 

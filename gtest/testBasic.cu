@@ -4,9 +4,9 @@
  */
 
 #include <gtest/gtest.h>
-#include "structs.h"
-#include "utilities.h"
-#include "fio.h"
+#include "../src/gateau/include/structs.h"
+#include "../src/gateau/include/utilities.h"
+#include "../src/gateau/include/fio.h"
 // TODO path traversal okay like that?? I'm not a C++ dev
 
 TEST(BasicTest, ReadEtaATMTest) {
