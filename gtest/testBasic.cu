@@ -4,16 +4,12 @@
  */
 
 #include <gtest/gtest.h>
-#include <gtest/gtest.h>
-#include "../src/gateau/include/structs.h"
-#include "../src/gateau/include/utilities.h"
+#include "structs.h"
+#include "utilities.h"
+#include "fio.h"
 // TODO path traversal okay like that?? I'm not a C++ dev
 
 TEST(BasicTest, ReadEtaATMTest) {
-	float eta_arr[2][2] = {
-		{0.0, 0.0},
-		{0.0, 0.0},
-		};
 	ArrSpec pwv_atm = {
 		0.0,  // start
 		0.1,  // step
@@ -24,8 +20,14 @@ TEST(BasicTest, ReadEtaATMTest) {
 		0.1,  // step
 		2     // num
 		};
+	float **eta_arr;
 
-	readEtaATM(eta_arr, &pwv_atm, &freq_atm)
+	eta_arr = (float**)malloc(sizeof(float*) * 2);
+	for (int i = 0; i < 2; i++) {
+		eta_arr[i] = (float*)malloc(sizeof(float) * 2);
+	}
+
+	readEtaATM(eta_arr, &pwv_atm, &freq_atm);
 }
 
 int main(int argc, char* argv[]) {

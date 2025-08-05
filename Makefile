@@ -127,61 +127,48 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named gateau
+# Target rules for targets named gateau_tests
 
 # Build rule for target.
-gateau: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 gateau
-.PHONY : gateau
+gateau_tests: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 gateau_tests
+.PHONY : gateau_tests
 
 # fast build rule for target.
-gateau/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/build
-.PHONY : gateau/fast
+gateau_tests/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/build
+.PHONY : gateau_tests/fast
 
-#=============================================================================
-# Target rules for targets named gateau_test
-
-# Build rule for target.
-gateau_test: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 gateau_test
-.PHONY : gateau_test
-
-# fast build rule for target.
-gateau_test/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_test.dir/build.make CMakeFiles/gateau_test.dir/build
-.PHONY : gateau_test/fast
-
-gtest/testBasic.o: gtest/testBasic.cpp.o
+gtest/testBasic.o: gtest/testBasic.cu.o
 .PHONY : gtest/testBasic.o
 
 # target to build an object file
-gtest/testBasic.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_test.dir/build.make CMakeFiles/gateau_test.dir/gtest/testBasic.cpp.o
-.PHONY : gtest/testBasic.cpp.o
+gtest/testBasic.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/gtest/testBasic.cu.o
+.PHONY : gtest/testBasic.cu.o
 
-gtest/testBasic.i: gtest/testBasic.cpp.i
+gtest/testBasic.i: gtest/testBasic.cu.i
 .PHONY : gtest/testBasic.i
 
 # target to preprocess a source file
-gtest/testBasic.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_test.dir/build.make CMakeFiles/gateau_test.dir/gtest/testBasic.cpp.i
-.PHONY : gtest/testBasic.cpp.i
+gtest/testBasic.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/gtest/testBasic.cu.i
+.PHONY : gtest/testBasic.cu.i
 
-gtest/testBasic.s: gtest/testBasic.cpp.s
+gtest/testBasic.s: gtest/testBasic.cu.s
 .PHONY : gtest/testBasic.s
 
 # target to generate assembly for a file
-gtest/testBasic.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_test.dir/build.make CMakeFiles/gateau_test.dir/gtest/testBasic.cpp.s
-.PHONY : gtest/testBasic.cpp.s
+gtest/testBasic.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/gtest/testBasic.cu.s
+.PHONY : gtest/testBasic.cu.s
 
 src/gateau/cuda/SimKernels.o: src/gateau/cuda/SimKernels.cu.o
 .PHONY : src/gateau/cuda/SimKernels.o
 
 # target to build an object file
 src/gateau/cuda/SimKernels.cu.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/src/gateau/cuda/SimKernels.cu.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/src/gateau/cuda/SimKernels.cu.o
 .PHONY : src/gateau/cuda/SimKernels.cu.o
 
 src/gateau/cuda/SimKernels.i: src/gateau/cuda/SimKernels.cu.i
@@ -189,7 +176,7 @@ src/gateau/cuda/SimKernels.i: src/gateau/cuda/SimKernels.cu.i
 
 # target to preprocess a source file
 src/gateau/cuda/SimKernels.cu.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/src/gateau/cuda/SimKernels.cu.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/src/gateau/cuda/SimKernels.cu.i
 .PHONY : src/gateau/cuda/SimKernels.cu.i
 
 src/gateau/cuda/SimKernels.s: src/gateau/cuda/SimKernels.cu.s
@@ -197,7 +184,7 @@ src/gateau/cuda/SimKernels.s: src/gateau/cuda/SimKernels.cu.s
 
 # target to generate assembly for a file
 src/gateau/cuda/SimKernels.cu.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau.dir/build.make CMakeFiles/gateau.dir/src/gateau/cuda/SimKernels.cu.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gateau_tests.dir/build.make CMakeFiles/gateau_tests.dir/src/gateau/cuda/SimKernels.cu.s
 .PHONY : src/gateau/cuda/SimKernels.cu.s
 
 # Help Target
@@ -209,8 +196,7 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... test"
-	@echo "... gateau"
-	@echo "... gateau_test"
+	@echo "... gateau_tests"
 	@echo "... gtest/testBasic.o"
 	@echo "... gtest/testBasic.i"
 	@echo "... gtest/testBasic.s"
