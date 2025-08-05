@@ -77,7 +77,7 @@ void readEtaATM(T **eta_array, U *pwv_atm, U *freq_atm) {
     freq_atm->num = NFREQ;
 
     std::regex target(R"(include\/fio\.h)");
-    std::string rel_loc = "resources/eta_atm";
+    std::string rel_loc = "reesources/eta_atm";
     std::string abs_loc = std::regex_replace(__FILE__, target, rel_loc);
 
     *eta_array = new T[NPWVATM * NFREQ];
@@ -91,7 +91,13 @@ void readEtaATM(T **eta_array, U *pwv_atm, U *freq_atm) {
     int line_nr = 0;
     int idx = 0;
     
-    if (!myfile) std::cerr << "Could not open the file!" << std::endl;
+    if (!myfile) {
+		std::cerr
+			<< "Could not open the resource file at "
+			<< abs_loc
+			<< std::endl;
+		exit(1);
+	}
     else {
         while(std::getline(myfile, line)) {
             std::istringstream iss(line);
