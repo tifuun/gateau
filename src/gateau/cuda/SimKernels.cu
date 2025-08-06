@@ -398,7 +398,9 @@ void run_gateau(Instrument *instrument,
                  Cascade *cascade,
                  int nttot, 
                  char *outpath,
-                 unsigned long long int seed) 
+                 unsigned long long int seed,
+                 char *resourcepath,
+		 ) 
 {
     // DEVICE POINTERS: FLOATS
     float *d_sigout;        // Output power/temperature array
@@ -439,7 +441,7 @@ void run_gateau(Instrument *instrument,
 
     curandState *devstates;
 
-    readEtaATM<float, ArrSpec>(&eta_atm, &pwv_atm, &f_atm);
+    readEtaATM<float, ArrSpec>(&eta_atm, &pwv_atm, &f_atm, resourcepath);
     
     std::string str_path(atmosphere->path);
     std::string str_outpath(outpath);

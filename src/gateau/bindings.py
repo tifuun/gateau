@@ -2,15 +2,26 @@
 @file
 Bindings for the ctypes interface for gateau. 
 """
+from importlib import resources as impresources
 
-from ctypes import Structure, POINTER, c_float, c_int, c_char_p, c_ulonglong, CDLL
+from ctypes import (
+    Structure,
+    POINTER,
+    c_float,
+    c_int,
+    c_char_p,
+    c_ulonglong,
+    CDLL
+    )
 import numpy as np
 import os
 import pathlib
+from contextlib import ExitStack
 
 import gateau.threadmgr as gmanager
 import gateau.structs as gstructs
 import gateau.bind_utils as gutils
+from gateau import resources
 
 def load_gateaulib() -> CDLL:
     """!
@@ -48,7 +59,9 @@ def run_gateau(instrument: dict[str, any],
                cascade: dict[str, any], 
                nTimes: int, 
                outpath: str, 
-               seed: int = 0) -> None:
+               seed: int = 0,
+               resourcepath: str | None = None, 
+               ) -> None:
     """!
     Binding for running the gateau simulation on GPU.
 
@@ -58,6 +71,7 @@ def run_gateau(instrument: dict[str, any],
     @param source Dictionary containing astronomical source parameters.
     @param nTimes Number of time evaluations.
     @param outpath Path to directory where gateau output is stored.
+    @param resourcepath Path to resources folder (None for autodetect)
 
     @returns 2D array containing timestreams of power in detector, for each channel frequency
     """
@@ -83,7 +97,24 @@ def run_gateau(instrument: dict[str, any],
 
     size_out = nTimes * instrument["nf_ch"]
 
-    args = [_instrument, _telescope, _atmosphere, _source, _cascade, cnTimes, coutpath, cseed]
+    with ExitStack() as stack:
+        if resourcepath is None:
+            resourcepath = stack.enter_context(
+                impresources.path(resources)
+                )
 
-    mgr.new_thread(target=lib.run_gateau, args=args)
+        args = [
+            _instrument,
+            _telescope,
+            _atmosphere,
+            _source,
+            _cascade,
+            cnTimes,
+            coutpath,
+            cseed,
+            resourcespath,
+            ]
+
+        # This blocks.
+        mgr.new_thread(target=lib.run_gateau, args=args)
 
