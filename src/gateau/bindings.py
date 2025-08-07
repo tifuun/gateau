@@ -19,7 +19,9 @@ from contextlib import ExitStack
 import gateau.threadmgr as gmanager
 import gateau.structs as gstructs
 import gateau.bind_utils as gutils
+
 from gateau import resources
+import gateau
 
 def load_gateaulib() -> CDLL:
     """!
@@ -29,13 +31,19 @@ def load_gateaulib() -> CDLL:
     """
 
     path_cur = pathlib.Path(__file__).parent.resolve()
+
     try:
-        lib = CDLL(os.path.join(path_cur, "libgateau.dll"))
-    except:
-        try:
-            lib = CDLL(os.path.join(path_cur, "libgateau.so"))
-        except:
-            lib = CDLL(os.path.join(path_cur, "libgateau.dylib"))
+        with impresources.path(gateau, "libgateau.so") as gateaupath:
+            lib = CDLL(gateaupath)
+
+    except OSError as err:
+        raise OSError(
+            "Could not load libgateau.so!! Did it fail to compile? "
+            "Is it compiled for the wrong architecture? Is the file "
+            "missing? It should be under the root of the `gateau` "
+            "package, `src/gateau/libgateau.so` if you ran pip with "
+            "`-e`. "
+            ) from err
 
     lib.run_gateau.argtypes = [POINTER(gstructs.Instrument), 
                                POINTER(gstructs.Telescope),
