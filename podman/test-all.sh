@@ -97,6 +97,39 @@ outside_pull_images() {
 
 }
 
+inside_wheel_cuda12() {
+	set -e
+
+	rm -rf dist/*
+	glibc_ver=$(ldd --version | grep 'GNU libc' | head -n 1 | rev | cut -d ' ' -f 1 | rev | tr '.' '_')
+	test "$glibc_ver"
+	/venv3.12/bin/python -m build
+	rename --verbose linux_x86_64 "manylinux_${glibc_ver}_x86_64" dist/*
+}
+
+outside_wheel_cuda12() {
+
+	if [ -z "$(podman images -q gateau-cuda12)" ]
+	then
+		echo "CUDA12 IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+	
+	set -e
+	
+	podman run \
+		--rm \
+		--init \
+		-v ./:/gateau:ro \
+		-v ./dist:/gateau/dist:rw \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_wheel_cuda12' \
+		--workdir /gateau \
+		"gateau-cuda12" \
+		/gateau/podman/test-all.sh
+}
+
 outside_testall() {
 	# This function runs ON THE HOST
 	# and launches containers to test gateau
@@ -156,6 +189,11 @@ then
 	set -e
 
 	case "$1" in
+		wheel-cuda12)
+			{
+				outside_wheel_cuda12
+			} 2>&1 | tee -a podman/output/log.txt
+			;;
 		test)
 			{
 				outside_testall
@@ -178,7 +216,7 @@ then
 			} 2>&1 | tee -a podman/output/log.txt
 			;;
 		*)
-			echo "Usage: $0 <test|build|pull|push>"
+			echo "Usage: $0 <test|build|pull|push|wheel-cuda12>"
 			exit 9
 			;;
 	esac
