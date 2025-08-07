@@ -43,12 +43,23 @@ inside_testall() {
 	do
 		py_name=$(echo "$venv" | tr -cd '0-9.')
 
+		echo "INSTALLING..."
 		set +e
 		"${venv}/bin/pip" install /gateau
 		exit_code=$?
 		set -e
 
-		echo "$exit_code" > "/output/${cuda_name}_${py_name}.exitcode"
+		echo "$exit_code" > \
+			"/output/${cuda_name}_${py_name}.install.exitcode"
+
+		echo "TESTING..."
+		set +e
+		"${venv}/bin/python" -m unittest
+		exit_code=$?
+		set -e
+
+		echo "$exit_code" > \
+			"/output/${cuda_name}_${py_name}.test.exitcode"
 	done
 }
 

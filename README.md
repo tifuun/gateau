@@ -90,4 +90,15 @@ All Python dependencies will be downloaded by pip.
     Otherwise, something went wrong.
 
 
+## Misc notes
+
+### Changing the signature of `run_gateau`
+
+If you want to add/remove arguments of `run_gateau` there's
+four places you need to change it:
+
+- `InterfaceCUDA.h`
+- `SimKernels.cu`
+- `bindings.py` -- the Python function itself
+- `bindings.py` -- the call to the C++ code
 

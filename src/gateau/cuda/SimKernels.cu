@@ -399,7 +399,7 @@ void run_gateau(Instrument *instrument,
                  int nttot, 
                  char *outpath,
                  unsigned long long int seed,
-                 char *resourcepath,
+                 char *resourcepath
 		 ) 
 {
     // DEVICE POINTERS: FLOATS

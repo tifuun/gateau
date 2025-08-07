@@ -38,7 +38,9 @@ extern "C"
                                Cascade *cascade,
                                int nttot, 
                                char *outpath,
-                               unsigned long long int seed);
+                               unsigned long long int seed,
+                               char *resourcepath
+			       );
 }
 
 #endif

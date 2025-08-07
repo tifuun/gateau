@@ -13,6 +13,7 @@ from ctypes import (
     )
 import os
 import pathlib
+from typing import Union
 from contextlib import ExitStack
 
 import gateau.threadmgr as gmanager
@@ -43,7 +44,9 @@ def load_gateaulib() -> CDLL:
                                POINTER(gstructs.Cascade),
                                c_int, 
                                c_char_p,
-                               c_ulonglong]
+                               c_ulonglong,
+                               c_char_p,
+                               ]
     
     lib.run_gateau.restype = None
 
@@ -57,7 +60,7 @@ def run_gateau(instrument: dict[str, any],
                nTimes: int, 
                outpath: str, 
                seed: int = 0,
-               resourcepath: str | None = None, 
+               resourcepath: Union[str, None] = None, 
                ) -> None:
     """!
     Binding for running the gateau simulation on GPU.
