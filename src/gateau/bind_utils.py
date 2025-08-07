@@ -4,7 +4,7 @@ File containing utility functions for the ctypes bindings.
 
 Most of these functions are concerned with allocating memory.
 """
-from ctypes import Structure, POINTER, c_float, c_int, c_char_p
+from ctypes import Structure, c_float, c_int, c_char_p
 
 import numpy as np
 import gateau.structs as gstructs

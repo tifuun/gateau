@@ -5,15 +5,12 @@ Bindings for the ctypes interface for gateau.
 from importlib import resources as impresources
 
 from ctypes import (
-    Structure,
     POINTER,
-    c_float,
     c_int,
     c_char_p,
     c_ulonglong,
     CDLL
     )
-import numpy as np
 import os
 import pathlib
 from contextlib import ExitStack
