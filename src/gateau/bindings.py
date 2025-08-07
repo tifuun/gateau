@@ -11,7 +11,6 @@ from ctypes import (
     c_ulonglong,
     CDLL
     )
-import os
 import pathlib
 from typing import Union
 from contextlib import ExitStack
@@ -20,7 +19,6 @@ import gateau.threadmgr as gmanager
 import gateau.structs as gstructs
 import gateau.bind_utils as gutils
 
-from gateau import resources
 import gateau
 
 def load_gateaulib() -> CDLL:
@@ -29,12 +27,9 @@ def load_gateaulib() -> CDLL:
 
     @returns The ctypes library containing the C/C++ functions.
     """
-
-    path_cur = pathlib.Path(__file__).parent.resolve()
-
     try:
-        with impresources.path(gateau, "libgateau.so") as gateaupath:
-            lib = CDLL(gateaupath)
+        with impresources.path(gateau, "libgateau.so") as sopath:
+            lib = CDLL(sopath)
 
     except OSError as err:
         raise OSError(
@@ -108,7 +103,7 @@ def run_gateau(instrument: dict[str, any],
     with ExitStack() as stack:
         if resourcepath is None:
             resourcepath = stack.enter_context(
-                impresources.path(resources)
+                impresources.path(gateau, "resources")
                 )
 
         args = [
