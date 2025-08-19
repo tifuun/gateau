@@ -49,7 +49,13 @@ void readAtmMeta(int **meta, std::string path) {
 
     int idx = 0;
     
-    if (!myfile) std::cerr << "Could not open the file!" << std::endl;
+    if (!myfile) {
+    	std::cerr
+		<< "Could not open the file at "
+		<< abs_loc
+		<< std::endl;
+	exit(5);
+    }
     else {
         while(std::getline(myfile, line)) {
             std::istringstream iss(line);
@@ -63,42 +69,13 @@ void readAtmMeta(int **meta, std::string path) {
     }
 }
 
-char* pathjoin(const char* resourcepath, const char* relpath) {
-    int needs_slash;
-    char* filepath;
-
-    needs_slash = (resourcepath[strlen(resourcepath) - 1] != '/');
-
-    filepath = (char*)malloc(
-        sizeof(char) * (strlen(resourcepath) + strlen(relpath) + needs_slash)
-        );
-
-    memcpy(filepath, resourcepath, strlen(resourcepath));
-    if (needs_slash) {
-        filepath[strlen(resourcepath)] = '/';
-    }
-    memcpy(
-        filepath + strlen(resourcepath) + needs_slash,
-        relpath,
-        strlen(relpath)
-        );
-
-    filepath[
-        strlen(resourcepath) + needs_slash + strlen(relpath)
-        ] = '\x00';
-
-    return filepath;
-}
-
 template <typename T, typename U>
 void readEtaATM(
         T **eta_array,
         U *pwv_atm,
         U *freq_atm,
-        const char* resourcepath
+        const char* filepath
         ) {
-    const char* relpath = "eta_atm";
-    char* filepath;
     
     // TODO read these in from file? Ask Arend
     pwv_atm->start = 0.1;
@@ -113,8 +90,6 @@ void readEtaATM(
     
     std::string store;
     //std::cout << abi::__cxa_demangle(typeid(store).name(), NULL, NULL, &status) << std::endl;
-    
-    filepath = pathjoin(resourcepath, relpath);
 
     std::ifstream myfile(filepath);
     std::string line;
@@ -123,15 +98,13 @@ void readEtaATM(
     int idx = 0;
     
     if (!myfile) {
-		std::cerr
-			<< "Could not open the resource file at "
-			<< filepath
-			<< std::endl;
-        free(filepath);
-		exit(1);
+	    std::cerr
+		    << "Could not open the resource file at "
+		    << filepath
+		    << std::endl;
+	    exit(5);
+	    /* TODO Standardize exit codes */
 	}
-
-    free(filepath);
 
     while(std::getline(myfile, line)) {
         std::istringstream iss(line);

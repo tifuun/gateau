@@ -39,7 +39,7 @@ extern "C"
                                int nttot, 
                                char *outpath,
                                unsigned long long int seed,
-                               char *resourcepath
+                               char *atmpath
 			       );
 }
 
