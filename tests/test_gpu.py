@@ -13,6 +13,7 @@ class TestGPU(unittest.TestCase):
         mayybe not valid parameters now arend plz giv minimum example
         """
 
+        # TODO won't actually clean up if exit due to CUDA errror??
         with tempfile.TemporaryDirectory() as tmpdir:
 
             tmpdir = Path(tmpdir)
