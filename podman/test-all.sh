@@ -24,6 +24,15 @@ outside_build_cuda12() {
 	sync
 }
 
+outside_build_cuda12bare() {
+	set -e
+
+	echo BUILDING CONTAINER FOR CUDA12bare
+	podman build \
+		--file ./podman/cuda12bare.Dockerfile -t gateau-cuda12bare ./podman
+	sync
+}
+
 inside_testall() {
 	# This function runs IN THE CONTAINER
 	# and tests gateau
@@ -61,6 +70,21 @@ inside_testall() {
 		echo "$exit_code" > \
 			"/output/${cuda_name}_${py_name}.test.exitcode"
 	done
+}
+
+inside_test_test_pypi() {
+	
+	set -e
+	"/venv3.12/bin/pip" -v -v -v -v -v install scikit-build-core setuptools
+
+	set +e
+	"/venv3.12/bin/pip" -v -v -v -v -v install -i https://test.pypi.org/simple/ gateau
+	exit_code=$?
+	set -e
+
+	echo "$exit_code" > \
+		"/output/testpypi.install.exitcode"
+
 }
 
 outside_build_images() {
@@ -130,6 +154,26 @@ outside_wheel_cuda12() {
 		/gateau/podman/test-all.sh
 }
 
+outside_test_test_pypi() {
+
+	if [ -z "$(podman images -q gateau-cuda12bare)" ]
+	then
+		outside_build_cuda12bare
+	fi
+	
+	set -e
+	
+	podman run \
+		--rm \
+		--init \
+		-v ./:/gateau:ro \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_test_test_pypi' \
+		--workdir /gateau \
+		"gateau-cuda12bare" \
+		/gateau/podman/test-all.sh
+}
+
 outside_testall() {
 	# This function runs ON THE HOST
 	# and launches containers to test gateau
@@ -194,6 +238,11 @@ then
 				outside_wheel_cuda12
 			} 2>&1 | tee -a podman/output/log.txt
 			;;
+		test-test-pypi)
+			{
+				outside_test_test_pypi
+			} 2>&1 | tee -a podman/output/log.txt
+			;;
 		test)
 			{
 				outside_testall
@@ -216,7 +265,7 @@ then
 			} 2>&1 | tee -a podman/output/log.txt
 			;;
 		*)
-			echo "Usage: $0 <test|build|pull|push|wheel-cuda12>"
+			echo "Usage: $0 <test|build|pull|push|wheel-cuda12|test-test-pypi>"
 			exit 9
 			;;
 	esac
