@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -e
+
+./podman/test-all.sh test
+
+exitcode=0
+for result in podman/output/*.exitcode
+do
+	echo "$result: $(cat "$result")"
+	if [ "$(cat "$result")" != '0' ]
+	then
+		echo "Something went wrong!!"
+		exitcode=2
+	fi
+done
+
+exit $exitcode
+
