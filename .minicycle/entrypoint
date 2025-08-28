@@ -2,7 +2,7 @@
 
 set -e
 
-./podman/test-all.sh test
+./podman/test-all.sh test11
 
 exitcode=0
 for result in podman/output/*.exitcode

@@ -1,5 +1,11 @@
 #!/bin/sh
 
+if [ -z "$HOST_GATEAU_PATH" ]
+then
+	export HOST_GATEAU_PATH="$(realpath ./)"
+fi
+
+
 if [ "$(realpath "$0" 2>/dev/null)" != "$(realpath "./podman/test-all.sh" 2>/dev/null)" ]
 then
 	echo "Must run from root of repo!!"
@@ -84,7 +90,6 @@ inside_test_test_pypi() {
 
 	echo "$exit_code" > \
 		"/output/testpypi.install.exitcode"
-
 }
 
 outside_build_images() {
@@ -145,6 +150,7 @@ outside_wheel_cuda12() {
 	podman run \
 		--rm \
 		--init \
+		--gpus=all \
 		-v ./:/gateau:ro \
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
@@ -166,6 +172,7 @@ outside_test_test_pypi() {
 	podman run \
 		--rm \
 		--init \
+		--gpus=all \
 		-v ./:/gateau:ro \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_test_test_pypi' \
@@ -201,6 +208,7 @@ outside_testall() {
 		podman run \
 			--rm \
 			--init \
+			--gpus=all \
 			-v ./:/gateau:ro \
 			-v ./podman/output:/output:rw \
 			-e CONTAINER_ACTION='inside_testall' \
@@ -208,6 +216,30 @@ outside_testall() {
 			"gateau-${cuda}" \
 			/gateau/podman/test-all.sh
 	done
+}
+
+outside_test11() {
+	if [ -z "$(podman images -q gateau-cuda11)" ]
+	then
+		echo "CUDA11 IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+
+	set -e
+	
+	rm -rf podman/output/*.exitcode
+
+	podman run \
+		--rm \
+		--init \
+		--gpus=all \
+		-v ./:/gateau:ro \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_testall' \
+		--workdir /gateau \
+		"gateau-cuda11" \
+		/gateau/podman/test-all.sh
 }
 
 outside_pull_image() {
@@ -236,33 +268,38 @@ then
 		wheel-cuda12)
 			{
 				outside_wheel_cuda12
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		test-test-pypi)
 			{
 				outside_test_test_pypi
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		test)
 			{
 				outside_testall
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
+			;;
+		test11)
+			{
+				outside_test11
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		build)
 			{
 				outside_build_images
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		pull)
 			{
 				outside_pull_images
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		push)
 			{
 				outside_push_image gateau-cuda11
 				outside_push_image gateau-cuda12
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		*)
 			echo "Usage: $0 <test|build|pull|push|wheel-cuda12|test-test-pypi>"
