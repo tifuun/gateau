@@ -6,11 +6,16 @@ from pathlib import Path
 import gateau as gt
 
 class TestGPU(unittest.TestCase):
-    def test_run_gateau(self):
+    def test_crash_gateau(self):
         """
-        Test basic invocation of gateau
+        Test that invalid input data crashes with GPUassert: unknown error 
 
-        mayybe not valid parameters now arend plz giv minimum example
+        Okay, this is a weird test.
+        Running gateau "properly" requires LARGE files like 3GB minimum
+        so here we test it on nonsense data and EXPECT it to fail.
+        But the important part is that it crashes because of the invalid
+        data,
+        and not some other thing like resources not being found.
         """
 
         # TODO won't actually clean up if exit due to CUDA errror??
