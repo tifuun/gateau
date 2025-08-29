@@ -2,6 +2,7 @@
 
 set -e
 
+rm -rf ./podman/output/*
 ./podman/test-all.sh test11
 
 exitcode=0
@@ -14,6 +15,8 @@ do
 		exitcode=2
 	fi
 done
+
+mv ./podman/output/* $MINICYCLE_ARTIFACTS
 
 exit $exitcode
 
