@@ -66,10 +66,10 @@ inside_testall() {
 
 	if [ -n "$GATEAU_TEST_EDITABLE_INSTALL" ]
 	then
-		pipflags='-e'
+		pipinstallflags='-e'
 		echo 'USING EDITABLE INSTALL!!'
 	else
-		pipflags=''
+		pipinstallflags=''
 	fi
 	
 	for venv in $venvs
@@ -78,7 +78,7 @@ inside_testall() {
 
 		echo "INSTALLING..."
 		set +e
-		"${venv}/bin/pip" $pipflags install /gateau
+		"${venv}/bin/pip" install $pipinstallflags  /gateau
 		exit_code=$?
 		set -e
 
