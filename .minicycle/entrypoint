@@ -22,8 +22,6 @@ then
 	exitcode=2
 fi
 
-mv ./podman/output/* "$MINICYCLE_ARTIFACTS"
-
 for result in podman/output/*.exitcode
 do
 	echo "$result: $(cat "$result")"
@@ -33,6 +31,8 @@ do
 		exitcode=2
 	fi
 done
+
+mv ./podman/output/* "$MINICYCLE_ARTIFACTS"
 
 echo '#############################'
 echo 'Running ruff check'
