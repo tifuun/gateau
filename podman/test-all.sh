@@ -63,6 +63,14 @@ inside_testall() {
 	else
 		venvs=/venv*
 	fi
+
+	if [ -n "$GATEAU_TEST_EDITABLE_INSTALL" ]
+	then
+		pipflags='-e'
+		echo 'USING EDITABLE INSTALL!!'
+	else
+		pipflags=''
+	fi
 	
 	for venv in $venvs
 	do
@@ -70,7 +78,7 @@ inside_testall() {
 
 		echo "INSTALLING..."
 		set +e
-		"${venv}/bin/pip" install /gateau
+		"${venv}/bin/pip" $pipflags install /gateau
 		exit_code=$?
 		set -e
 
@@ -189,6 +197,7 @@ outside_wheel_cuda12() {
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_wheel_cuda12' \
 		-e GATEAU_TEST_VENVS \
+		-e GATEAU_TEST_EDITABLE_INSTALL \
 		--workdir /gateau \
 		"gateau-cuda12" \
 		/gateau/podman/test-all.sh
@@ -211,6 +220,7 @@ outside_test_test_pypi() {
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_test_test_pypi' \
 		-e GATEAU_TEST_VENVS \
+		-e GATEAU_TEST_EDITABLE_INSTALL \
 		--workdir /gateau \
 		"gateau-cuda12bare" \
 		/gateau/podman/test-all.sh
@@ -248,6 +258,7 @@ outside_testall() {
 			-v ./podman/output:/output:rw \
 			-e CONTAINER_ACTION='inside_testall' \
 			-e GATEAU_TEST_VENVS \
+			-e GATEAU_TEST_EDITABLE_INSTALL \
 			--workdir /gateau \
 			"gateau-${cuda}" \
 			/gateau/podman/test-all.sh
@@ -274,6 +285,7 @@ outside_test11() {
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_testall' \
 		-e GATEAU_TEST_VENVS \
+		-e GATEAU_TEST_EDITABLE_INSTALL \
 		--workdir /gateau \
 		"gateau-cuda11" \
 		/gateau/podman/test-all.sh
