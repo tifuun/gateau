@@ -64,7 +64,7 @@ do
 done
 
 set -e
-for f in (cd ./podman/output; ls)
+for f in ( cd ./podman/output; ls )
 do
 	mv ./podman/output/$f "$MINICYCLE_ARTIFACTS/editable-$f"
 done
