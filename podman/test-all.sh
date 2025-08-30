@@ -24,6 +24,15 @@ outside_build_cuda12() {
 	sync
 }
 
+outside_build_cicd() {
+	set -e
+
+	echo BUILDING CICD CONTAINER
+	podman build \
+		--file ./podman/cicd.Dockerfile -t gateau-cicd ./podman
+	sync
+}
+
 outside_build_cuda12bare() {
 	set -e
 
@@ -48,7 +57,14 @@ inside_testall() {
 			tr -d '_'
 		)
 	
-	for venv in /venv*
+	if [ -n "$GATEAU_TEST_VENVS" ]
+	then
+		venvs="$GATEAU_TEST_VENVS"
+	else
+		venvs=/venv*
+	fi
+	
+	for venv in $venvs
 	do
 		py_name=$(echo "$venv" | tr -cd '0-9.')
 
@@ -84,7 +100,6 @@ inside_test_test_pypi() {
 
 	echo "$exit_code" > \
 		"/output/testpypi.install.exitcode"
-
 }
 
 outside_build_images() {
@@ -100,6 +115,13 @@ outside_build_images() {
 		echo "CUDA12 CONTAINER ALREADY PRESENT"
 	else
 		outside_build_cuda12
+	fi
+
+	if [ -n "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD CONTAINER ALREADY PRESENT"
+	else
+		outside_build_cicd
 	fi
 
 }
@@ -119,6 +141,22 @@ outside_pull_images() {
 		outside_pull_image gateau-cuda12
 	fi
 
+	if [ -n "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD CONTAINER ALREADY PRESENT"
+	else
+		outside_pull_image gateau-cicd
+	fi
+
+}
+
+inside_ruff() {
+
+	ruff check . \
+		--cache-dir /tmp `# because PWD is ro` \
+		--output-file /output/ruff.txt
+
+	echo "Ran ruff, output is int podman/output/ruff.txt"
 }
 
 inside_wheel_cuda12() {
@@ -145,10 +183,12 @@ outside_wheel_cuda12() {
 	podman run \
 		--rm \
 		--init \
+		--gpus=all \
 		-v ./:/gateau:ro \
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_wheel_cuda12' \
+		-e GATEAU_TEST_VENVS \
 		--workdir /gateau \
 		"gateau-cuda12" \
 		/gateau/podman/test-all.sh
@@ -166,9 +206,11 @@ outside_test_test_pypi() {
 	podman run \
 		--rm \
 		--init \
+		--gpus=all \
 		-v ./:/gateau:ro \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_test_test_pypi' \
+		-e GATEAU_TEST_VENVS \
 		--workdir /gateau \
 		"gateau-cuda12bare" \
 		/gateau/podman/test-all.sh
@@ -201,13 +243,63 @@ outside_testall() {
 		podman run \
 			--rm \
 			--init \
+			--gpus=all \
 			-v ./:/gateau:ro \
 			-v ./podman/output:/output:rw \
 			-e CONTAINER_ACTION='inside_testall' \
+			-e GATEAU_TEST_VENVS \
 			--workdir /gateau \
 			"gateau-${cuda}" \
 			/gateau/podman/test-all.sh
 	done
+}
+
+outside_test11() {
+	if [ -z "$(podman images -q gateau-cuda11)" ]
+	then
+		echo "CUDA11 IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+
+	set -e
+	
+	rm -rf podman/output/*.exitcode
+
+	podman run \
+		--rm \
+		--init \
+		--gpus=all \
+		-v ./:/gateau:ro \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_testall' \
+		-e GATEAU_TEST_VENVS \
+		--workdir /gateau \
+		"gateau-cuda11" \
+		/gateau/podman/test-all.sh
+}
+
+outside_ruff() {
+	if [ -z "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+
+	set -e
+	
+	rm -rf podman/output/*.exitcode
+
+	podman run \
+		--rm \
+		--init \
+		-v ./:/gateau:ro \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_ruff' \
+		--workdir /gateau \
+		"gateau-cicd" \
+		/gateau/podman/test-all.sh
 }
 
 outside_pull_image() {
@@ -236,33 +328,44 @@ then
 		wheel-cuda12)
 			{
 				outside_wheel_cuda12
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		test-test-pypi)
 			{
 				outside_test_test_pypi
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		test)
 			{
 				outside_testall
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
+			;;
+		test11)
+			{
+				outside_test11
+			} 2>&1 | tee podman/output/log.txt
+			;;
+		ruff)
+			{
+				outside_ruff
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		build)
 			{
 				outside_build_images
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		pull)
 			{
 				outside_pull_images
-			} 2>&1 | tee -a podman/output/log.txt
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		push)
 			{
 				outside_push_image gateau-cuda11
 				outside_push_image gateau-cuda12
-			} 2>&1 | tee -a podman/output/log.txt
+				outside_push_image gateau-cicd
+			} 2>&1 | tee podman/output/log.txt
 			;;
 		*)
 			echo "Usage: $0 <test|build|pull|push|wheel-cuda12|test-test-pypi>"
@@ -273,3 +376,4 @@ then
 else
 	$CONTAINER_ACTION
 fi
+
