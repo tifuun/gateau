@@ -24,6 +24,15 @@ outside_build_cuda12() {
 	sync
 }
 
+outside_build_cicd() {
+	set -e
+
+	echo BUILDING CICD CONTAINER
+	podman build \
+		--file ./podman/cicd.Dockerfile -t gateau-cicd ./podman
+	sync
+}
+
 outside_build_cuda12bare() {
 	set -e
 
@@ -108,6 +117,13 @@ outside_build_images() {
 		outside_build_cuda12
 	fi
 
+	if [ -n "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD CONTAINER ALREADY PRESENT"
+	else
+		outside_build_cicd
+	fi
+
 }
 
 outside_pull_images() {
@@ -125,6 +141,22 @@ outside_pull_images() {
 		outside_pull_image gateau-cuda12
 	fi
 
+	if [ -n "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD CONTAINER ALREADY PRESENT"
+	else
+		outside_pull_image gateau-cicd
+	fi
+
+}
+
+inside_ruff() {
+
+	ruff check . \
+		--cache-dir /tmp `# because PWD is ro` \
+		--output-file /output/ruff.txt
+
+	echo "Ran ruff, output is int podman/output/ruff.txt"
 }
 
 inside_wheel_cuda12() {
@@ -241,8 +273,32 @@ outside_test11() {
 		-v ./:/gateau:ro \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_testall' \
+		-e GATEAU_TEST_VENVS \
 		--workdir /gateau \
 		"gateau-cuda11" \
+		/gateau/podman/test-all.sh
+}
+
+outside_ruff() {
+	if [ -z "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+
+	set -e
+	
+	rm -rf podman/output/*.exitcode
+
+	podman run \
+		--rm \
+		--init \
+		-v ./:/gateau:ro \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_ruff' \
+		--workdir /gateau \
+		"gateau-cicd" \
 		/gateau/podman/test-all.sh
 }
 
@@ -289,6 +345,11 @@ then
 				outside_test11
 			} 2>&1 | tee podman/output/log.txt
 			;;
+		ruff)
+			{
+				outside_ruff
+			} 2>&1 | tee podman/output/log.txt
+			;;
 		build)
 			{
 				outside_build_images
@@ -303,6 +364,7 @@ then
 			{
 				outside_push_image gateau-cuda11
 				outside_push_image gateau-cuda12
+				outside_push_image gateau-cicd
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		*)
@@ -314,3 +376,4 @@ then
 else
 	$CONTAINER_ACTION
 fi
+
