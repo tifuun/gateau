@@ -55,6 +55,8 @@ def load_gateaulib() -> CDLL:
 
     return lib
 
+# TODO fix Any!!!
+
 def run_gateau(instrument: dict[str, any], 
                telescope: dict[str, any], 
                atmosphere: dict[str, any], 
@@ -96,15 +98,18 @@ def run_gateau(instrument: dict[str, any],
 
     cnTimes = c_int(nTimes)
     coutpath = c_char_p(outpath.encode())
+    # FIXME bare encode
     cseed = c_ulonglong(seed)
 
     size_out = nTimes * instrument["nf_ch"]
 
     with ExitStack() as stack:
         if resourcepath is None:
-            resourcepath = stack.enter_context(
-                impresources.path(gateau, "resources")
+            atmpath = stack.enter_context(
+                impresources.path(gateau.resources, "eta_atm")
                 )
+
+        catmpath = c_char_p(str(atmpath).encode('utf-8'))
 
         args = [
             _instrument,
@@ -115,9 +120,10 @@ def run_gateau(instrument: dict[str, any],
             cnTimes,
             coutpath,
             cseed,
-            resourcespath,
+            catmpath,
             ]
 
         # This blocks.
+        # Or does it...??
         mgr.new_thread(target=lib.run_gateau, args=args)
 

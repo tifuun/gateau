@@ -399,7 +399,7 @@ void run_gateau(Instrument *instrument,
                  int nttot, 
                  char *outpath,
                  unsigned long long int seed,
-                 char *resourcepath
+                 char *atmpath
 		 ) 
 {
     // DEVICE POINTERS: FLOATS
@@ -441,7 +441,7 @@ void run_gateau(Instrument *instrument,
 
     curandState *devstates;
 
-    readEtaATM<float, ArrSpec>(&eta_atm, &pwv_atm, &f_atm, resourcepath);
+    readEtaATM<float, ArrSpec>(&eta_atm, &pwv_atm, &f_atm, atmpath);
     
     std::string str_path(atmosphere->path);
     std::string str_outpath(outpath);

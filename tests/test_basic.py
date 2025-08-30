@@ -25,7 +25,6 @@ class TestBasic(unittest.TestCase):
             is not None
             )
 
-
 if __name__ == '__main__':
     unittest.main()
 
