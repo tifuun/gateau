@@ -1,11 +1,5 @@
 #!/bin/sh
 
-if [ -z "$HOST_GATEAU_PATH" ]
-then
-	export HOST_GATEAU_PATH="$(realpath ./)"
-fi
-
-
 if [ "$(realpath "$0" 2>/dev/null)" != "$(realpath "./podman/test-all.sh" 2>/dev/null)" ]
 then
 	echo "Must run from root of repo!!"
@@ -54,7 +48,14 @@ inside_testall() {
 			tr -d '_'
 		)
 	
-	for venv in /venv*
+	if [ -n "$GATEAU_TEST_VENVS" ]
+	then
+		venvs="$GATEAU_TEST_VENVS"
+	else
+		venvs=/venv*
+	fi
+	
+	for venv in $venvs
 	do
 		py_name=$(echo "$venv" | tr -cd '0-9.')
 
@@ -155,6 +156,7 @@ outside_wheel_cuda12() {
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_wheel_cuda12' \
+		-e GATEAU_TEST_VENVS \
 		--workdir /gateau \
 		"gateau-cuda12" \
 		/gateau/podman/test-all.sh
@@ -176,6 +178,7 @@ outside_test_test_pypi() {
 		-v ./:/gateau:ro \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_test_test_pypi' \
+		-e GATEAU_TEST_VENVS \
 		--workdir /gateau \
 		"gateau-cuda12bare" \
 		/gateau/podman/test-all.sh
@@ -212,6 +215,7 @@ outside_testall() {
 			-v ./:/gateau:ro \
 			-v ./podman/output:/output:rw \
 			-e CONTAINER_ACTION='inside_testall' \
+			-e GATEAU_TEST_VENVS \
 			--workdir /gateau \
 			"gateau-${cuda}" \
 			/gateau/podman/test-all.sh

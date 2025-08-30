@@ -2,6 +2,11 @@
 
 set -e
 
+# Test just the latest and oldest pythons available in the container
+# (check dockerfile).
+# Unlikely that it fails on an inbetween version.
+export GATEAU_TEST_VENVS="/venv3.9 /venv3.13"
+
 rm -rf ./podman/output/*
 ./podman/test-all.sh test11
 
