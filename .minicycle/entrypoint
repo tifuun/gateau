@@ -64,7 +64,7 @@ do
 done
 
 rename '.exitcode' '-editable.exitcode' ./podman/output/* 
-rename '.log' '-editable.log' ./podman/output/* 
+rename '.txt' '-editable.txt' ./podman/output/* 
 mv ./podman/output/* "$MINICYCLE_ARTIFACTS"
 
 echo '#############################'
