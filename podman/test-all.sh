@@ -63,6 +63,14 @@ inside_testall() {
 	else
 		venvs=/venv*
 	fi
+
+	if [ -n "$GATEAU_TEST_EDITABLE_INSTALL" ]
+	then
+		pipinstallflags='-e'
+		echo 'USING EDITABLE INSTALL!!'
+	else
+		pipinstallflags=''
+	fi
 	
 	for venv in $venvs
 	do
@@ -70,7 +78,7 @@ inside_testall() {
 
 		echo "INSTALLING..."
 		set +e
-		"${venv}/bin/pip" install /gateau
+		"${venv}/bin/pip" install $pipinstallflags  /gateau
 		exit_code=$?
 		set -e
 
@@ -153,7 +161,6 @@ outside_pull_images() {
 inside_ruff() {
 
 	ruff check . \
-		--cache-dir /tmp `# because PWD is ro` \
 		--output-file /output/ruff.txt
 
 	echo "Ran ruff, output is int podman/output/ruff.txt"
@@ -184,11 +191,12 @@ outside_wheel_cuda12() {
 		--rm \
 		--init \
 		--gpus=all \
-		-v ./:/gateau:ro \
+		-v ./:/gateau:O \
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_wheel_cuda12' \
 		-e GATEAU_TEST_VENVS \
+		-e GATEAU_TEST_EDITABLE_INSTALL \
 		--workdir /gateau \
 		"gateau-cuda12" \
 		/gateau/podman/test-all.sh
@@ -207,10 +215,11 @@ outside_test_test_pypi() {
 		--rm \
 		--init \
 		--gpus=all \
-		-v ./:/gateau:ro \
+		-v ./:/gateau:O \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_test_test_pypi' \
 		-e GATEAU_TEST_VENVS \
+		-e GATEAU_TEST_EDITABLE_INSTALL \
 		--workdir /gateau \
 		"gateau-cuda12bare" \
 		/gateau/podman/test-all.sh
@@ -244,10 +253,11 @@ outside_testall() {
 			--rm \
 			--init \
 			--gpus=all \
-			-v ./:/gateau:ro \
+			-v ./:/gateau:O \
 			-v ./podman/output:/output:rw \
 			-e CONTAINER_ACTION='inside_testall' \
 			-e GATEAU_TEST_VENVS \
+			-e GATEAU_TEST_EDITABLE_INSTALL \
 			--workdir /gateau \
 			"gateau-${cuda}" \
 			/gateau/podman/test-all.sh
@@ -270,10 +280,11 @@ outside_test11() {
 		--rm \
 		--init \
 		--gpus=all \
-		-v ./:/gateau:ro \
+		-v ./:/gateau:O \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_testall' \
 		-e GATEAU_TEST_VENVS \
+		-e GATEAU_TEST_EDITABLE_INSTALL \
 		--workdir /gateau \
 		"gateau-cuda11" \
 		/gateau/podman/test-all.sh
@@ -294,7 +305,7 @@ outside_ruff() {
 	podman run \
 		--rm \
 		--init \
-		-v ./:/gateau:ro \
+		-v ./:/gateau:O \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_ruff' \
 		--workdir /gateau \

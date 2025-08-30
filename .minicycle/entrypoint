@@ -8,13 +8,14 @@ echo 'Running tests in cuda11 container with python3.9 and 3.13'
 echo '#############################'
 echo 'output will be available in artifacts directory under "log.txt"'
 
+rm -rf ./podman/output/*
+
 # Test just the latest and oldest pythons available in the container
 # (check dockerfile).
 # Unlikely that it fails on an inbetween version.
-export GATEAU_TEST_VENVS="/venv3.9 /venv3.13" 2>&1 > /dev/null
-
-rm -rf ./podman/output/*
-./podman/test-all.sh test11 
+GATEAU_TEST_VENVS="/venv3.9 /venv3.13" \
+	./podman/test-all.sh test11  \
+	2>&1 > /dev/null
 
 if [ "$?" -ne 0 ]
 then
@@ -33,6 +34,41 @@ do
 done
 
 mv ./podman/output/* "$MINICYCLE_ARTIFACTS"
+
+echo '#############################'
+echo 'Running editable install test!!'
+echo '#############################'
+echo 'output will be available in artifacts directory under "editable-log.txt"'
+
+rm -rf ./podman/output/*
+
+GATEAU_TEST_VENVS="/venv3.9 /venv3.13" \
+	GATEAU_TEST_EDITABLE_INSTALL="yes" \
+	./podman/test-all.sh test11  \
+	2>&1 > /dev/null
+
+if [ "$?" -ne 0 ]
+then
+	echo 'Something went wrong running test suite, check log.txt!'
+	exitcode=2
+fi
+
+for result in podman/output/*.exitcode
+do
+	echo "$result: $(cat "$result")"
+	if [ "$(cat "$result")" != '0' ]
+	then
+		echo "Something went wrong!! Check log.txt!"
+		exitcode=2
+	fi
+done
+
+set -e
+for f in $( cd ./podman/output; ls )
+do
+	mv ./podman/output/$f "$MINICYCLE_ARTIFACTS/editable-$f"
+done
+set +e
 
 echo '#############################'
 echo 'Running ruff check'
