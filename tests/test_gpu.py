@@ -45,6 +45,12 @@ class TestGPU(unittest.TestCase):
                 "Check your setup!! "
                 )
 
+            print(
+                "If the text above says "
+                "something about GPUassert "
+                "DO NOT WORRY, this is what this test is designed "
+                "to cause, it means everything went ok"
+                )
 
             # TODO ultimately we want to capture stderr
             # and check that the C++ code writes 
