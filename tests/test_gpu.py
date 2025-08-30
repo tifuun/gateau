@@ -2,11 +2,12 @@ import unittest
 import numpy as np
 import tempfile
 from pathlib import Path
+from multiprocessing import Process
 
 import gateau as gt
 
 class TestGPU(unittest.TestCase):
-    def test_crash_gateau(self):
+    def test_crash_gateau(self, for_real=False):
         """
         Test that invalid input data crashes with GPUassert: unknown error 
 
@@ -19,8 +20,45 @@ class TestGPU(unittest.TestCase):
         """
 
         # TODO won't actually clean up if exit due to CUDA errror??
-        with tempfile.TemporaryDirectory() as tmpdir:
 
+        if for_real is False:
+            proc = Process(
+                target=self.test_crash_gateau,
+                kwargs={'for_real': True},
+                )
+            proc.start()
+            proc.join()
+
+            self.assertNotEqual(
+                proc.exitcode,
+                35,
+                "CUDA driver error! Check your hardware/driver setup "
+                "and make sure GPU is forwarded into container!! "
+                "This part should crash with a GPUAssert, not "
+                "driver error!! "
+                )
+
+            self.assertEqual(
+                proc.exitcode,
+                231,
+                "Process crashed, but not because of GPUAssert!! "
+                "Check your setup!! "
+                )
+
+
+            # TODO ultimately we want to capture stderr
+            # and check that the C++ code writes 
+            # `GPUassert: unknown error`
+            # but I do not know how to capture stderr of non-python
+            # code.
+            # Can try using `subprocess` module
+            # instead of `multiprocessing`
+            # but that would mean figuring out what interpreter to run
+            # with what path, etc.....
+
+            return
+
+        with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)
 
             file1 = tmpdir / 'foo.datp'
