@@ -161,7 +161,6 @@ outside_pull_images() {
 inside_ruff() {
 
 	ruff check . \
-		--cache-dir /tmp `# because PWD is ro` \
 		--output-file /output/ruff.txt
 
 	echo "Ran ruff, output is int podman/output/ruff.txt"
@@ -192,7 +191,7 @@ outside_wheel_cuda12() {
 		--rm \
 		--init \
 		--gpus=all \
-		-v ./:/gateau:ro \
+		-v ./:/gateau:O \
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_wheel_cuda12' \
@@ -216,7 +215,7 @@ outside_test_test_pypi() {
 		--rm \
 		--init \
 		--gpus=all \
-		-v ./:/gateau:ro \
+		-v ./:/gateau:O \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_test_test_pypi' \
 		-e GATEAU_TEST_VENVS \
@@ -254,7 +253,7 @@ outside_testall() {
 			--rm \
 			--init \
 			--gpus=all \
-			-v ./:/gateau:ro \
+			-v ./:/gateau:O \
 			-v ./podman/output:/output:rw \
 			-e CONTAINER_ACTION='inside_testall' \
 			-e GATEAU_TEST_VENVS \
@@ -281,7 +280,7 @@ outside_test11() {
 		--rm \
 		--init \
 		--gpus=all \
-		-v ./:/gateau:ro \
+		-v ./:/gateau:O \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_testall' \
 		-e GATEAU_TEST_VENVS \
@@ -306,7 +305,7 @@ outside_ruff() {
 	podman run \
 		--rm \
 		--init \
-		-v ./:/gateau:ro \
+		-v ./:/gateau:O \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_ruff' \
 		--workdir /gateau \
