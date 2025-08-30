@@ -38,7 +38,7 @@ mv ./podman/output/* "$MINICYCLE_ARTIFACTS"
 echo '#############################'
 echo 'Running editable install test!!'
 echo '#############################'
-echo 'output will be available in artifacts directory under "log-editable.txt"'
+echo 'output will be available in artifacts directory under "editable-log.txt"'
 
 rm -rf ./podman/output/*
 
@@ -63,9 +63,12 @@ do
 	fi
 done
 
-rename '.exitcode' '-editable.exitcode' ./podman/output/* 
-rename '.txt' '-editable.txt' ./podman/output/* 
-mv ./podman/output/* "$MINICYCLE_ARTIFACTS"
+set -e
+for f in (cd ./podman/output; ls)
+do
+	mv ./podman/output/$f "$MINICYCLE_ARTIFACTS/editable-$f"
+done
+set +e
 
 echo '#############################'
 echo 'Running ruff check'
