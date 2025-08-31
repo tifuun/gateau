@@ -9,7 +9,5 @@ RUN \
 	python3.9 -m venv /venv3.9 && \
 	python3.11 -m venv /venv3.11 && \
 	python3.12 -m venv /venv3.12 && \
-	\
-	/venv3.12/bin/pip install build && \
 	:
 

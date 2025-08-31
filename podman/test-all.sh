@@ -1,9 +1,66 @@
 #!/bin/sh
 
+# Environment variables
+#
+# CONTAINER_ACTION
+# 	Do not set this.
+# 	used internally by this script to tell itself what to do once
+# 	it runs inside the container. This is simply a function name
+# 	(though it could also be any command) 
+# 	that is executed directly.
+#
+# GATEAU_TEST_VENVS
+# 	You can set this if you want.
+# 	which of the available venvs (i.e. python versions)
+# 	to use to test gateau.
+# 	Defaults to all venvs available in container.
+# 	Has effect for `test` and `test11` subcommands.
+# 	The value is whitespace-separated list of paths.
+# 	Example:
+# 	GATEAU_TEST_VENVS="/venv3.9 /venv3.13"
+#
+# GATEAU_EDITABLE_INSTALL
+# 	Whether or not to use editable install for testing.
+# 	Set to emptystring or unset for non-editable install
+# 	(Default), set to non-empty string for
+# 	editable install.
+# 	Has effect for `test` and `test11` subcommands.
+#
+# GATEAU_DISABLE_GPU
+# 	Set this to a non-empty string in order
+# 	to run podman without the `--gpus=all` flag.
+# 	Default is to run with gpu.
+#
+
+# Images
+#
+# gateau-cuda11
+# 	Image based on nvidia's cuda11 with some pythons
+# 	and gateau's build deps.
+# 	For testing.
+#
+# gateau-cuda12
+# 	Image based on nvidia's cuda12 with some pythons
+# 	and gateau's build deps
+# 	For testing.
+#
+# gateau-cicd
+# 	Like cuda11, but with only one python, ruff, build, and twine.
+# 	Used for CI and building wheel.
+# 	Cuda11 because mitakihara does not support cuda12
+#
+
 if [ "$(realpath "$0" 2>/dev/null)" != "$(realpath "./podman/test-all.sh" 2>/dev/null)" ]
 then
 	echo "Must run from root of repo!!"
 	exit 9
+fi
+
+if [ -n "GATEAU_DISABLE_GPU" ]
+then
+	podman_gpu=''
+else
+	podman_gpu='--gpus=all'
 fi
 
 outside_build_cuda11() {
@@ -39,6 +96,15 @@ outside_build_cuda12bare() {
 	echo BUILDING CONTAINER FOR CUDA12bare
 	podman build \
 		--file ./podman/cuda12bare.Dockerfile -t gateau-cuda12bare ./podman
+	sync
+}
+
+outside_build_cuda11bare() {
+	set -e
+
+	echo BUILDING CONTAINER FOR CUDA11bare
+	podman build \
+		--file ./podman/cuda11bare.Dockerfile -t gateau-cuda11bare ./podman
 	sync
 }
 
@@ -96,18 +162,53 @@ inside_testall() {
 	done
 }
 
-inside_test_test_pypi() {
+inside_test_wheel() {
+
+	wheel=$(ls dist/*.whl | head -n 1)
+
+	set -e
+
+	if [ -z "$wheel" ]
+	then
+		echo "No wheels found in dist folder, aborting"
+		exit 2
+	fi
+
+	for venv in /venv3.13
+	do
+		py_name=$(echo "$venv" | tr -cd '0-9.')
+
+		echo "Installing wheel $wheel for python $py_name"
+		set +e
+		"${venv}/bin/pip" install "$wheel"
+		exit_code=$?
+		set -e
+
+		echo "$exit_code" > \
+			"/output/${cuda_name}_${py_name}.install.exitcode"
+
+		echo "TESTING..."
+		set +e
+		"${venv}/bin/python" -m unittest
+		exit_code=$?
+		set -e
+
+		echo "$exit_code" > \
+			"/output/${cuda_name}_${py_name}.test.exitcode"
+	done
+
 	
-	set -e
-	"/venv3.12/bin/pip" -v -v -v -v -v install scikit-build-core setuptools
+	#set -e
+	#"/venv3.12/bin/pip" -v -v -v -v -v install scikit-build-core setuptools
 
-	set +e
-	"/venv3.12/bin/pip" -v -v -v -v -v install -i https://test.pypi.org/simple/ gateau
-	exit_code=$?
-	set -e
+	#set +e
+	#"/venv3.12/bin/pip" -v -v -v -v -v install -i https://test.pypi.org/simple/ gateau
+	#exit_code=$?
+	#set -e
 
-	echo "$exit_code" > \
-		"/output/testpypi.install.exitcode"
+	#echo "$exit_code" > \
+	#	"/output/testpypi.install.exitcode"
+	true
 }
 
 outside_build_images() {
@@ -166,47 +267,65 @@ inside_ruff() {
 	echo "Ran ruff, output is int podman/output/ruff.txt"
 }
 
-inside_wheel_cuda12() {
+inside_wheel() {
 	set -e
 
+	echo "Building wheel..."
+
 	rm -rf dist/*
-	glibc_ver=$(ldd --version | grep 'GNU libc' | head -n 1 | rev | cut -d ' ' -f 1 | rev | tr '.' '_')
-	test "$glibc_ver"
-	/venv3.12/bin/python -m build
-	rename --verbose linux_x86_64 "manylinux_${glibc_ver}_x86_64" dist/*
+
+	# Use this for standard glibc (in cuda12 container)
+	#glibc_ver=$(ldd --version | grep 'GNU libc' | head -n 1 | rev | cut -d ' ' -f 1 | rev | tr '.' '_')
+
+	glibc_ver=$(ldd --version | grep 'Ubuntu GLIBC' | head -n 1 | rev | cut -d ' ' -f 1 | rev | tr '.' '_')
+
+	if [ -z "$glibc_ver" ]
+	then
+		echo "Could not determine glibc ver, aborting."
+		exit 2
+	fi
+
+	echo "found glibc $glib_ver"
+
+	/venv3.13/bin/python -m build
+	
+	for f in dist/*
+	do
+		mv "$f" "$(echo "$f" | sed "s|linux_x86_64|manylinux_${glibc_ver}_x86_64|")"
+	done
 }
 
-outside_wheel_cuda12() {
+outside_wheel() {
 
-	if [ -z "$(podman images -q gateau-cuda12)" ]
+	if [ -z "$(podman images -q gateau-cicd)" ]
 	then
-		echo "CUDA12 IMAGE NOT PRESENT!!"
+		echo "CICD IMAGE NOT PRESENT!!"
 		echo "Please run $0 build or $0 pull"
 		exit 9
 	fi
 	
 	set -e
+
+	mkdir -p ./dist
 	
 	podman run \
 		--rm \
 		--init \
-		--gpus=all \
+		$podman_gpu \
 		-v ./:/gateau:O \
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
-		-e CONTAINER_ACTION='inside_wheel_cuda12' \
-		-e GATEAU_TEST_VENVS \
-		-e GATEAU_TEST_EDITABLE_INSTALL \
+		-e CONTAINER_ACTION='inside_wheel' \
 		--workdir /gateau \
-		"gateau-cuda12" \
+		"gateau-cicd" \
 		/gateau/podman/test-all.sh
 }
 
-outside_test_test_pypi() {
+outside_test_wheel() {
 
-	if [ -z "$(podman images -q gateau-cuda12bare)" ]
+	if [ -z "$(podman images -q gateau-cuda11bare)" ]
 	then
-		outside_build_cuda12bare
+		outside_build_cuda11bare
 	fi
 	
 	set -e
@@ -214,14 +333,14 @@ outside_test_test_pypi() {
 	podman run \
 		--rm \
 		--init \
-		--gpus=all \
+		$podman_gpu \
 		-v ./:/gateau:O \
 		-v ./podman/output:/output:rw \
-		-e CONTAINER_ACTION='inside_test_test_pypi' \
-		-e GATEAU_TEST_VENVS \
-		-e GATEAU_TEST_EDITABLE_INSTALL \
+		-e CONTAINER_ACTION='inside_test_wheel' \
+		`#-e GATEAU_TEST_VENVS` \
+		`#-e GATEAU_TEST_EDITABLE_INSTALL` \
 		--workdir /gateau \
-		"gateau-cuda12bare" \
+		"gateau-cuda11bare" \
 		/gateau/podman/test-all.sh
 }
 
@@ -252,7 +371,7 @@ outside_testall() {
 		podman run \
 			--rm \
 			--init \
-			--gpus=all \
+			$podman_gpu \
 			-v ./:/gateau:O \
 			-v ./podman/output:/output:rw \
 			-e CONTAINER_ACTION='inside_testall' \
@@ -279,7 +398,7 @@ outside_test11() {
 	podman run \
 		--rm \
 		--init \
-		--gpus=all \
+		$podman_gpu \
 		-v ./:/gateau:O \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_testall' \
@@ -336,16 +455,6 @@ then
 	set -e
 
 	case "$1" in
-		wheel-cuda12)
-			{
-				outside_wheel_cuda12
-			} 2>&1 | tee podman/output/log.txt
-			;;
-		test-test-pypi)
-			{
-				outside_test_test_pypi
-			} 2>&1 | tee podman/output/log.txt
-			;;
 		test)
 			{
 				outside_testall
@@ -378,8 +487,18 @@ then
 				outside_push_image gateau-cicd
 			} 2>&1 | tee podman/output/log.txt
 			;;
+		wheel)
+			{
+				outside_wheel
+			} 2>&1 | tee podman/output/log.txt
+			;;
+		test-wheel)
+			{
+				outside_test_wheel
+			} 2>&1 | tee podman/output/log.txt
+			;;
 		*)
-			echo "Usage: $0 <test|build|pull|push|wheel-cuda12|test-test-pypi>"
+			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|test-wheel>"
 			exit 9
 			;;
 	esac
