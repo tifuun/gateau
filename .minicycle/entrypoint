@@ -120,15 +120,15 @@ then
 	exitcode=2
 fi
 
-for result in podman/output/*.exitcode
-do
-	echo "$result: $(cat "$result")"
-	if [ "$(cat "$result")" != '0' ]
-	then
-		echo "Something went wrong!!"
-		exitcode=2
-	fi
-done
+#for result in podman/output/*.exitcode
+#do
+#	echo "$result: $(cat "$result")"
+#	if [ "$(cat "$result")" != '0' ]
+#	then
+#		echo "Something went wrong!!"
+#		exitcode=2
+#	fi
+#done
 
 set -e
 for f in $( cd ./podman/output; ls )

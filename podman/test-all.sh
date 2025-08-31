@@ -305,7 +305,11 @@ inside_wheel() {
 	
 	for f in dist/*
 	do
-		mv "$f" "$(echo "$f" | sed "s|linux_x86_64|manylinux_${glibc_ver}_x86_64|")"
+		renamed="$(echo "$f" | sed "s|linux_x86_64|manylinux_${glibc_ver}_x86_64|")"
+		if [ "$renamed" != "$f" ]
+		then
+			mv "$f" "$renamed"
+		fi
 	done
 }
 
