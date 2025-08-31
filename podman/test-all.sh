@@ -56,7 +56,7 @@ then
 	exit 9
 fi
 
-if [ -n "GATEAU_DISABLE_GPU" ]
+if [ -n "$GATEAU_DISABLE_GPU" ]
 then
 	podman_gpu=''
 else
