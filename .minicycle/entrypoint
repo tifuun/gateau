@@ -105,5 +105,69 @@ then
 	echo "Go fix them!"
 fi
 
+echo '#############################'
+echo 'BUILDING WHEEL'
+echo '#############################'
+
+rm -rf ./podman/output/*
+
+./podman/test-all.sh wheel  \
+	2>&1 > /dev/null
+
+if [ "$?" -ne 0 ]
+then
+	echo 'Something went wrong building wheel'
+	exitcode=2
+fi
+
+for result in podman/output/*.exitcode
+do
+	echo "$result: $(cat "$result")"
+	if [ "$(cat "$result")" != '0' ]
+	then
+		echo "Something went wrong!!"
+		exitcode=2
+	fi
+done
+
+set -e
+for f in $( cd ./podman/output; ls )
+do
+	mv ./podman/output/$f "$MINICYCLE_ARTIFACTS/wheel-$f"
+done
+set +e
+
+echo '#############################'
+echo 'TESTING WHEEL'
+echo '#############################'
+
+rm -rf ./podman/output/*
+
+./podman/test-all.sh test-wheel  \
+	2>&1 > /dev/null
+
+if [ "$?" -ne 0 ]
+then
+	echo 'Something went wrong testing wheel'
+	exitcode=2
+fi
+
+for result in podman/output/*.exitcode
+do
+	echo "$result: $(cat "$result")"
+	if [ "$(cat "$result")" != '0' ]
+	then
+		echo "Something went wrong!!"
+		exitcode=2
+	fi
+done
+
+set -e
+for f in $( cd ./podman/output; ls )
+do
+	mv ./podman/output/$f "$MINICYCLE_ARTIFACTS/test-wheel-$f"
+done
+set +e
+
 exit $exitcode
 

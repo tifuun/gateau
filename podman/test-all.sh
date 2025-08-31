@@ -233,6 +233,13 @@ outside_build_images() {
 		outside_build_cicd
 	fi
 
+	if [ -n "$(podman images -q gateau-cuda11bare)" ]
+	then
+		echo "CUDA11BARE CONTAINER ALREADY PRESENT"
+	else
+		outside_build_cuda11bare
+	fi
+
 }
 
 outside_pull_images() {
@@ -255,6 +262,13 @@ outside_pull_images() {
 		echo "CICD CONTAINER ALREADY PRESENT"
 	else
 		outside_pull_image gateau-cicd
+	fi
+
+	if [ -n "$(podman images -q gateau-cuda11bare)" ]
+	then
+		echo "CUDA11BARE CONTAINER ALREADY PRESENT"
+	else
+		outside_pull_image gateau-cuda11bare
 	fi
 
 }
@@ -483,6 +497,7 @@ then
 		push)
 			{
 				outside_push_image gateau-cuda11
+				outside_push_image gateau-cuda11bare
 				outside_push_image gateau-cuda12
 				outside_push_image gateau-cicd
 			} 2>&1 | tee podman/output/log.txt
