@@ -74,9 +74,8 @@ def prep_atm_ARIS(atmosphereDict, telescopeDict):
     @param telescopeDict Dictionary containing telescope parameters.
     """
 
-    clog.info("\033[1;32m*** PREPARING ARIS SCREENS ***")
+    print("\033[1;32m*** PREPARING ARIS SCREENS ***")
    
-    filename = atmosphereDict.get("filename")
     path = atmosphereDict.get("path")
     pwv0 = atmosphereDict.get("PWV0")
 
@@ -91,12 +90,11 @@ def prep_atm_ARIS(atmosphereDict, telescopeDict):
     if not os.path.isdir(prepd_path):
         os.mkdir(prepd_path)
 
-    test_l = []
     for subdir, dirs, files in os.walk(path):
         for file in files:
             if file.endswith(".datp"):
                 continue
-            clog.info(f"Preparing {file}...")
+            print(f"Preparing {file}...")
         
             file_split = file.split("-")
 
@@ -121,10 +119,7 @@ def prep_atm_ARIS(atmosphereDict, telescopeDict):
             np.savetxt(PWV_path, PWV_Gauss)
         break
     
-    if clog is not None:
-        clog.info("\033[1;32m*** FINISHED PREPARING ARIS SCREENS ***")
-    else:
-        print("Finished preparing atmospheric screens.")
+    print("Finished preparing atmospheric screens.")
 
 def get_eta_atm(f_src: np.ndarray,
                 pwv0: float,

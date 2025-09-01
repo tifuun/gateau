@@ -11,7 +11,6 @@ from ctypes import (
     c_ulonglong,
     CDLL
     )
-import pathlib
 from typing import Union
 from contextlib import ExitStack
 
@@ -100,8 +99,6 @@ def run_gateau(instrument: dict[str, any],
     coutpath = c_char_p(outpath.encode())
     # FIXME bare encode
     cseed = c_ulonglong(seed)
-
-    size_out = nTimes * instrument["nf_ch"]
 
     with ExitStack() as stack:
         if resourcepath is None:
