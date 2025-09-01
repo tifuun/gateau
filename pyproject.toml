@@ -5,7 +5,9 @@ build-backend = "scikit_build_core.build"
 [project]
 license = "AGPL-3.0-only"
 name = "gateau"
-version = "0.0.1-1"
+description = """GPU-Accelerated Time-dEpendent observAtion simUlator"""
+readme = "README.md"
+version = "0.0.1-2"
 authors = [
 	{name = "Arend Moerman"},
 	{name = "maybetree", email = "maybetree48@proton.me"}
@@ -27,7 +29,7 @@ classifiers = [
 	"Operating System :: OS Independent",
 	]
 
-requires-python = '>=3.8'
+requires-python = '>=3.9'
 
 [tool.scikit-build]
 build.verbose = true
