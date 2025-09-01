@@ -683,7 +683,7 @@ void run_gateau(Instrument *instrument,
             // Check how much free memory - if insufficient, loop again here
             gpuErrchk( cudaMemGetInfo(&free_mem, &total_mem) );
 
-            printf("%zu %zu\n", free_mem, total_mem);
+            //printf("%zu %zu\n", free_mem, total_mem);
 
             gpuErrchk( cudaMalloc((void**)&d_az_trace, ntscr * sizeof(float)) );
             gpuErrchk( cudaMalloc((void**)&d_el_trace, ntscr * sizeof(float)) );
