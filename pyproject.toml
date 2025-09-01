@@ -5,7 +5,7 @@ build-backend = "scikit_build_core.build"
 [project]
 license = "AGPL-3.0-only"
 name = "gateau"
-version = "0.0.1"
+version = "0.0.1-1"
 authors = [
 	{name = "Arend Moerman"},
 	{name = "maybetree", email = "maybetree48@proton.me"}

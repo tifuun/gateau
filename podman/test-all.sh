@@ -525,6 +525,18 @@ outside_pypi() {
 		echo "Nothing in dist directory! Did you build wheel?"
 		exit 10
 	fi
+
+	if [ -z "$TWINE_USERNAME" ]
+	then
+		echo "TWINE_USERNAME not set, aborting!"
+		exit 11
+	fi
+
+	if [ -z "$TWINE_PASSWORD" ]
+	then
+		echo "TWINE_PASSWORD not set, aborting!"
+		exit 12
+	fi
 	
 	podman run \
 		--rm \
@@ -533,11 +545,21 @@ outside_pypi() {
 		-v ./:/gateau:O \
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
-		-e CONTAINER_ACTION='outside_pypi' \
-		-e GATEAU_PYPI_ENDPOINT='outside_pypi' \
+		-e CONTAINER_ACTION='inside_pypi' \
+		-e TWINE_REPOSITORY \
+		-e TWINE_USERNAME \
+		-e TWINE_PASSWORD \
 		--workdir /gateau \
 		"gateau-cicd" \
 		/gateau/podman/test-all.sh
+}
+
+inside_pypi() {
+	/venv3.13/bin/twine upload \
+		--verbose \
+		--skip-existing \
+		--non-interactive \
+		dist/*
 }
 
 
@@ -594,7 +616,8 @@ then
 			;;
 		tpypi)
 			{
-				outside_tpypi
+				export TWINE_REPOSITORY=testpypi
+				outside_pypi
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		test-tpypi)
