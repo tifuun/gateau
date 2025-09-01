@@ -102,3 +102,26 @@ four places you need to change it:
 - `bindings.py` -- the Python function itself
 - `bindings.py` -- the call to the C++ code
 
+
+## License
+
+Gateau is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, version 3 of the License only.
+
+Gateau is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along
+with Gateau. If not, see https://www.gnu.org/licenses/.
+
+Note: Previous versions of gateau were released under different licenses. If the
+current license does not meet your needs, you may consider using an earlier
+version under the terms of its original license. You can find these versions by
+browsing the commit history.
+
+---
+
+Copyright (c) 2025, maybetree, Arend Moerman.
+
