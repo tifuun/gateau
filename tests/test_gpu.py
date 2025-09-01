@@ -67,7 +67,6 @@ class TestGPU(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)
 
-            file1 = tmpdir / 'foo.datp'
             (tmpdir / 'prepd').mkdir()
             (tmpdir / 'prepd' / 'atm_meta.datp').write_text('0')
 
