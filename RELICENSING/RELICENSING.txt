@@ -1,0 +1,30 @@
+License Change Agreement
+========================
+
+Project: Gateau
+Current License: MIT License
+New License: GNU Affero General Public License, version 3 ONLY
+
+Date: 2025-09-01
+
+We, the undersigned, are the sole authors and copyright holders of the software
+project known as “Gateau.”
+
+We hereby consent to change the license of the Gateau software from
+**MIT** to
+**GNU Affero General Public License, Version 3 ONLY**.
+This change is effective immediately and
+applies to all future releases and distributions of the Software.
+
+Each of us affirms that:
+
+1. We are co-owners and co-authors of the Gateau software.
+2. We have the legal authority to change the license.
+3. No other parties hold rights that would prevent this license change.
+4. This license change is made jointly and with full mutual consent.
+
+Signed,
+
+Nikita Soshnin (maybetree),
+Arend Moerman
+
