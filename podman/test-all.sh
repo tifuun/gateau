@@ -562,6 +562,74 @@ inside_pypi() {
 		dist/*
 }
 
+inside_test_pypi() {
+	
+	set -e
+
+	cuda_name=$(
+		nvcc --version |
+			grep Build |
+			cut -d . -f 1 |
+			sed 's/Build //' |
+			tr -d '_'
+		)
+	
+	if [ -n "$GATEAU_TEST_VENVS" ]
+	then
+		venvs="$GATEAU_TEST_VENVS"
+	else
+		venvs=/venv*
+	fi
+
+	for venv in $venvs
+	do
+		py_name=$(echo "$venv" | tr -cd '0-9.')
+
+		echo "INSTALLING..."
+		set +e
+		"${venv}/bin/pip" install gateau \
+			$GATEAU_PIP_FLAGS
+		exit_code=$?
+		set -e
+
+		echo "$exit_code" > \
+			"/output/${cuda_name}_${py_name}.install.exitcode"
+
+		echo "TESTING..."
+		set +e
+		"${venv}/bin/python" -m unittest
+		exit_code=$?
+		set -e
+
+		echo "$exit_code" > \
+			"/output/${cuda_name}_${py_name}.test.exitcode"
+	done
+}
+
+outside_test_pypi() {
+
+	if [ -z "$(podman images -q gateau-cuda11bare)" ]
+	then
+		outside_build_cuda11bare
+	fi
+	
+	set -e
+	
+	podman run \
+		--rm \
+		--init \
+		$podman_gpu \
+		-v ./:/gateau:O \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_test_pypi' \
+		-e GATEAU_TEST_VENVS \
+		-e GATEAU_PIP_FLAGS \
+		`#-e GATEAU_TEST_EDITABLE_INSTALL` \
+		--workdir /gateau \
+		"gateau-cuda11bare" \
+		/gateau/podman/test-all.sh
+}
+
 
 if [ -z "$CONTAINER_ACTION" ]
 then
@@ -622,7 +690,14 @@ then
 			;;
 		test-tpypi)
 			{
-				echo "Not implemented!!"
+				# extra-index-url is needed because
+				# dependencies (numpy, etc)
+				# are not on testpypi
+				export GATEAU_PIP_FLAGS="
+				--index-url https://test.pypi.org/simple/
+				--extra-index-url https://pypi.org/simple/
+				"
+				outside_test_pypi
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		pypi)
