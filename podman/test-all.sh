@@ -32,6 +32,11 @@
 #
 # `tpypi`
 # 	Upload built wheel to testpypi.
+# 	Must set `TWINE_USERNAME` and `TWINE_PASSWORD`
+# 	env variables for this to work!
+# 	If using token,
+# 	set `TWINE_USERNAME` to `__token__`
+# 	and `TWINE_PASSWORD` to the token.
 # 	Must run `wheel` subcomand first to build the wheel!
 #
 # `test-tpypi`
@@ -42,20 +47,17 @@
 # 	Must run `wheel` subcomand first to build the wheel!
 #
 # `test-pypi`
-# 	Download wheel from the real pypi, install, and test
+# 	Download wheel from the real pypi, install, and test.
+# 	Must set `TWINE_USERNAME` and `TWINE_PASSWORD`
+# 	env variables for this to work!
+# 	If using token,
+# 	set `TWINE_USERNAME` to `__token__`
+# 	and `TWINE_PASSWORD` to the token.
 
 # Environment variables
 #
-# CONTAINER_ACTION
-# 	Do not set this.
-# 	used internally by this script to tell itself what to do once
-# 	it runs inside the container. This is simply a function name
-# 	(though it could also be any command) 
-# 	that is executed directly.
-#
 # GATEAU_TEST_VENVS
-# 	You can set this if you want.
-# 	which of the available venvs (i.e. python versions)
+# 	Which of the available venvs (i.e. python versions)
 # 	to use to test gateau.
 # 	Defaults to all venvs available in container.
 # 	Has effect for `test` and `test11` subcommands.
@@ -74,7 +76,33 @@
 # 	Set this to a non-empty string in order
 # 	to run podman without the `--gpus=all` flag.
 # 	Default is to run with gpu.
+
+
+
+# Internal environment variables
 #
+# These are used by the script to communicate with itself
+# do not try to change these
+#
+# CONTAINER_ACTION
+# 	Used internally by this script to tell itself what to do once
+# 	it runs inside the container. This is simply a function name
+# 	(though it could also be any command) 
+# 	that is executed directly.
+#
+# TWINE_REPOSITORY
+# TWINE_USERNAME
+# TWINE_PASSWORD
+# 	These are standard variables interpreted by twine
+# 	directly. The script changes them depending on
+# 	whether you're using the `pypi` or `tpypi` subcommand
+#
+# GATEAU_PIP_FLAGS
+#	Used to change index url for `test_tpypi` subcommand,
+#	no effect on other subcommands.
+#
+
+
 
 # Images
 #
@@ -702,12 +730,14 @@ then
 			;;
 		pypi)
 			{
-				echo "Not implemented!!"
+				export TWINE_REPOSITORY=pypi
+				outside_pypi
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		test-pypi)
 			{
-				echo "Not implemented!!"
+				export GATEAU_PIP_FLAGS=""
+				outside_test_pypi
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		*)
