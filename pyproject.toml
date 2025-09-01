@@ -7,7 +7,7 @@ license = "AGPL-3.0-only"
 name = "gateau"
 description = """GPU-Accelerated Time-dEpendent observAtion simUlator"""
 readme = "README.md"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
 	{name = "Arend Moerman"},
 	{name = "maybetree", email = "maybetree48@proton.me"}
