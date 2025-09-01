@@ -90,7 +90,6 @@ def allfillSource(SourceDict: dict[str, any],
     """
     
     arr_I_nu = ar.array('f', SourceDict["I_nu"].ravel())
-    nI_nu = SourceDict["I_nu"].size
 
     SourceStruct.az_src_spec = arr2ArrSpec(SourceDict["az_src"])
     SourceStruct.el_src_spec = arr2ArrSpec(SourceDict["el_src"])

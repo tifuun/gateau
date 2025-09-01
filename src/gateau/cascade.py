@@ -51,7 +51,7 @@ def window_trans(
     psd_refl = johnson_nyquist_psd(f_src, T_parasitic_refl)
     psd_refr = johnson_nyquist_psd(f_src, T_parasitic_refr)
 
-    if window_AR == False:
+    if not window_AR:
         eta.append(1 - refl)
         psd.append(psd_refl)
 
@@ -66,7 +66,7 @@ def window_trans(
     eta.append(refr)
     psd.append(psd_refr)
 
-    if window_AR == False:
+    if not window_AR:
         eta.append(1 - refl)
         psd.append(psd_refl)
 
@@ -149,7 +149,7 @@ def get_cascade(cascade_list: list[dict[str, any]],
     
     group_list_red_uniq = list(dict.fromkeys([x for x in group_list if x is not None]))
 
-    idx_group_list = [i if label == None else label for i, label in enumerate(group_list)]
+    idx_group_list = [i if label is None else label for i, label in enumerate(group_list)]
     cascade_type_list = np.array([0 if x.get("eta_coup") is not None else 1 for x in cascade_list])
     idx_group_list_uniq = list(dict.fromkeys(idx_group_list))
 
@@ -161,7 +161,7 @@ def get_cascade(cascade_list: list[dict[str, any]],
         to_delete.extend(index_list[:-1])
 
     cascade_type_list_uniq = np.delete(cascade_type_list, to_delete)
-    idx_group_list_uniq = [[x] if hasattr(x, "__len__") == False else x for x in idx_group_list_uniq] 
+    idx_group_list_uniq = [[x] if not hasattr(x, "__len__") else x for x in idx_group_list_uniq] 
 
     # Now get eta for groups
     all_eta = []
