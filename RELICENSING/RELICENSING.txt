@@ -18,7 +18,7 @@ applies to all future releases and distributions of the Software.
 
 Each of us affirms that:
 
-1. We are co-owners and co-authors of the Woodpecker software.
+1. We are co-owners and co-authors of the Gateau software.
 2. We have the legal authority to change the license.
 3. No other parties hold rights that would prevent this license change.
 4. This license change is made jointly and with full mutual consent.
