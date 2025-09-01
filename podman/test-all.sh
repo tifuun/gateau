@@ -1,5 +1,49 @@
 #!/bin/sh
 
+# Subcommands
+#
+# `test`
+# 	Run the full test suite
+#
+# `test11`
+# 	Run full test suite only on cuda11 container
+#
+# `ruff`
+# 	Run ruff checker in `cicd` container
+#
+# `build`
+# 	Build all missing container images
+#
+# `pull`
+# 	Pull all container images from reg.stratal.systems
+# 	using `public:public` credentials,
+# 	overriding existing ones
+#
+# `push`
+# 	Push all container images to reg.stratal.systems,
+# 	overriding existing ones. Must `podman login` first!
+#
+# `wheel`
+# 	Build wheel using `cicd` container
+#
+# `test-wheel`
+# 	Install gateau from wheel in `cuda11bare` container
+# 	and run tests
+#
+# `tpypi`
+# 	Upload built wheel to testpypi.
+# 	Must run `wheel` subcomand first to build the wheel!
+#
+# `test-tpypi`
+# 	Download wheel from testpypi, install, and test
+#
+# `pypi`
+# 	Upload built wheel to the real pypi
+# 	Must run `wheel` subcomand first to build the wheel!
+#
+# `test-pypi`
+# 	Download wheel from the real pypi, install, and test
+
 # Environment variables
 #
 # CONTAINER_ACTION
@@ -465,6 +509,38 @@ outside_push_image() {
 	podman push "$ref" reg.stratal.systems/"$ref"
 }
 
+outside_pypi() {
+
+	if [ -z "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+	
+	set -e
+
+	if [ "$(ls dist | wc -l)" -le 0 ]
+	then
+		echo "Nothing in dist directory! Did you build wheel?"
+		exit 10
+	fi
+	
+	podman run \
+		--rm \
+		--init \
+		$podman_gpu \
+		-v ./:/gateau:O \
+		-v ./dist:/gateau/dist:rw \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='outside_pypi' \
+		-e GATEAU_PYPI_ENDPOINT='outside_pypi' \
+		--workdir /gateau \
+		"gateau-cicd" \
+		/gateau/podman/test-all.sh
+}
+
+
 if [ -z "$CONTAINER_ACTION" ]
 then
 
@@ -516,8 +592,28 @@ then
 				outside_test_wheel
 			} 2>&1 | tee podman/output/log.txt
 			;;
+		tpypi)
+			{
+				outside_tpypi
+			} 2>&1 | tee podman/output/log.txt
+			;;
+		test-tpypi)
+			{
+				echo "Not implemented!!"
+			} 2>&1 | tee podman/output/log.txt
+			;;
+		pypi)
+			{
+				echo "Not implemented!!"
+			} 2>&1 | tee podman/output/log.txt
+			;;
+		test-pypi)
+			{
+				echo "Not implemented!!"
+			} 2>&1 | tee podman/output/log.txt
+			;;
 		*)
-			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|test-wheel>"
+			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|test-wheel|tpypi|test-tpypi|pypi|test-pypi>"
 			exit 9
 			;;
 	esac
