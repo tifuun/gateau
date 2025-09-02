@@ -51,6 +51,7 @@ coverage.json
 htmlcov
 *.spec
 .coverage
+.ipynb_checkpoints
 
 # Archives
 *.zip
