@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """!
 @file
 PyPO docs generator.
@@ -32,12 +34,13 @@ def check_deps():
 
 
 def generate_docs():
-    base_path = Path(__file__).resolve().parent
+    base_path = Path(__file__).resolve().parent.parent
     doc_path = base_path / "docs"
     demo_path = base_path / "etc" / "demos"
     doxy_path = base_path / "doxy"
 
-    shutil.rmtree(doc_path)
+    if doc_path.exists():
+        shutil.rmtree(doc_path)
 
     ### Convert jupyter to html ###
 
