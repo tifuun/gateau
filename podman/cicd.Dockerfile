@@ -21,11 +21,12 @@ RUN \
 	apt update -y && \
 	apt install -y \
 		python3.13 python3.13-venv \
+		doxygen \
 		&& \
 	\
 	python3.13 -m venv /venv3.13 && \
 	\
-	/venv3.13/bin/pip install ruff build twine && \
+	/venv3.13/bin/pip install ruff build twine jupyter && \
 	ln -sf /venv3.13/bin/ruff /bin/ruff && \
 	:
 

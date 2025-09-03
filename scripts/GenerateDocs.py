@@ -30,9 +30,6 @@ def check_deps():
                 "go fix it!"
                 ) from err
 
-
-
-
 def generate_docs():
     base_path = Path(__file__).resolve().parent.parent
     doc_path = base_path / "docs"
