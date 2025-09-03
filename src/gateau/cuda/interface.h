@@ -26,8 +26,8 @@
 #   define GATEAU_DLL
 #endif
 
-#ifndef __InterfaceCUDA_h
-#define __InterfaceCUDA_h
+#ifndef __interface_h
+#define __interface_h
 
 extern "C"
 {
@@ -39,8 +39,7 @@ extern "C"
                                int nttot, 
                                char *outpath,
                                unsigned long long int seed,
-                               char *atmpath
-			       );
+                               char *atmpath);
 }
 
 #endif
