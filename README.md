@@ -31,7 +31,7 @@ We currently only support Linux with GNU libc
 We do not ship wheels for other operating systems
 or linuxes with other libc implementations.
 If you want to get gateau working on one of these platforms,
-see the [Compiling section](#Compiling) below
+see the [Compiling section](#Manual Compiling) below
 (and please let us know if you're interested in helping
 us get gateau running on other platforms!).
 
@@ -69,6 +69,7 @@ Here's how to use it:
 1. Install and set up `podman` using your system's package manager
 1. Set up `podman` for use with CUDA.
     Read [NVIDIA's docs](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html)
+    or the [STRATAL SYSTEMS Wiki page](https://github.com/stratal-systems/wiki/blob/main/wiki/void-linux-cuda.md)
     for instructions on how to do this.
     - If you do not have a GPU,
         you can skip this step and
@@ -152,13 +153,13 @@ to target TestPyPI instead.
 The wheel building and publishing process is automated using the
 `test-all.sh` script,
 please read
-[the section on using it](#For developers: using the `test-all.sh` script).
+[the section on using it](#Upload to pypi).
 Otherwise, you can follow the manual instructions below:
 
 To build wheels for gateau and upload to pypi
 you will need all of the requirements for compiling
 Gateau
-(see the [Compiling section](#Compiling)),
+(see the [Compiling section](#Manual Compiling)),
 plus the `twine` and `build` Python packages.
 
 1. Make sure the package version specified in `pyproject.toml`
@@ -179,6 +180,8 @@ plus the `twine` and `build` Python packages.
     `ldd (Ubuntu GLIBC 2.31-0ubuntu9.12) 2.31`,
     then you need to rename the file to
     `gateau-0.1.0-cp313-cp313-manylinux_2_31_x86_64.whl`.
+    Read [this PEP](https://peps.python.org/pep-0427/#file-name-convention)
+    for more info.
 1. Upload to pypi:
     There are many ways to authenticate to pypi, but the easiest is to
     create an access token in the webui
