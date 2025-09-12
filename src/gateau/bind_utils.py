@@ -14,6 +14,10 @@ import array as ar
 def allfillCascade(CascadeDict: dict[str, any], 
                    CascadeStruct: Structure) -> None:
     """!
+    Allocate and fill a cascade struct.
+
+    @param CascadeDict Dictionary containing cascade efficiencies and power spectral densities.
+    @param CascadeStruct Struct to be filled and passed to ctypes.
     """
     arr_eta = ar.array('f', CascadeDict["eta_stage"].ravel())
     arr_psd = ar.array('f', CascadeDict["psd_stage"].ravel())
@@ -57,10 +61,14 @@ def allfillTelescope(TelDict: dict[str, any],
     arr_eta_ap = ar.array('f', TelDict["eta_ap"].ravel())
     arr_az_scan = ar.array('f', TelDict["az_scan"].ravel())
     arr_el_scan = ar.array('f', TelDict["el_scan"].ravel())
+    arr_az_scan_center = ar.array('f', TelDict["az_scan_center"].ravel())
+    arr_el_scan_center = ar.array('f', TelDict["el_scan_center"].ravel())
     
     TelStruct.eta_ap = (c_float * TelDict["eta_ap"].size).from_buffer(arr_eta_ap)
     TelStruct.az_scan = (c_float * TelDict["az_scan"].size).from_buffer(arr_az_scan)
     TelStruct.el_scan = (c_float * TelDict["el_scan"].size).from_buffer(arr_el_scan)
+    TelStruct.az_scan_center = (c_float * TelDict["az_scan_center"].size).from_buffer(arr_az_scan_center)
+    TelStruct.el_scan_center = (c_float * TelDict["el_scan_center"].size).from_buffer(arr_el_scan_center)
 
 def allfillAtmosphere(AtmDict: dict[str, any], 
                       AtmStruct: Structure) -> None:
@@ -78,6 +86,7 @@ def allfillAtmosphere(AtmDict: dict[str, any],
     AtmStruct.dx = c_float(AtmDict["dx"])
     AtmStruct.dy = c_float(AtmDict["dy"])
     AtmStruct.path = c_char_p(os.path.join(AtmDict["path"], "prepd").encode())
+    AtmStruct.pwv0 = c_float(AtmDict["PWV0"])
 
 def allfillSource(SourceDict: dict[str, any], 
                   SourceStruct: Structure) -> None:

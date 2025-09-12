@@ -56,7 +56,7 @@ def checkInstrumentDict(instrumentDict):
     return errlist
 
 def checkAtmosphereDict(atmosphereDict):
-    checklist = ["T_atm", "filename", "path", "dx", "dy", "h_column", "v_wind"]
+    checklist = ["T_atm", "path", "dx", "dy", "h_column", "v_wind"]
 
     errlist = []
 
