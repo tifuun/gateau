@@ -31,7 +31,7 @@ We currently only support Linux with GNU libc
 We do not ship wheels for other operating systems
 or linuxes with other libc implementations.
 If you want to get gateau working on one of these platforms,
-see the [Compiling section](#Manual Compiling) below
+see the [Compiling section](#manual-compiling) below
 (and please let us know if you're interested in helping
 us get gateau running on other platforms!).
 
@@ -153,13 +153,13 @@ to target TestPyPI instead.
 The wheel building and publishing process is automated using the
 `test-all.sh` script,
 please read
-[the section on using it](#Upload to pypi).
+[the section on using it](#for-developers-using-the-test-allsh-script).
 Otherwise, you can follow the manual instructions below:
 
 To build wheels for gateau and upload to pypi
 you will need all of the requirements for compiling
 Gateau
-(see the [Compiling section](#Manual Compiling)),
+(see the [Compiling section](#manual-compiling)),
 plus the `twine` and `build` Python packages.
 
 1. Make sure the package version specified in `pyproject.toml`
