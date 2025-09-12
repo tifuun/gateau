@@ -401,7 +401,7 @@ outside_wheel() {
 	podman run \
 		--rm \
 		--init \
-		$podman_gpu \
+		`# $podman_gpu ` \
 		-v ./:/gateau:O \
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
@@ -569,7 +569,7 @@ outside_pypi() {
 	podman run \
 		--rm \
 		--init \
-		$podman_gpu \
+		`# $podman_gpu ` \
 		-v ./:/gateau:O \
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
