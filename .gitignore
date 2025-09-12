@@ -94,8 +94,8 @@ CMakeInit.txt
 # Allow .dat, it's used for resources
 !*.dat
 
-doxy
 docs
+doxy/docs
 podman/output
 testfile
 gateau_test
