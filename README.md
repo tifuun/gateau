@@ -40,7 +40,7 @@ us get gateau running on other platforms!).
 For information on things like running tests
 and making new releases of Gateau,
 please consult [MAINTAINERS.md](./MAINTAINERS.md).
-For contribution guidelines, see [CONTRIBUTING.md)[CONTRIBUTING.md]
+For contribution guidelines, see [CONTRIBUTING.md)[./CONTRIBUTING.md]
 
 ## License
 
