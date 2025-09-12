@@ -29,6 +29,7 @@ __constant__ int cnum_stage;
 // ATMOSPHERE PARAMETERS
 __constant__ float ch_column;               // Column height
 __constant__ float cv_wind;                 // Windspeed
+__constant__ float cpwv0;
 
 // CONSTANTS FOR KERNEL LAUNCHES
 #define NTHREADS1D      512
@@ -145,10 +146,13 @@ __host__ void initCUDA(Instrument *instrument,
     // ATMOSPHERE PARAMETERS
     gpuErrchk( cudaMemcpyToSymbol(ch_column, &(atmosphere->h_column), sizeof(float)) );
     gpuErrchk( cudaMemcpyToSymbol(cv_wind, &(atmosphere->v_wind), sizeof(float)) );
+    gpuErrchk( cudaMemcpyToSymbol(cpwv0, &(atmosphere->pwv0), sizeof(float)) );
 }
 
 __global__ void calc_traces_rng(float *az_scan, 
                                 float *el_scan,
+                                float *az_scan_center, 
+                                float *el_scan_center,
                                 float az_fpa,
                                 float el_fpa,
                                 ArrSpec x_atm,
@@ -174,7 +178,7 @@ __global__ void calc_traces_rng(float *az_scan,
         seed += idx + idx_offset;
 
         // FLOATS                                                                    
-        float time_point;  // Timepoint for thread in simulation.                   
+        float time_point;  // Timepoint for thread in simulation. This is not the global time, only time in current simulation chunk!                   
         float pwv_point;   // Container for storing interpolated PWV values.        
         float az_point, el_point;
         float x_point, y_point;
@@ -185,8 +189,8 @@ __global__ void calc_traces_rng(float *az_scan,
         az_point = az_scan[idx + idx_offset] + az_fpa;
         el_point = el_scan[idx + idx_offset] + el_fpa;
 
-        x_point = __tanf(DEG2RAD * az_point) * ch_column + cv_wind * time_point;
-        y_point = __tanf(DEG2RAD * el_point) * ch_column;
+        x_point = __tanf(DEG2RAD * (az_point - az_scan_center[idx + idx_offset])) * ch_column + cv_wind * time_point;
+        y_point = __tanf(DEG2RAD * (el_point - el_scan_center[idx + idx_offset])) * ch_column;
 
         interpValue(x_point, y_point,
                     &x_atm, &y_atm, pwv_screen, 0, pwv_point);            
@@ -194,7 +198,8 @@ __global__ void calc_traces_rng(float *az_scan,
         curand_init(seed, idx, 0, &state[idx]);                                      
         az_trace[idx] = az_point;                                                    
         el_trace[idx] = el_point;
-        pwv_trace[idx] = pwv_point;
+        pwv_trace[idx] = pwv_point + cpwv0;
+
         time_trace[idx] = time_point + ct_start;
     }
 }
@@ -460,7 +465,7 @@ void run_gateau(Instrument *instrument,
     float lx_av = lx - ly;                          // Available length along x, taking into account center of screen
     float t_obs_av = lx_av / atmosphere->v_wind;    // Max available time per screen
 
-    if(isinf(t_obs_av)) {t_obs_av = ttot;}
+    if(isinf(t_obs_av) || isnan(t_obs_av)) {t_obs_av = ttot;}
 
     int nJobs = ceil(ttot / t_obs_av);                     // Total number of times kernel needs to be run
     ntscr = floor(t_obs_av * instrument->f_sample);  // Number of time evaluations available per atmosphere screen. Floored to be safe.
@@ -522,6 +527,11 @@ void run_gateau(Instrument *instrument,
     gpuErrchk( cudaMalloc((void**)&d_el_scan, nttot * sizeof(float)) );
     gpuErrchk( cudaMemcpy(d_el_scan, telescope->el_scan, nttot * sizeof(float), cudaMemcpyHostToDevice) );
 
+    float *d_az_scan_center, *d_el_scan_center;
+    gpuErrchk( cudaMalloc((void**)&d_az_scan_center, nttot * sizeof(float)) );
+    gpuErrchk( cudaMemcpy(d_az_scan_center, telescope->az_scan_center, nttot * sizeof(float), cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaMalloc((void**)&d_el_scan_center, nttot * sizeof(float)) );
+    gpuErrchk( cudaMemcpy(d_el_scan_center, telescope->el_scan_center, nttot * sizeof(float), cudaMemcpyHostToDevice) );
     // Allocate and copy atmosphere arrays
     float *d_eta_atm;
     int neta_atm = f_atm.num * pwv_atm.num;
@@ -735,6 +745,8 @@ void run_gateau(Instrument *instrument,
                                   blockSize1D>>>
                                       (d_az_scan,
                                        d_el_scan,
+                                       d_az_scan_center,
+                                       d_el_scan_center,
                                        az_fpa,
                                        el_fpa,
                                        x_atm,

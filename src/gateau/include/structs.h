@@ -40,6 +40,8 @@ struct Telescope {
     float *eta_ap;      /**< Array of aperture efficiencies.*/
     float *az_scan;     /**< Azimuth co-ordinates of scan strategy for simulation.*/
     float *el_scan;     /**< Elevation co-ordinates of scan strategy for simulation.*/
+    float *az_scan_center;     /**< Azimuth center co-ordinates of scan strategy for simulation.*/
+    float *el_scan_center;     /**< Elevation center co-ordinates of scan strategy for simulation.*/
 };
 
 
@@ -50,6 +52,7 @@ struct Atmosphere {
     float dx;          /**< Gridsize along x axis in meters.*/
     float dy;          /**< Gridsize along y axis in meters.*/
     char* path;    /**< Path to prepd folder.*/
+    float pwv0;
 };
 
 

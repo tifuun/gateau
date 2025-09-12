@@ -13,7 +13,7 @@ import gateau.cascade as gcascade
 import psutil
 import logging
 from gateau.custom_logger import CustomLogger
-from gateau.utilities import get_eta_atm
+from gateau.atmosphere_utils import get_eta_atm
 
 from collections.abc import Callable
 from typing import Union
@@ -136,6 +136,8 @@ class simulator(object):
 
     def initialise(self, 
                    t_obs: float, 
+                   az0: float,
+                   el0: float,
                    scan_func: Union[Callable, list[Callable]],
                    instrument_dict: dict[str, any],
                    telescope_dict: dict[str, any],
@@ -194,12 +196,18 @@ class simulator(object):
         times_array = np.arange(0, self.nTimes / self.instrument["f_sample"], 1 / self.instrument["f_sample"])
 
         if isinstance(scan_func, list):
-            az_scan, el_scan = scan_func[0](times_array)
+            az_scan, el_scan = scan_func[0](times_array, az0, el0)
+            self.telescope["az_scan_center"] = az_scan
+            self.telescope["el_scan_center"] = el_scan
             for s_f in scan_func[1:]:
                 az_scan, el_scan = s_f(times_array, az_scan, el_scan)
         
         else:
-            az_scan, el_scan = scan_func(times_array)
+            az_scan_center, el_scan_center = scan_func(times_array, az0, el0)
+            self.telescope["az_scan_center"] = az_scan_center
+            self.telescope["el_scan_center"] = el_scan_center
+            
+            az_scan, el_scan = scan_func(times_array, az0, el0)
 
         self.telescope["az_scan"] = az_scan
         self.telescope["el_scan"] = el_scan
@@ -301,6 +309,7 @@ class simulator(object):
         for idx_spax in range(self.instrument.get("pointings")[0].size):
             os.makedirs(os.path.join(outpath, str(idx_spax)))
         self.clog.info("\033[1;32m*** STARTING gateau SIMULATION ***")
+        print(self.cascade)
         
         gbind.run_gateau(self.instrument, 
                          self.telescope, 

@@ -46,7 +46,9 @@ class Telescope(Structure):
     _fields_ = [
             ("eta_ap", POINTER(c_float)),
             ("az_scan", POINTER(c_float)),
-            ("el_scan", POINTER(c_float))]
+            ("el_scan", POINTER(c_float)),
+            ("az_scan_center", POINTER(c_float)),
+            ("el_scan_center", POINTER(c_float))]
 
 class Atmosphere(Structure):
     """!
@@ -58,7 +60,8 @@ class Atmosphere(Structure):
             ("h_column", c_float),
             ("dx", c_float),
             ("dy", c_float),
-            ("path", c_char_p)]
+            ("path", c_char_p),
+            ("pwv0", c_float)]
 
 class Source(Structure):
     """!
