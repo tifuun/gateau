@@ -10,5 +10,8 @@ rm -rf \
 	*.cmake \
 	.cmake \
 	testfile \
+	docs \
+	gsl \
+	Makefile \
 	gateau_test
 

@@ -17,6 +17,7 @@ def generateFilterbankFromR(instrumentDict: dict[str, any],
     """
 
     R           = instrumentDict.get("R")
+    nf_ch       = instrumentDict.get("nf_ch")
     order       = instrumentDict.get("order")
     f_filt      = instrumentDict.get("f_ch_arr")
     f_src       = sourceDict.get("f_src")

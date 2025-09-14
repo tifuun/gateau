@@ -8,100 +8,39 @@ and is currently still in progress.
 For more info, please see
 [the documentation pages](https://arend95.github.io/tiempo2/) (to be fixed).
 
-## Building and testing
-
-### General procedure
-
-1. Install Python, gcc, cmake, `gsl-devel`
-1. (optional) create and activate venv
-1. `pip install -e .`
-1. `python -m unittest`
-1. TODO gtest
-
-What follows is notes and examples for various distros.
-Tip: take a look at the dockerfile under `podman` for more info.
-
-### Oracle Linux 9
-
-- Available pythons: 3.9, 3.11, 3.12
-- Extra repos need to be added for googletest:
-
-```
-dnf install -y oracle-epel-release-el9
-dnf config-manager --set-enabled ol9_developer_EPEL
-dnf install -y gtest gtest-devel gsl-devel python3.11
-
-python3.11 -m venv /venv
-source /venv/bin/activate
-
-pip install -e .
-python -m unittest
-TODO gtest
-```
-
-### Ubuntu 20.04
-
-- `deadsnakes` repo needed for non-ancient Pythons
-    - contains almost all releases of python that you might
-        ever want (3.9, 3.10, 3.11, 3.12, 3.13)
-    - `venv` shipped separately,
-        so you need to install both
-        `pythonX.XX` and `pythonX.XX-venv`
-- `gsl-devel` is called `libgsl-dev`
-- TODO gtest
-
-```
-apt install -y libgsl-dev software-properties-common
-add-apt-repository ppa:deadsnakes/ppa
-apt update -y
-apt install python3.11 python3.11-venv
-
-python3.11 -m venv /venv
-source /venv/bin/activate
-
-pip install -e .
-python -m unittest
-TODO gtest
-```
-
-
 ## Installation
 
-System-wide requirements (get these from your package manager):
-- `gcc`
-- `cmake`
-- `gsl-devel`
+Gateau is available from [pypi](https://pypi.org/project/gateau/).
+You can install it like any other python package:
 
-Example for Void Linux: `xbps-install -Syu gcc cmake gsl-devel`
+```
+pip install gateau
+```
 
-Once you have installed the system-wide requirements,
-you can `pip install -e .` this repo.
-All Python dependencies will be downloaded by pip.
-
-## Testing
-
-0. Make sure `podman` is installed and working.
-1. Pull the tests images: `./podman/test-all.sh pull`
-    - You can also build the images locally:
-        `./podman/test-all.sh build`
-2. Run the tests: `./podman/test-all.sh test`
-3. Check results: the results of `pip install` are saved in
-    `./podman/output/*`. They must all be zero.
-    Otherwise, something went wrong.
+> [!WARNING]
+> You must also install the
+> [GNU Scientific Library](https://www.gnu.org/software/gsl/)
+> (Often called `gsl` or `libgsl`) for Gateau to run properly.
+> We will fix this in the future.
 
 
-## Misc notes
+### Supported Platforms
 
-### Changing the signature of `run_gateau`
+We currently only support Linux with GNU libc
+(known as `manylinux` in the Python world).
+We do not ship wheels for other operating systems
+or linuxes with other libc implementations.
+If you want to get gateau working on one of these platforms,
+have a read of [MAINTAINERS.md](./MAINTAINERS.md)
+(and please let us know if you're interested in helping
+us get gateau running on other platforms!).
 
-If you want to add/remove arguments of `run_gateau` there's
-four places you need to change it:
+## For maintainers and developers
 
-- `InterfaceCUDA.h`
-- `SimKernels.cu`
-- `bindings.py` -- the Python function itself
-- `bindings.py` -- the call to the C++ code
-
+For information on things like running tests
+and making new releases of Gateau,
+please consult [MAINTAINERS.md](./MAINTAINERS.md).
+For contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## License
 

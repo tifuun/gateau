@@ -51,6 +51,7 @@ coverage.json
 htmlcov
 *.spec
 .coverage
+.ipynb_checkpoints
 
 # Archives
 *.zip
@@ -93,12 +94,13 @@ CMakeInit.txt
 # Allow .dat, it's used for resources
 !*.dat
 
-doxy
 docs
+doxy/docs
 podman/output
 testfile
 gateau_test
 gateau_tests
+gsl
 
 
 

@@ -3,6 +3,7 @@
 It is not meant to be used by users, only internally.
 """
 
+import math
 from multiprocessing import get_context
 import numpy as np
 import os
@@ -38,6 +39,8 @@ def parallel_job_np(npfile: np.ndarray,
     
     if arr_par.size < num_threads:
         num_threads = arr_par.size
+
+    num_chunks = math.ceil(arr_par.size / num_threads)
 
     chunks_arr = np.array_split(arr_par, num_threads)
     chunks_np = np.array_split(npfile, num_threads, axis=axis)
