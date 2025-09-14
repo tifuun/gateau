@@ -1,4 +1,7 @@
 import numpy as np
+import os
+import yaml
+import csv
 
 from typing import Union
 
@@ -51,7 +54,7 @@ def window_trans(
     psd_refl = johnson_nyquist_psd(f_src, T_parasitic_refl)
     psd_refr = johnson_nyquist_psd(f_src, T_parasitic_refr)
 
-    if window_AR == False:
+    if not window_AR:
         eta.append(1 - refl)
         psd.append(psd_refl)
 
@@ -66,7 +69,7 @@ def window_trans(
     eta.append(refr)
     psd.append(psd_refr)
 
-    if window_AR == False:
+    if not window_AR:
         eta.append(1 - refl)
         psd.append(psd_refl)
 
@@ -118,6 +121,90 @@ def sizer(eta: Union[np.ndarray, float],
     else:
         return eta
 
+def read_from_folder(cascade_folder: str,
+                     yaml_name: str = "cascade.yaml"
+                     ) -> list[dict[any, any]]:
+    """
+    Generate a cascade list from a cascade folder.
+    The folder should contain a YAML file containing the cascadelist.
+    Any vector-valued efficiency terms should be provided inside the folder as a CSV file, with the first column containing frequencies at which the terms are evaluated and the second column containing the terms themselves.
+    Then, the CSV can be referenced inside the YAML by passing the CSV name (including .csv) to the `eta_coup` field inside the YAML.
+
+    Parameters
+    ----------
+    cascade_folder
+        String containing path to folder containing cascade YAML and any related CSV files.
+
+    yaml_name
+        String containing the name of the YAML file containing the cascade.
+        Defaults to 'cascade.yaml'.
+
+    Returns
+    ----------
+    List containing the cascade.
+    """
+
+    assert(os.path.exists(cascade_folder))
+    assert(os.path.exists(yaml_path := os.path.join(cascade_folder, 
+                                       yaml_name)))
+
+    with open(yaml_path) as stream:
+        try:
+            cascade_list = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    for stage in cascade_list:
+        for key, item in stage.items():
+            if isinstance(item, str):
+                if item.endswith(".csv"):
+                    assert(os.path.exists(csv_path := os.path.join(cascade_folder,
+                                                                   item)))
+                    freq = []
+                    vals = []
+                    with open(csv_path, 'r', newline='') as csvfile:                
+                        reader = csv.reader(csvfile, delimiter=',')
+                        for row in reader:
+                            freq.append(float(row[0]))
+                            vals.append(float(row[1]))
+
+                    stage[key] = (np.array(freq), np.array(vals))
+
+    return cascade_list
+
+def save_cascade(cascade_list: list[dict[any, any]],
+                 save_folder: str,
+                 yaml_name: str = "cascade") -> None:
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+
+    name_index = 0
+
+    cascade_to_write = []
+
+    for stage in cascade_list:
+        stage_dict = {}
+
+        for key, item in stage.items():
+            if isinstance(item, tuple):
+                assert(item[0].size == item[1].size)
+                np.savetxt(os.path.join(save_folder, 
+                                        f"{name_index}.csv"), 
+                           np.column_stack(item),
+                           delimiter = ",")
+
+                stage_dict[key] = f"{name_index}.csv"
+                
+                name_index += 1
+
+            else:
+                stage_dict[key] = item
+
+        cascade_to_write.append(stage_dict)
+
+    with open(os.path.join(save_folder, f"{yaml_name}.yaml"), 'w') as outfile:
+              yaml.dump(cascade_to_write, outfile)
+
 def get_cascade(cascade_list: list[dict[str, any]],
                 f_src: np.ndarray) -> tuple[np.ndarray, 
                                             np.ndarray]:
@@ -149,7 +236,7 @@ def get_cascade(cascade_list: list[dict[str, any]],
     
     group_list_red_uniq = list(dict.fromkeys([x for x in group_list if x is not None]))
 
-    idx_group_list = [i if label == None else label for i, label in enumerate(group_list)]
+    idx_group_list = [i if label is None else label for i, label in enumerate(group_list)]
     cascade_type_list = np.array([0 if x.get("eta_coup") is not None else 1 for x in cascade_list])
     idx_group_list_uniq = list(dict.fromkeys(idx_group_list))
 
@@ -161,7 +248,7 @@ def get_cascade(cascade_list: list[dict[str, any]],
         to_delete.extend(index_list[:-1])
 
     cascade_type_list_uniq = np.delete(cascade_type_list, to_delete)
-    idx_group_list_uniq = [[x] if hasattr(x, "__len__") == False else x for x in idx_group_list_uniq] 
+    idx_group_list_uniq = [[x] if not hasattr(x, "__len__") else x for x in idx_group_list_uniq] 
 
     # Now get eta for groups
     all_eta = []

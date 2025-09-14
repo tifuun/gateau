@@ -1,7 +1,6 @@
 import math
 import os
 import shutil
-import time
 import copy 
 import sys
 import numpy as np
@@ -284,7 +283,6 @@ class simulator(object):
             self.clog.error("The initialise method MUST be called before running a simulation!")
             raise InitialError
             sys.exit()
-        t_range = 1 / self.instrument["f_sample"] * np.arange(self.nTimes)
 
         outpath = os.path.join(self.outPath, outname)
 
@@ -313,8 +311,6 @@ class simulator(object):
         self.clog.info("\033[1;32m*** STARTING gateau SIMULATION ***")
         print(self.cascade)
         
-        start = time.time()
-
         gbind.run_gateau(self.instrument, 
                          self.telescope, 
                          self.atmosphere, 
@@ -322,8 +318,6 @@ class simulator(object):
                          self.cascade,
                          self.nTimes, 
                          outpath)
-        
-        end = time.time()        
         
         self.clog.info("\033[1;32m*** FINISHED gateau SIMULATION ***")
 

@@ -11,7 +11,6 @@ from ctypes import (
     c_ulonglong,
     CDLL
     )
-import pathlib
 from typing import Union
 from contextlib import ExitStack
 
@@ -68,7 +67,8 @@ def run_gateau(instrument: dict[str, any],
                resourcepath: Union[str, None] = None, 
                ) -> None:
     """!
-    Binding for running the gateau simulation on GPU.
+    Binding for running the gateau simulation.
+    During the simulation, gateau will serialise the output into the specified folder.
 
     @param instrument Dictionary containing instrument parameters.
     @param telescope Dictionary containing telescope parameters.
@@ -77,8 +77,6 @@ def run_gateau(instrument: dict[str, any],
     @param nTimes Number of time evaluations.
     @param outpath Path to directory where gateau output is stored.
     @param resourcepath Path to resources folder (None for autodetect)
-
-    @returns 2D array containing timestreams of power in detector, for each channel frequency
     """
 
     lib = load_gateaulib()
@@ -100,8 +98,6 @@ def run_gateau(instrument: dict[str, any],
     coutpath = c_char_p(outpath.encode())
     # FIXME bare encode
     cseed = c_ulonglong(seed)
-
-    size_out = nTimes * instrument["nf_ch"]
 
     with ExitStack() as stack:
         if resourcepath is None:

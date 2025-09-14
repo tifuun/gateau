@@ -24,8 +24,6 @@ def checkInstrumentDict(instrumentDict):
 
     errlist = []
 
-    fail = False
-
     # f0_ch is array of center frequencies
     if isinstance(instrumentDict.get("f0_ch"), np.ndarray):
         instrumentDict["nf_ch"] = instrumentDict.get("f0_ch").size
