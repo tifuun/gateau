@@ -80,10 +80,14 @@ Mosts tests will fail if there is no GPU.
 ### Build a wheel
 
 ```
-./podman/test-all.sh wheel
+./podman/test-all.sh staticwheel
 ```
 
 This will build wheel and place it into the `dist` subdirectory.
+
+If you are paranoid, you can run `./podman/test-all.sh checkstatic`
+to verify that the wheel has libgsl linked statically
+(more info in the [Libgsl](#libgsl) section).
 
 ### Upload to pypi
 
@@ -158,6 +162,44 @@ plus the `twine` and `build` Python packages.
     and pass it to `twine` via the `TWINE_PASSWORD` environment variable:
     `TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx --verbose --skip-existing --non-interactive dist/*`
 
+## Libgsl
+
+In Python Land, it is customary to statically
+link dependencies into the wheel.
+Our only dependency (besides C and C++ stdlibs,
+which are halal to link dynamically afaik)
+is the
+[GNU Scientific Library](https://www.gnu.org/software/gsl/).
+We link it statically into `libgateau.so`.
+In order to accomplish this,
+a static version of libgsl
+itself is needed -- i.e. `libgsl.a` instead of `libgsl.so`.
+Some distros provide a package for this,
+but not Ubuntu (which is the base for the `gateau-cicd` container).
+So we compile static libgsl manually.
+This is done using the `scripts/build-gsl.sh` script,
+which runs during the `staticwheel`
+subcommand of the `test-all.sh` script.
+That script has a little
+non-trivial hackery to actually get libgsl to compile,
+go take a look yourself,
+I promise it's not that scary.
+
+cmake is duumb. I have spent like an hour trying to figure out
+how to tell it to link libgsl statically
+and the best I have come up with is to just make
+sure the container ONLY has the static libgsl (`libgsl.a`).
+If the container has both static and dynamic (`libgsl.so`),
+cmake defaults to the dynamic one no matter what I do.
+This is the reason why the `build-gsl.sh` script
+configures libgsl with `--distable-shared`,
+and why the `staticwheel` subcommand has
+that cheeky `rm -rf /usr/local/bin/libgsl.so*`,
+and why there is the paranoid `checkstatic` subcommand as well.
+
+Libgsl is licensed under GPLv3 which is the reason
+we must use a GPL-compatible license for Gateau itself
+if we want to distribute static wheels of it.
 
 ## Misc. notes for various linux distros
 

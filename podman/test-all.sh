@@ -24,10 +24,19 @@
 # 	overriding existing ones. Must `podman login` first!
 #
 # `wheel`
-# 	Build wheel using `cicd` container
+# 	Build wheel using `cicd` container.
+# 	This will build libgateau with DYNAMICALLY linked
+# 	libgsl!
 #
 # `staticwheel`
-# 	Build wheel using `cicd` container with static libgsl
+# 	Build wheel using `cicd` container.
+# 	This will build libgateau with STATICALLY linked
+# 	libgsl!
+#
+# `teststatic`
+# 	Verify that the `libgateau.so` inside
+# 	the wheel file in the `dist` directory
+# 	has libgsl linked STATICALLY
 #
 # `test-wheel`
 # 	Install gateau from wheel in `cuda11bare` container
@@ -360,7 +369,10 @@ inside_staticwheel() {
 	export DEBIAN_FRONTEND=noninteractive
 	set -e
 	apt purge -y libgsl-dev
+
+	# Go read `MAINTAINERS.md` on why this line is needed
 	rm -rf /usr/local/lib/libgsl.so*
+
 	apt install -y wget autotools-dev autoconf libtool gpg
 	./scripts/build-gsl.sh
 	inside_wheel
@@ -849,7 +861,7 @@ then
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		*)
-			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|staticwheel|test-wheel|tpypi|test-tpypi|pypi|test-pypi>"
+			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|staticwheel|checkstatic|test-wheel|tpypi|test-tpypi|pypi|test-pypi>"
 			exit 9
 			;;
 	esac
