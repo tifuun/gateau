@@ -12,5 +12,6 @@ rm -rf \
 	testfile \
 	docs \
 	gsl \
+	Makefile \
 	gateau_test
 

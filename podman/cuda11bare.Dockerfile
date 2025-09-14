@@ -6,7 +6,7 @@ RUN \
 	apt update -y && \
 	apt install -y \
 		software-properties-common \
-		libgsl23 \
+		`#libgsl23` \
 		&& \
 	add-apt-repository ppa:deadsnakes/ppa && \
 	apt update -y && \

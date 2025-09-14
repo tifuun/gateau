@@ -8,9 +8,9 @@ set -e
 mkdir -p gsl
 cd gsl
 
-#wget https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz
-#wget https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz.sig
-#wget https://www.gnu.org/software/gsl/key/gsl_key.txt
+wget https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz
+wget https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz.sig
+wget https://www.gnu.org/software/gsl/key/gsl_key.txt
 
 gpg --import gsl_key.txt
 gpg --verify gsl-2.5.tar.gz.sig
@@ -25,7 +25,10 @@ cd gsl-2.5
 # Fix by overriding shebang.
 sed -i -e '1i #!/bin/bash' ./configure
 
-./configure --enable-maintainer-mode
+./configure \
+	--enable-maintainer-mode \
+	--disable-shared \
+	--enable-static
 make -j$(nproc)
 make install
 

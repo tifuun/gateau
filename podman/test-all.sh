@@ -26,6 +26,9 @@
 # `wheel`
 # 	Build wheel using `cicd` container
 #
+# `staticwheel`
+# 	Build wheel using `cicd` container with static libgsl
+#
 # `test-wheel`
 # 	Install gateau from wheel in `cuda11bare` container
 # 	and run tests
@@ -353,6 +356,17 @@ inside_ruff() {
 	echo "Ran ruff, output is int podman/output/ruff.txt"
 }
 
+inside_staticwheel() {
+	export DEBIAN_FRONTEND=noninteractive
+	set -e
+	apt purge -y libgsl-dev
+	rm -rf /usr/local/lib/libgsl.so*
+	apt install -y wget autotools-dev autoconf libtool gpg
+	./scripts/build-gsl.sh
+	inside_wheel
+	# TODO test with LDD that its actually static
+}
+
 inside_wheel() {
 	set -e
 
@@ -410,6 +424,33 @@ outside_wheel() {
 		"gateau-cicd" \
 		/gateau/podman/test-all.sh
 }
+
+outside_staticwheel() {
+
+	if [ -z "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+	
+	set -e
+
+	mkdir -p ./dist
+	
+	podman run \
+		--rm \
+		--init \
+		`# $podman_gpu ` \
+		-v ./:/gateau:O \
+		-v ./dist:/gateau/dist:rw \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_staticwheel' \
+		--workdir /gateau \
+		"gateau-cicd" \
+		/gateau/podman/test-all.sh
+}
+
 
 outside_test_wheel() {
 
@@ -705,6 +746,11 @@ then
 				outside_wheel
 			} 2>&1 | tee podman/output/log.txt
 			;;
+		staticwheel)
+			{
+				outside_staticwheel
+			} 2>&1 | tee podman/output/log.txt
+			;;
 		test-wheel)
 			{
 				outside_test_wheel
@@ -741,7 +787,7 @@ then
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		*)
-			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|test-wheel|tpypi|test-tpypi|pypi|test-pypi>"
+			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|staticwheel|test-wheel|tpypi|test-tpypi|pypi|test-pypi>"
 			exit 9
 			;;
 	esac
