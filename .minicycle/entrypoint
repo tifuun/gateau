@@ -111,7 +111,7 @@ echo '#############################'
 
 rm -rf ./podman/output/*
 
-./podman/test-all.sh wheel  \
+./podman/test-all.sh staticwheel  \
 	2>&1 > /dev/null
 
 if [ "$?" -ne 0 ]
