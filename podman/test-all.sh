@@ -399,6 +399,37 @@ inside_wheel() {
 	done
 }
 
+inside_checkstatic() {
+	set -e
+
+	echo "Checking whether wheel is static..."
+
+	echo "Looking for wheel..."
+
+	wfile=$(find ./dist -name '*.whl' | head -n 1)
+	if [ -z "$wfile" ]
+	then
+		echo "Could not find wheel."
+		exit 2
+	fi
+
+	mkdir -p /tmp/unpack
+	unzip "$wfile" -d /tmp/unpack
+
+	ldd_output=$(ldd /tmp/unpack/gateau/libgateau.so)
+
+	echo "LDD output:"
+	echo "$ldd_output"
+
+	if ! ( echo "$ldd_output" | grep libgsl )
+	then
+		echo "Looks like it's static!!"
+	else
+		echo "Looks like it's not static!!"
+		exit 3
+	fi
+}
+
 outside_wheel() {
 
 	if [ -z "$(podman images -q gateau-cicd)" ]
@@ -446,6 +477,32 @@ outside_staticwheel() {
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_staticwheel' \
+		--workdir /gateau \
+		"gateau-cicd" \
+		/gateau/podman/test-all.sh
+}
+
+outside_checkstatic() {
+
+	if [ -z "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+	
+	set -e
+
+	mkdir -p ./dist
+	
+	podman run \
+		--rm \
+		--init \
+		`# $podman_gpu ` \
+		-v ./:/gateau:O \
+		-v ./dist:/gateau/dist:rw \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_checkstatic' \
 		--workdir /gateau \
 		"gateau-cicd" \
 		/gateau/podman/test-all.sh
@@ -749,6 +806,11 @@ then
 		staticwheel)
 			{
 				outside_staticwheel
+			} 2>&1 | tee podman/output/log.txt
+			;;
+		checkstatic)
+			{
+				outside_checkstatic
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		test-wheel)

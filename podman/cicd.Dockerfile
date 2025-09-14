@@ -15,6 +15,7 @@ RUN \
 	apt update -y && \
 	apt install -y \
 		libgsl-dev \
+		unzip \
 		software-properties-common \
 		&& \
 	add-apt-repository ppa:deadsnakes/ppa && \
