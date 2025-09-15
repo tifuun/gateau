@@ -1,5 +1,7 @@
 from gateau import bindings
 from gateau import utilities
+from gateau import atmosphere_utils
+from gateau.selftest import selftest
 
 # __all__ controls what `from gateau import *` actually does
 # but here we specify it to tell mypy
@@ -8,7 +10,9 @@ from gateau import utilities
 
 __all__ = [
     'bindings',
-    'utilities'
+    'utilities',
+    'atmosphere_utils',
+    'selftest',
     ]
 
 

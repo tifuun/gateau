@@ -1,5 +1,5 @@
 #!/bin/sh
 
-rsync --exclude docs --exclude .git --exclude src/gateau/libgateau.so -axv . mitakihara:gateau/gateau
+rsync --delete --exclude docs --exclude .git --exclude src/gateau/libgateau.so -rvx . mitakihara:gateau/gateau
 
 

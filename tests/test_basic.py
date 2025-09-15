@@ -17,7 +17,7 @@ class TestBasic(unittest.TestCase):
         Doesn't test the C++ logic.
         """
         self.assertTrue(
-            gt.utilities.get_eta_atm(
+            gt.atmosphere_utils.get_eta_atm(
                 np.array([10e6, 50e6, 100e6, 500e6, 1000e6]),
                 0.3,
                 45
