@@ -12,7 +12,6 @@ then
 	echo 'Create a `gh-pages` remote in this repo'
 	echo 'with ssh url that has write access to `gh-pages` branch. '
 fi
-set -e
 
 echo RUNNING DOCS PIPELINE
 ./podman/test-all.sh docs || exit 9
@@ -31,7 +30,7 @@ fi
 
 echo ADDING PAGES TO GIT
 git reset --hard || exit 9
-git branch gh-pages 
+git branch gh-pages || echo "branch already exists, no problem..."
 git checkout gh-pages || exit 9
 rm -rf * || exit 9
 cp -r --reflink=auto "$MINICYCLE_ARTIFACTS/docs" ./docs || exit 9
