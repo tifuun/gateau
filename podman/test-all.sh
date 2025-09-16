@@ -327,34 +327,10 @@ outside_build_images() {
 }
 
 outside_pull_images() {
-	if [ -n "$(podman images -q gateau-cuda11)" ]
-	then
-		echo "CUDA11 CONTAINER ALREADY PRESENT"
-	else
-		outside_pull_image gateau-cuda11
-	fi
-
-	if [ -n "$(podman images -q gateau-cuda12)" ]
-	then
-		echo "CUDA12 CONTAINER ALREADY PRESENT"
-	else
-		outside_pull_image gateau-cuda12
-	fi
-
-	if [ -n "$(podman images -q gateau-cicd)" ]
-	then
-		echo "CICD CONTAINER ALREADY PRESENT"
-	else
-		outside_pull_image gateau-cicd
-	fi
-
-	if [ -n "$(podman images -q gateau-cuda11bare)" ]
-	then
-		echo "CUDA11BARE CONTAINER ALREADY PRESENT"
-	else
-		outside_pull_image gateau-cuda11bare
-	fi
-
+	outside_pull_image gateau-cuda11
+	outside_pull_image gateau-cuda12
+	outside_pull_image gateau-cuda11bare
+	outside_pull_image gateau-cicd
 }
 
 inside_ruff() {

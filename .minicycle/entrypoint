@@ -1,5 +1,9 @@
 #!/bin/sh
 
+echo "PULLING IMAGES"
+
+./podman/test-all.sh pull
+
 current_tag="$(git describe --exact-match --tags)"
 
 if [ -n "$current_tag" ]
