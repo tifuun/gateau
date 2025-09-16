@@ -33,6 +33,9 @@
 # 	This will build libgateau with STATICALLY linked
 # 	libgsl!
 #
+# `docs`
+# 	Builds html docs. Output is under `./podman/output/docs`.
+#
 # `teststatic`
 # 	Verify that the `libgateau.so` inside
 # 	the wheel file in the `dist` directory
