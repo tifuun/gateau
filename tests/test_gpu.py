@@ -5,10 +5,7 @@ import gateau as gt
 class TestGPU(unittest.TestCase):
     def test_selftest(self, for_real=False):
         """
-        Run gateau's selftest and make sure it passes...
-
-        Except Arend's "minimal test" actually crashes with a GPUAssert,
-        so instead we test for that.
+        Run gateau's selftest and make sure it passes.
         """
 
         # TODO selftest tempdir
@@ -31,18 +28,18 @@ class TestGPU(unittest.TestCase):
                 "driver error!! "
                 )
 
-            self.assertEqual(
+            self.assertNotEqual(
                 proc.exitcode,
                 231,
-                "Process crashed, but not because of GPUAssert!! "
-                "Check your setup!! "
+                "GPUAssert error! Likely because of incorrect cuda setup, "
+                "go fix it!!"
                 )
 
-            print(
-                "If the text above says "
-                "something about GPUassert "
-                "DO NOT WORRY, this is what this test is designed "
-                "to cause, it means everything went ok"
+            self.assertEqual(
+                proc.exitcode,
+                0,
+                "Unexpected exit code!! No clue what caused this, "
+                "good luck."
                 )
 
             # TODO ultimately we want to capture stderr

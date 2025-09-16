@@ -92,3 +92,5 @@ def selftest():
 
         res = yield_output(outpath)
 
+        # TODO verify results against a known-good output
+
