@@ -38,6 +38,6 @@ rm -rf * || exit 9
 cp -r --reflink=auto "$MINICYCLE_ARTIFACTS/docs" ./docs || exit 9
 git add --all || exit 9
 git commit --allow-empty -m "autocommit from Mitakihara on $(date)"  || exit 9
-git push --set-upstream gh-pages gh-pages || exit 9
+git push --force --set-upstream gh-pages gh-pages || exit 9
 
 
