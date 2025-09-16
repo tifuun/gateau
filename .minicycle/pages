@@ -25,7 +25,9 @@ if [ -z "$(git config user.name)" ] || [ -z "$(git config user.email)" ]
 then
 	echo "git does not know me, setting user.name and user.email..."
 	git config user.name "minicycle" || exit 9
-	git config user.name "no@email.com" || exit 9
+	git config user.email "no@email.com" || exit 9
+	git config --global user.name "minicycle" || exit 9
+	git config --global user.email "no@email.com" || exit 9
 fi
 
 echo ADDING PAGES TO GIT
