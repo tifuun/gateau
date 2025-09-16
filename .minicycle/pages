@@ -2,11 +2,8 @@
 
 # This script builds and publishes pages
 
-set -e
-
 echo CHECKING REPO
 
-set +e
 git remote | grep gh-pages
 
 if [ "$?" != 0 ]
@@ -18,19 +15,28 @@ fi
 set -e
 
 echo RUNNING DOCS PIPELINE
-./podman/test-all.sh docs
+./podman/test-all.sh docs || exit 9
 
 echo SAVING ARTIFACT
-cp -r --reflink=auto ./podman/output/docs "$MINICYCLE_ARTIFACTS/docs"
+cp -r --reflink=auto ./podman/output/docs "$MINICYCLE_ARTIFACTS/docs" || exit 9
+
+echo MAKING SURE GIT KNOWS WHO I AM
+
+if [ -z "$(git config user.name)" ] || [ -z "$(git config user.email)" ]
+then
+	echo "git does not know me, setting user.name and user.email..."
+	git config user.name "minicycle" || exit 9
+	git config user.name "no@email.com" || exit 9
+fi
 
 echo ADDING PAGES TO GIT
-git reset --hard
-git branch gh-pages || true
-git checkout gh-pages
-rm -rf *
-cp -r --reflink=auto "$MINICYCLE_ARTIFACTS/docs" ./docs
-git add --all
-git commit --allow-empty -m "autocommit from Mitakihara on $(date)" 
-git push --set-upstream gh-pages gh-pages
+git reset --hard || exit 9
+git branch gh-pages 
+git checkout gh-pages || exit 9
+rm -rf * || exit 9
+cp -r --reflink=auto "$MINICYCLE_ARTIFACTS/docs" ./docs || exit 9
+git add --all || exit 9
+git commit --allow-empty -m "autocommit from Mitakihara on $(date)"  || exit 9
+git push --set-upstream gh-pages gh-pages || exit 9
 
 
