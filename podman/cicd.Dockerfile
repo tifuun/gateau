@@ -17,6 +17,7 @@ RUN \
 		libgsl-dev \
 		unzip \
 		software-properties-common \
+		openssh-client \
 		&& \
 	add-apt-repository ppa:deadsnakes/ppa && \
 	apt update -y && \
