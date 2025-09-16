@@ -3,6 +3,7 @@
 current_tag="$(git describe --exact-match --tags)"
 
 if [ -n "$current_tag" ]
+then
 	echo "Current tag is $current_tag, building pages..."
 	./.minicycle/pages
 else
