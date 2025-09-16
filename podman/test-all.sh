@@ -365,6 +365,21 @@ inside_ruff() {
 	echo "Ran ruff, output is int podman/output/ruff.txt"
 }
 
+inside_docs() {
+	set -e
+
+	echo ACTIVATING VENV
+	. /venv3.13/bin/activate
+
+	echo BUILDING DOCS
+	./scripts/GenerateDocs.py 
+
+	echo COPYING ARTIFACT
+	cp -r --reflink=auto ./docs "/output/docs"
+
+	echo DONE
+}
+
 inside_staticwheel() {
 	export DEBIAN_FRONTEND=noninteractive
 	set -e
@@ -489,6 +504,29 @@ outside_staticwheel() {
 		-v ./dist:/gateau/dist:rw \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_staticwheel' \
+		--workdir /gateau \
+		"gateau-cicd" \
+		/gateau/podman/test-all.sh
+}
+
+outside_docs() {
+
+	if [ -z "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+	
+	set -e
+
+	podman run \
+		--rm \
+		--init \
+		`# $podman_gpu ` \
+		-v ./:/gateau:O \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_docs' \
 		--workdir /gateau \
 		"gateau-cicd" \
 		/gateau/podman/test-all.sh
@@ -820,6 +858,11 @@ then
 				outside_staticwheel
 			} 2>&1 | tee podman/output/log.txt
 			;;
+		docs)
+			{
+				outside_docs
+			} 2>&1 | tee podman/output/log.txt
+			;;
 		checkstatic)
 			{
 				outside_checkstatic
@@ -861,7 +904,7 @@ then
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		*)
-			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|staticwheel|checkstatic|test-wheel|tpypi|test-tpypi|pypi|test-pypi>"
+			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|staticwheel|docs|checkstatic|test-wheel|tpypi|test-tpypi|pypi|test-pypi>"
 			exit 9
 			;;
 	esac

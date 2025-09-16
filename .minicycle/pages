@@ -17,22 +17,18 @@ then
 fi
 set -e
 
-
-echo ACTIVATING VENV
-. /venv3.13/bin/activate
-
-echo BUILDING DOCS
-./scripts/GenerateDocs.py 
+echo RUNNING DOCS PIPELINE
+./podman/test-all.sh docs
 
 echo SAVING ARTIFACT
-cp -r --reflink=auto ./docs "$MINICYCLE_ARTIFACTS/pages"
+cp -r --reflink=auto ./podman/output/docs "$MINICYCLE_ARTIFACTS/docs"
 
 echo ADDING PAGES TO GIT
 git reset --hard
 git branch gh-pages || true
 git checkout gh-pages
 rm -rf *
-cp -r --reflink=auto "$MINICYCLE_ARTIFACTS/pages" ./docs
+cp -r --reflink=auto "$MINICYCLE_ARTIFACTS/docs" ./docs
 git add --all
 git commit --allow-empty -m "autocommit from Mitakihara on $(date)" 
 git push --set-upstream gh-pages gh-pages
