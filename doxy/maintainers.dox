@@ -1,4 +1,4 @@
-# Info for maintainers
+/** \page maintainers Info for maintainers
 
 This file contains all the hairy details that ideally should be
 of no concern for users and casual contributors,
@@ -322,3 +322,4 @@ four places you need to change it:
 - `bindings.py` -- the Python function itself
 - `bindings.py` -- the call to the C++ code
 
+*/

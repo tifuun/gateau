@@ -358,7 +358,7 @@ inside_docs() {
 	./scripts/GenerateDocs.py 
 
 	echo COPYING ARTIFACT
-	cp -r --reflink=auto ./docs "/output/docs"
+	cp -r --reflink=auto ./docs -t "/output/"
 
 	echo DONE
 }
@@ -379,8 +379,8 @@ inside_docs_with_coverage() {
 	coverage html
 
 	echo COPYING ARTIFACT
-	cp -r --reflink=auto ./docs "/output/docs"
-	cp -r --reflink=auto ./htmlcov "/output/docs/htmlcov"
+	cp -r --reflink=auto ./docs -t "/output"
+	cp -r --reflink=auto ./htmlcov -t "/output/docs"
 
 	echo DONE
 }
