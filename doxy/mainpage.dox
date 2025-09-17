@@ -37,7 +37,7 @@ us get gateau running on other platforms!).
 
 `Gateau` can be run on Nvidia GPUs. For this, CUDA 11 or higher needs to be
 installed. There are plenty of resources
-[online](https://www.google.com/search?client=firefox-b-e&q=install+cuda) on
+[online](https://duckduckgo.com/?q=install+cuda)
 how to do this. When running the above pip install command, the installer will
 look for a valid CUDA compiler and for valid runtime libraries. When found, the
 CUDA libraries for `Gateau` are compiled.
