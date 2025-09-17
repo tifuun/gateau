@@ -22,16 +22,18 @@ for the JavaScript code in this file
 */
 var NAVTREE =
 [
-  [ "TiEMPO2 User Manual", "index.html", [
+  [ "Gateau User Manual", "index.html", [
     [ "Home", "index.html", [
       [ "Introduction", "index.html#intro_sec", null ],
       [ "Installation", "index.html#install", null ],
+      [ "Supported Platforms", "index.html#platforms", null ],
       [ "License", "index.html#license", null ],
       [ "Contact", "index.html#contact", null ]
     ] ],
     [ "Design Philosophy", "design.html", null ],
     [ "Demonstrations", "demos.html", null ],
-    [ "Documentation", "tiempodocs.html", null ]
+    [ "For Maintainers", "maintainers.html", null ],
+    [ "Documentation", "gateaudocs.html", null ]
   ] ]
 ];
 

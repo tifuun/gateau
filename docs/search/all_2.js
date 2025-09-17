@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['home_4',['Home',['../index.html',1,'']]]
+  ['info_20for_20maintainers_4',['Info for maintainers',['../maintainers.html',1,'']]]
 ];
