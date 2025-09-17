@@ -17,13 +17,6 @@ You can install it like any other python package:
 pip install gateau
 ```
 
-> [!WARNING]
-> You must also install the
-> [GNU Scientific Library](https://www.gnu.org/software/gsl/)
-> (Often called `gsl` or `libgsl`) for Gateau to run properly.
-> We will fix this in the future.
-
-
 ### Supported Platforms
 
 We currently only support Linux with GNU libc
