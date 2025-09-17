@@ -184,7 +184,6 @@ __global__ void calc_traces_rng(float *az_scan,
         float x_point, y_point;
                                                                                      
         time_point = idx * cdt;
-        //printf("%.12e\n", time_point);
 
         az_point = az_scan[idx + idx_offset] + az_fpa;
         el_point = el_scan[idx + idx_offset] + el_fpa;
@@ -644,9 +643,8 @@ void run_gateau(Instrument *instrument,
     // Loop starts here
     printf("\033[92m");
     int idx_wrap;
-    int time_counter;
     int idx_offset;
-    int idx_write = 0; // Counter for serializing output chunks
+    int idx_write; // Counter for serializing output chunks
 
     size_t free_mem, total_mem, required_mem;
     float free_required_frac;
@@ -655,7 +653,7 @@ void run_gateau(Instrument *instrument,
     int num_spax = instrument->num_spax;
     float az_fpa, el_fpa;
 
-    float ftime_counter = 0.;
+    float ftime_counter;
     for(int idx_spax=0; idx_spax<num_spax; idx_spax++) 
     {
         printf("Simulating spaxel %d / %d\n", idx_spax+1, num_spax);
@@ -663,8 +661,9 @@ void run_gateau(Instrument *instrument,
         el_fpa = instrument->el_fpa[idx_spax];
 
         idx_wrap = 0;
-        time_counter = 0;
         idx_offset = 0;
+        idx_write = 0;
+        ftime_counter = 0.;
 
         for(int idx=0; idx<nJobs; idx++) {
 
@@ -721,10 +720,9 @@ void run_gateau(Instrument *instrument,
 
                 nf_sub_fnt = nf_ch * nt_sub_scr;
                 
-                time_counter += nt_sub_scr;
-                ftime_counter = static_cast<float>(time_counter) / instrument->f_sample;
+                ftime_counter = static_cast<float>(idx_offset) / instrument->f_sample;
 
-                printf("*** Progress: %d / 100 ***\r", time_counter*100 / nttot);
+                printf("*** Progress: %d / 100 ***\r", idx_offset*100 / nttot);
                 fflush(stdout);
 
                 gpuErrchk( cudaMalloc((void**)&d_az_trace, nt_sub_scr * sizeof(float)) );
@@ -836,6 +834,7 @@ void run_gateau(Instrument *instrument,
 
             idx_wrap++;
         }
+        printf("*** Progress: 100 / 100 ***\r");
     }
     gpuErrchk( cudaDeviceReset() );
     printf("\033[0m\n");

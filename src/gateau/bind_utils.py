@@ -106,14 +106,10 @@ def allfillSource(SourceDict: dict[str, any],
     SourceStruct.I_nu = (c_float * SourceDict["I_nu"].size).from_buffer(arr_I_nu) 
     SourceStruct.nI_nu = c_int(SourceDict["I_nu"].size)
 
-def allfillArrSpec(arr: np.ndarray, 
-                   ArrSpecStruct: Structure) -> None:
-    ArrSpecStruct.start = c_float(arr[0])    
-    ArrSpecStruct.step = c_float(arr[1] - arr[0])    
-    ArrSpecStruct.num = c_int(arr.size)    
-
 def arr2ArrSpec(arr: np.ndarray) -> Structure:
     arrspec = gstructs.ArrSpec()
-    allfillArrSpec(arr, arrspec)
+    arrspec.start = c_float(arr[0])    
+    arrspec.step = c_float(arr[1] - arr[0])    
+    arrspec.num = c_int(arr.size)    
 
     return arrspec
