@@ -891,6 +891,11 @@ then
 				outside_docs
 			} 2>&1 | tee podman/output/log.txt
 			;;
+		docs_with_coverage)
+			{
+				outside_docs_with_coverage
+			} 2>&1 | tee podman/output/log.txt
+			;;
 		checkstatic)
 			{
 				outside_checkstatic
