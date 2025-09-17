@@ -353,8 +353,15 @@ inside_docs() {
 	echo BUILDING DOCS
 	./scripts/GenerateDocs.py 
 
+	echo ALSO BUILDING COVERAGE REPORT
+	pip install -e .
+	coverage run -m unittest ||
+		echo 'looks like tests failed, publishing coverage anyway.'
+	coverage html
+
 	echo COPYING ARTIFACT
 	cp -r --reflink=auto ./docs "/output/docs"
+	cp -r --reflink=auto ./htmlcov "/output/docs/htmlcov"
 
 	echo DONE
 }

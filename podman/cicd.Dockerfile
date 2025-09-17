@@ -28,7 +28,7 @@ RUN \
 	\
 	python3.13 -m venv /venv3.13 && \
 	\
-	/venv3.13/bin/pip install ruff build twine jupyter && \
+	/venv3.13/bin/pip install coverage ruff build twine jupyter && \
 	ln -sf /venv3.13/bin/ruff /bin/ruff && \
 	:
 
