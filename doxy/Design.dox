@@ -1,10 +1,10 @@
 /**
-\page design Design Of `TiEMPO2`
+\page design Design Of `Gateau`
 
 \section design_intro Introduction
 
 \section design_philosophy Design Philosophy
-`TiEMPO2` is designed by keeping in mind a certain hierarchical structure when it comes to setting up a simulation.
+`Gateau` is designed by keeping in mind a certain hierarchical structure when it comes to setting up a simulation.
 This hierarchy is broken down into several components that are strongly decoupled from eachother. These components are:
 - The instrument itself.
 - The telescope where the instrument is to be simulated.
@@ -13,5 +13,5 @@ This hierarchy is broken down into several components that are strongly decouple
 
 \section The instrument
 The first unit we discuss is the instrument that is to be simulated.
-`TiEMPO2` is primarily designed to simulate MKID-based integrated spectrometers, so the discussion will be tailored towards this instrument type.
+`Gateau` is primarily designed to simulate MKID-based integrated spectrometers, so the discussion will be tailored towards this instrument type.
 */

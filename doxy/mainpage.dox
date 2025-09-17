@@ -2,9 +2,9 @@
 \mainpage Home
 
 \section intro_sec Introduction
-Welcome to the documentation pages for `TiEMPO2`! This is a Python package designed to simulate astronomical signals through the atmosphere.
+Welcome to the documentation pages for `Gateau`! This is a Python package designed to simulate astronomical signals through the atmosphere.
 
-`TiEMPO2` is designed to be an improvement over its predecessor `TiEMPO` \cite Huijten2022.
+`Gateau` is designed to be an improvement over its predecessor `Gateau` \cite Huijten2022.
 These improvements are:
 - Offloading the heavy lifting to a parallel C++/CUDA implementation.
 - More flexible interface for interchanging astronomical sources.
@@ -23,12 +23,12 @@ Navigate to cloned repo and:
 pip install -e .
 ```
 
-`TiEMPO2` can be run on Nvidia GPUs. For this, CUDA 11 or higher needs to be installed. There are plenty of resources [online](https://www.google.com/search?client=firefox-b-e&q=install+cuda) on how to do this. 
-When running the above pip install command, the installer will look for a valid CUDA compiler and for valid runtime libraries. When found, the CUDA libraries for `TiEMPO2` are compiled.
+`Gateau` can be run on Nvidia GPUs. For this, CUDA 11 or higher needs to be installed. There are plenty of resources [online](https://www.google.com/search?client=firefox-b-e&q=install+cuda) on how to do this. 
+When running the above pip install command, the installer will look for a valid CUDA compiler and for valid runtime libraries. When found, the CUDA libraries for `Gateau` are compiled.
 
 \section license License
 This project is released under the [MIT License](https://opensource.org/licenses/MIT).
 
 \section contact Contact
-`TiEMPO2` is maintained by Arend Moerman: A.Moerman-1(at)tudelft.nl
+`Gateau` is maintained by Arend Moerman: A.Moerman-1(at)tudelft.nl
 */
