@@ -309,7 +309,6 @@ class simulator(object):
         for idx_spax in range(self.instrument.get("pointings")[0].size):
             os.makedirs(os.path.join(outpath, str(idx_spax)))
         self.clog.info("\033[1;32m*** STARTING gateau SIMULATION ***")
-        print(self.cascade)
         
         gbind.run_gateau(self.instrument, 
                          self.telescope, 
