@@ -254,6 +254,11 @@ They both make use of the `./podman/test-all.sh` script
 to run tests / build the docs.
 The docs are ultimately built by `./scripts/GenerateDocs.py`.
 
+The docs are published to github pages by having
+the pipeline push the built docs to the `gh-pages`
+branch in this repo through a read-write deploy key.
+Do not push to `gh-pages` branch manually.
+
 ## Misc. notes for various linux distros
 
 ### Void Linux
