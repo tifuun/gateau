@@ -201,6 +201,59 @@ Libgsl is licensed under GPLv3 which is the reason
 we must use a GPL-compatible license for Gateau itself
 if we want to distribute static wheels of it.
 
+## CICD
+
+We have somewhat of a CICD pipeline.
+See the
+[stratal systems wiki page](https://github.com/stratal-systems/wiki/blob/main/wiki/gateau-cicd.md)
+for full info.
+
+### Publishing pages
+
+The documentation is published to the
+[pages site](https://tifuun.github.io/gateau/)
+automatically.
+To trigger it you should:
+
+1. Tag the commit you want to publish
+1. Push the tag to github
+1. Push the commit to either `main` or `cicdtest` branches.
+
+> [!WARNING]
+> You must FIRST push the TAG and THEN push the COMMIT.
+> Otherwise minicycle will pull the commit
+> before it has the tag
+> and skip building pages.
+> So roughly:
+> ```
+> git commit -m "Updated the docs"
+> git tag 'v4.2.0'
+> git push --tags
+> git push
+> ```
+
+### Running tests (CI)
+
+The automatic tests pipeline
+runs on ANY commit to `master` or `cicdtest`.
+Read the 
+[stratal systems wiki page](https://github.com/stratal-systems/wiki/blob/main/wiki/gateau-cicd.md)
+for full info.
+
+### Publishing to pypi (CD)
+
+There is no automated way to publish to pypi yet.
+
+### Internals
+
+All pipelines start at `./.minicycle/entrypoint`
+which then launches `./.minicycle/tests`,
+and, if a tag is present,
+`./.minicycle/pages`.
+They both make use of the `./podman/test-all.sh` script
+to run tests / build the docs.
+The docs are ultimately built by `./scripts/GenerateDocs.py`.
+
 ## Misc. notes for various linux distros
 
 ### Void Linux
