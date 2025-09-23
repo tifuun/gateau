@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/988910511.svg)](https://doi.org/10.5281/zenodo.17183878)
+
 Welcome to the `gateau` Github repository:
 the GPU-Accelerated Time-dEpendent observAtion simUlator! 
 This is the end-to-end simulator for TIFUUn observations,
