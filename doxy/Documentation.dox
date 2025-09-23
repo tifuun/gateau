@@ -1,13 +1,13 @@
 /** 
-\page tiempodocs Documentation
-This page contains the software documentation for `TiEMPO2`. 
+\page gateaudocs Documentation
+This page contains the software documentation for `Gateau`. 
 
 \section apiref Public API Reference
-The public API reference contains all public methods of `TiEMPO2`.
+The public API reference contains all public methods of `Gateau`.
 This list acts as a reference for general users and is structured in groups for a better overview.
 
 \section input_templates Input Dictionary Templates & Datatypes
-This section contains an overview of all dictionaries used in `TiEMPO2` as input.
+This section contains an overview of all dictionaries used in `Gateau` as input.
 
 \subpage public_api_templates
 
