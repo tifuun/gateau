@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16.3)
 
 project(gateau 
-	VERSION 0.0.1 
+	VERSION 0.1.4 
 	DESCRIPTION "gateau: GPU-Accelerated Time-dEpendent observAtion simUlator"
 	LANGUAGES CXX C)
 
