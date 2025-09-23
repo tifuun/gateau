@@ -1,6 +1,3 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10528021.svg)]
-(https://doi.org/10.5281/zenodo.10528021)
-
 Welcome to the `gateau` Github repository:
 the GPU-Accelerated Time-dEpendent observAtion simUlator! 
 This is the end-to-end simulator for TIFUUn observations,
@@ -16,6 +13,14 @@ You can install it like any other python package:
 ```
 pip install gateau
 ```
+
+The installation can be verified by opening a terminal, starting the python interpreter (make sure you are in the environment where `gateau` is installed), and running the following:
+```
+import gateau
+gateau.selftest()
+```
+
+When installed correctly, the test should run without issues.
 
 ### Supported Platforms
 
