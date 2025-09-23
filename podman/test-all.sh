@@ -36,6 +36,10 @@
 # `docs`
 # 	Builds html docs. Output is under `./podman/output/docs`.
 #
+# `docs_with_coverage`
+# 	Builds html docs. Output is under `./podman/output/docs`.
+# 	Also includes htmlvoc report under `./podman/output/docs/htmlcov`.
+#
 # `teststatic`
 # 	Verify that the `libgateau.so` inside
 # 	the wheel file in the `dist` directory
@@ -353,6 +357,21 @@ inside_docs() {
 	echo BUILDING DOCS
 	./scripts/GenerateDocs.py 
 
+	echo COPYING ARTIFACT
+	cp -r --reflink=auto ./docs -t "/output/"
+
+	echo DONE
+}
+
+inside_docs_with_coverage() {
+	set -e
+
+	echo ACTIVATING VENV
+	. /venv3.13/bin/activate
+
+	echo BUILDING DOCS
+	./scripts/GenerateDocs.py 
+
 	echo ALSO BUILDING COVERAGE REPORT
 	pip install -e .
 	coverage run -m unittest ||
@@ -360,8 +379,8 @@ inside_docs() {
 	coverage html
 
 	echo COPYING ARTIFACT
-	cp -r --reflink=auto ./docs "/output/docs"
-	cp -r --reflink=auto ./htmlcov "/output/docs/htmlcov"
+	cp -r --reflink=auto ./docs -t "/output"
+	cp -r --reflink=auto ./htmlcov -t "/output/docs"
 
 	echo DONE
 }
@@ -513,6 +532,29 @@ outside_docs() {
 		-v ./:/gateau:O \
 		-v ./podman/output:/output:rw \
 		-e CONTAINER_ACTION='inside_docs' \
+		--workdir /gateau \
+		"gateau-cicd" \
+		/gateau/podman/test-all.sh
+}
+
+outside_docs_with_coverage() {
+
+	if [ -z "$(podman images -q gateau-cicd)" ]
+	then
+		echo "CICD IMAGE NOT PRESENT!!"
+		echo "Please run $0 build or $0 pull"
+		exit 9
+	fi
+	
+	set -e
+
+	podman run \
+		--rm \
+		--init \
+		`# $podman_gpu ` \
+		-v ./:/gateau:O \
+		-v ./podman/output:/output:rw \
+		-e CONTAINER_ACTION='inside_docs_with_coverage' \
 		--workdir /gateau \
 		"gateau-cicd" \
 		/gateau/podman/test-all.sh
@@ -849,6 +891,11 @@ then
 				outside_docs
 			} 2>&1 | tee podman/output/log.txt
 			;;
+		docs_with_coverage)
+			{
+				outside_docs_with_coverage
+			} 2>&1 | tee podman/output/log.txt
+			;;
 		checkstatic)
 			{
 				outside_checkstatic
@@ -890,7 +937,7 @@ then
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		*)
-			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|staticwheel|docs|checkstatic|test-wheel|tpypi|test-tpypi|pypi|test-pypi>"
+			echo "Usage: $0 <test|test11|ruff|build|pull|push|wheel|staticwheel|docs|docs_with_coverage|checkstatic|test-wheel|tpypi|test-tpypi|pypi|test-pypi>"
 			exit 9
 			;;
 	esac

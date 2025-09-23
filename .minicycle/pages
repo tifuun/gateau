@@ -14,7 +14,7 @@ then
 fi
 
 echo RUNNING DOCS PIPELINE
-./podman/test-all.sh docs || exit 9
+./podman/test-all.sh docs_with_coverage || exit 9
 
 echo SAVING ARTIFACT
 cp -r --reflink=auto ./podman/output/docs "$MINICYCLE_ARTIFACTS/docs" || exit 9

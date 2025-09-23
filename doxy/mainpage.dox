@@ -2,9 +2,11 @@
 \mainpage Home
 
 \section intro_sec Introduction
-Welcome to the documentation pages for `TiEMPO2`! This is a Python package designed to simulate astronomical signals through the atmosphere.
+Welcome to the documentation pages for `Gateau`! This is a Python package
+designed to simulate astronomical signals through the atmosphere.
 
-`TiEMPO2` is designed to be an improvement over its predecessor `TiEMPO` \cite Huijten2022.
+`Gateau` is designed to be an improvement over its predecessor `TiEMPO` \cite
+Huijten2022.
 These improvements are:
 - Offloading the heavy lifting to a parallel C++/CUDA implementation.
 - More flexible interface for interchanging astronomical sources.
@@ -13,22 +15,57 @@ These improvements are:
 - More elaborate scanning strategies, allowing for the simulation of extended celestial sources.
 
 \section install Installation
-Clone repos:
+
+Gateau is available from [pypi](https://pypi.org/project/gateau/).
+You can install it like any other python package:
+
 ```
-git clone <repo>
+pip install gateau
 ```
 
-Navigate to cloned repo and:
-```
-pip install -e .
-```
+\section platforms Supported Platforms
 
-`TiEMPO2` can be run on Nvidia GPUs. For this, CUDA 11 or higher needs to be installed. There are plenty of resources [online](https://www.google.com/search?client=firefox-b-e&q=install+cuda) on how to do this. 
-When running the above pip install command, the installer will look for a valid CUDA compiler and for valid runtime libraries. When found, the CUDA libraries for `TiEMPO2` are compiled.
+We currently only support Linux with GNU libc
+(known as `manylinux` in the Python world).
+We do not ship wheels for other operating systems
+or linuxes with other libc implementations.
+If you want to get gateau working on one of these platforms,
+have a read of [MAINTAINERS.html](./maintainers.html)
+(and please let us know if you're interested in helping
+us get gateau running on other platforms!).
+
+
+`Gateau` can be run on Nvidia GPUs. For this, CUDA 11 or higher needs to be
+installed. There are plenty of resources
+[online](https://duckduckgo.com/?q=install+cuda)
+how to do this. When running the above pip install command, the installer will
+look for a valid CUDA compiler and for valid runtime libraries. When found, the
+CUDA libraries for `Gateau` are compiled.
 
 \section license License
-This project is released under the [MIT License](https://opensource.org/licenses/MIT).
+
+Gateau is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, version 3 of the License only.
+
+Gateau is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along
+with Gateau. If not, see https://www.gnu.org/licenses/.
+
+Note: Previous versions of gateau were released under different licenses. If the
+current license does not meet your needs, you may consider using an earlier
+version under the terms of its original license. You can find these versions by
+browsing the commit history.
+
+Copyright (c) 2025, maybetree, Arend Moerman.
 
 \section contact Contact
-`TiEMPO2` is maintained by Arend Moerman: A.Moerman-1(at)tudelft.nl
+
+`Gateau` is maintained by Arend Moerman: A.Moerman-1(at)tudelft.nl
+and maybetree.
+
 */
+
