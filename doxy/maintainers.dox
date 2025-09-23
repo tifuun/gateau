@@ -98,7 +98,7 @@ environment variable.
 You can make a token in the pypi webui.
 
 ```
-TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx --verbose --skip-existing --non-interactive dist/*
+TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx ./podman/test-all.sh pypi
 ```
 
 ### Test the PyPI package
@@ -116,7 +116,7 @@ the detailed output will be available under `podman/output`.
 
 There exists a "playground" version of PyPI
 at <https://test.pypi.org/>.
-You can use it to play around with the Gateau packing process.
+You can use it to play around with the Gateau packaging process.
 Instead of using the `pypi` and `test-pypi`
 subcommands,
 use the `tpypi` and `test-tpypi` subcommands
@@ -160,7 +160,7 @@ plus the `twine` and `build` Python packages.
     There are many ways to authenticate to pypi, but the easiest is to
     create an access token in the webui
     and pass it to `twine` via the `TWINE_PASSWORD` environment variable:
-    `TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx --verbose --skip-existing --non-interactive dist/*`
+    `TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx twine upload --verbose --skip-existing --non-interactive dist/*`
 
 ## Libgsl
 
