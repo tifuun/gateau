@@ -154,6 +154,40 @@ else
 	podman_gpu='--gpus=all'
 fi
 
+# echo to stderr
+eecho() {
+	echo "$@" >&2
+}
+
+# echo to stderr and exit with error
+die() {
+	eecho "$@"
+	exit 1
+}
+
+outside_check_podman() {
+	podman --version >/dev/null || die "Podman not installed, bye!"
+}
+
+# Yell at user if the podman storage driver is not overlayfs
+outside_check_podman_storage_driver() {
+	driver="$(podman info --format '{{.Store.GraphDriverName}}')" ||
+		die 'Could not check podman storage driver'
+	
+	if [ "$driver" != "overlay" ]
+	then
+		echo 'Podman storage driver is not overlay!!'
+		echo 'Fix it by changing the podman storage driver to `overlay`'
+		echo '(see https://github.com/stratal-systems/wiki/blob/main/wiki/podman-storage-driver.md)'
+		echo 'or set GATEAU_IGNORE_STORAGE_DRIVER_YES_I_KNOW_WHAT_I_AM_DOING=1 to skip this check.'
+
+		if [ -z "$GATEAU_IGNORE_STORAGE_DRIVER_YES_I_KNOW_WHAT_I_AM_DOING" ]
+		then
+			die "Aborting due to weird storage driver."
+		fi
+	fi
+}
+
 outside_build_cuda11() {
 	set -e
 
@@ -845,31 +879,43 @@ then
 	case "$1" in
 		test)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_testall
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		test11)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_test11
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		ruff)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_ruff
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		build)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_build_images
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		pull)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_pull_images
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		push)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_push_image gateau-cuda11
 				outside_push_image gateau-cuda11bare
 				outside_push_image gateau-cuda12
@@ -878,42 +924,58 @@ then
 			;;
 		wheel)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_wheel
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		staticwheel)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_staticwheel
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		docs)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_docs
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		docs_with_coverage)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_docs_with_coverage
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		checkstatic)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_checkstatic
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		test-wheel)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				outside_test_wheel
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		tpypi)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				export TWINE_REPOSITORY=testpypi
 				outside_pypi
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		test-tpypi)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				# extra-index-url is needed because
 				# dependencies (numpy, etc)
 				# are not on testpypi
@@ -926,12 +988,16 @@ then
 			;;
 		pypi)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				export TWINE_REPOSITORY=pypi
 				outside_pypi
 			} 2>&1 | tee podman/output/log.txt
 			;;
 		test-pypi)
 			{
+				outside_check_podman
+				outside_check_podman_storage_driver
 				export GATEAU_PIP_FLAGS=""
 				outside_test_pypi
 			} 2>&1 | tee podman/output/log.txt
