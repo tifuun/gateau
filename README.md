@@ -9,6 +9,19 @@ For more info, please see
 
 ## Installation
 
+### Installing CUDA
+CUDA is an API, developed by NVIDIA, to harness the computing power of a graphics processing unit (GPU) for general purpose computing. 
+It provides access to the GPU's instruction set through common high-level programming languages, such as C and C++.
+
+`gateau` uses CUDA for calculations, and hence must be installed in order to use `gateau`.
+It can be [installed from source](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/) or using a [package manager](https://linuxconfig.org/how-to-install-cuda-on-ubuntu-20-04-focal-fossa-linux).
+`gateau` has been tested on both CUDA version 11 and 12, so please stick to these versions. 
+Error-free performance on other versions is NOT guaranteed.
+
+Even though `gateau` was exclusively developed on a [GTX 1650 Mobile](https://www.techpowerup.com/gpu-specs/geforce-gtx-1650-mobile.c3367), which is nowhere near impressive by today's standards, it is probably a good idea to use `gateau` on GPU's that meet or exceed the specs of this particular card.
+
+### Installing gateau
+
 Gateau is available from [pypi](https://pypi.org/project/gateau/).
 You can install it like any other python package:
 
@@ -23,6 +36,7 @@ gateau.selftest()
 ```
 
 When installed correctly, the test should run without issues.
+
 
 ### Supported Platforms
 
