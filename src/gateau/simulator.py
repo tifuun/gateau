@@ -240,18 +240,18 @@ class simulator(object):
                 self.instrument["pointings"] = gifu.generate_fpa_pointings(self.instrument) 
 
         #### INITIALISING TELESCOPE PARAMETERS ####
-        if isinstance(self.telescope.get("eta_ap"), float):
-            self.telescope["eta_ap"] *= np.ones(self.source["f_src"].size)
+        if isinstance(self.telescope.get("eta_taper"), float):
+            self.telescope["eta_taper"] *= np.ones(self.source["f_src"].size)
         
         if self.telescope["s_rms"] is not None:
             self.telescope["s_rms"] *= 1e-6 # Convert um to m
 
             eta_surf = np.exp(-(4 * np.pi * self.telescope["s_rms"] * self.source["f_src"] / self.c)**2)
 
-            self.telescope["eta_ap"] *= eta_surf 
+            self.telescope["eta_taper"] *= eta_surf 
 
         # Some handy returns
-        eta_total = self.telescope["eta_ap"]
+        eta_total = self.telescope["eta_taper"]
         for eta in eta_cascade:
             eta_total *= eta
 

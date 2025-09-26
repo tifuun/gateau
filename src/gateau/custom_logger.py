@@ -6,6 +6,8 @@ This file contains class definitions of the custom logger objects used in TiEMPO
 import sys
 import logging
 
+from tqdm import tqdm
+
 class CustomFormatter(logging.Formatter):
     """!
     Class for formatting of the logging from the terminal.
@@ -64,3 +66,9 @@ class CustomLogger(object):
         logger.addHandler(ch)
 
         return logger
+
+def parallel_iterator(x, idx_thread):
+    return tqdm(x, 
+                ncols=100, 
+                total=x.size, 
+                colour="GREEN") if idx_thread == 0 else x

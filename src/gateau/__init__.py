@@ -1,5 +1,6 @@
 from gateau import bindings
-from gateau import utilities
+from gateau import output_utils
+from gateau import source_utils
 from gateau import atmosphere_utils
 from gateau.selftest import selftest
 
@@ -10,7 +11,8 @@ from gateau.selftest import selftest
 
 __all__ = [
     'bindings',
-    'utilities',
+    'output_utils',
+    'source_utils',
     'atmosphere_utils',
     'selftest',
     ]
