@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 
 from gateau.simulator import simulator
-from gateau.utilities import yield_output
+from gateau.output_utils import yield_output
 from gateau.scan_patterns import stare
 
 AXSIZE = 3
@@ -32,7 +32,7 @@ cascade_list = [{
         }]
 
 telescope_dict = {
-        "eta_ap"        : ETATEST,
+        "eta_taper"        : ETATEST,
         "s_rms"         : 42,
         }
 

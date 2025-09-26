@@ -9,25 +9,28 @@ import numpy as np
 import csv
 import multiprocessing
 from functools import partial
+from typing import Tuple
 
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RectBivariateSpline
+from tqdm import tqdm
 
-from gateau.parallel import get_num_chunks 
-from gateau.parallel_utilities import _iterator
-from gateau.fileio import unpack_output
+from gateau.custom_logger import parallel_iterator
 from gateau import resources
 
 NCPU = multiprocessing.cpu_count()
 
-def prep_atm_ARIS_pool(args, path_to_aris, diameter_tel):
+def prep_atm_ARIS_pool(args: Tuple[np.ndarray,
+                                   int], 
+                       path_to_aris: str, 
+                       diameter_tel: float) -> None:
     Rtel = diameter_tel / 2
     std = Rtel/np.sqrt( 2.*np.log(10.) )
     truncate = Rtel/std
     
     files, thread_idx = args
     
-    for file in _iterator(files, thread_idx):
+    for file in parallel_iterator(files, thread_idx):
     
         file_split = file.split("-")
 
@@ -86,8 +89,6 @@ def prep_atm_ARIS(path_to_aris, diameter_tel, num_threads = NCPU):
 
     with multiprocessing.get_context("spawn").Pool(num_threads) as pool:
         pool.map(func_to_pool, args)
-
-    print("Finished preparing atmospheric screens.")
 
 def get_eta_atm(f_src: np.ndarray,
                 pwv0: float,
