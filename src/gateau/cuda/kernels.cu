@@ -664,6 +664,7 @@ void run_gateau(Instrument *instrument,
         idx_offset = 0;
         idx_write = 0;
         ftime_counter = 0.;
+        ntscr = floor(t_obs_av * instrument->f_sample);  
 
         for(int idx=0; idx<nJobs; idx++) {
 
@@ -674,7 +675,6 @@ void run_gateau(Instrument *instrument,
             if (idx == (nJobs - 1)) {
                 ntscr = nttot - ntscr * idx;
             }
-
 
             nffnt = nf_ch * ntscr; // Number of elements in single-screen output.
             
