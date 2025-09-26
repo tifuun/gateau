@@ -34,6 +34,12 @@ Building, testing, and packaging Gateau requires a very hairy toolchain
 and some rather counterintuitive command line incantations.
 To make our lives easier, we have written a script which automates
 all of this using Podman.
+
+If you've never used podman before,
+consider reading the section
+[A Brief Introduction to Podman](#a-brief-introduction-to-podman)
+at the bottom of this document.
+
 Here's how to use it:
 
 1. Install and set up `podman` using your system's package manager
@@ -76,6 +82,12 @@ GATEAU_DISABLE_GPU=1 ./podman/test-all.sh test11
 ```
 
 Mosts tests will fail if there is no GPU.
+
+Run tests in only one specific version of Python:
+
+```
+GATEAU_TEST_VENVS="/venv3.9" ./podman/test-all.sh test11
+```
 
 ### Build a wheel
 
@@ -121,6 +133,22 @@ Instead of using the `pypi` and `test-pypi`
 subcommands,
 use the `tpypi` and `test-tpypi` subcommands
 to target TestPyPI instead.
+
+### Re-build image
+
+If you would like to re-build a specific image,
+simply `untag` or `rm` it,
+then run the `build` subcommand again.
+For example, to re-build the `gateau-cuda11bare` image:
+
+```
+podman untag gateau-cuda11
+./podman/test-all.sh build
+```
+
+It's worth noting that the `pull` subcommand
+ALWAYS overrides the local images with the remote images,
+regardless of which on is newer.
 
 ## For developers: building and publishing wheels
 
@@ -323,3 +351,53 @@ four places you need to change it:
 - `bindings.py` -- the call to the C++ code
 
 */
+
+## A Brief Introduction to Podman
+
+Podman is a container engine.
+It allows setting up isolated environments with their own set
+of programs and dependencies.
+Think `venv` but for everything, not just Python.
+Think virtual machine,
+but running on the same kernel.
+Think Linux-in-a-Box.
+
+Podman works based on layers.
+For example, you can use a pre-made image,
+such as
+[Alpine Linux 3.22.1](https://hub.docker.com/layers/library/alpine/3.22/),
+and install the things you want on top of it.
+
+When you use `podman run`, Podman takes a specified image
+and spawns a container based on that image.
+"Container" just means "running image".
+The changes in the container won't affect its image,
+because they are also on a separate layer.
+
+- Installation: typically through your system package manager
+	- Debain 12 also requires the `containers-storage` package,
+		because of
+		[this](https://github.com/stratal-systems/wiki/blob/main/wiki/podman-storage-driver.md).
+- List running containers: `podman ps`
+- List running and stopped containers: `podman ps -a`
+- List tagged images: `podman image ls`
+- List all images: `podman image ls -a`
+- Stop container: `podman stop <ID-OR-NAME>`
+- Kill container: `podman kill <ID-OR-NAME>`
+- Reset all podman data: `podman system reset`
+- Show podman system information: `podman info`
+- Remove stopped container: `podman container rm <ID-OR-NAME>`
+- Remove image: `podman image rm <ID-OR-TAG>`
+- Remove all stopped containers: `podman container prune`
+- Remove all images not in use by a container:
+	`podman image prune`
+- Run interactive shell inside container:
+	`podman exec -ti <ID-OR-NAME> sh`
+- Start a new container from an image with an interactive shell,
+	removing the container once the shell exits.
+	`podman run --rm -ti <IMAGE-ID-OR-TAG> sh`
+- Start a new container from an image with an interactive shell
+	and a custom name, removing any stopped container
+	that already has the same name:
+	`podman run --name foobar --replace -ti <IMAGE-ID-OR-TAG> sh`
+

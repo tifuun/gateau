@@ -36,7 +36,7 @@
 # `docs`
 # 	Builds html docs. Output is under `./podman/output/docs`.
 #
-# `docs_with_coverage`
+# `ocs_with_coverage`
 # 	Builds html docs. Output is under `./podman/output/docs`.
 # 	Also includes htmlvoc report under `./podman/output/docs/htmlcov`.
 #
@@ -457,7 +457,7 @@ inside_wheel() {
 	
 	for f in dist/*
 	do
-		renamed="$(echo "$f" | sed "s|linux_x86_64|manylinux_${glibc_ver}_x86_64|")"
+		renamed="$(echo "$f" | sed -e "s|linux_x86_64|manylinux_${glibc_ver}_x86_64|" -e "s|cp313-cp313|cp39.cp310.cp311.cp312.cp313-none|")"
 		if [ "$renamed" != "$f" ]
 		then
 			mv "$f" "$renamed"
@@ -826,7 +826,8 @@ inside_test_pypi() {
 		echo "INSTALLING..."
 		set +e
 		"${venv}/bin/pip" install gateau \
-			$GATEAU_PIP_FLAGS
+			$GATEAU_PIP_FLAGS \
+			--only-binary=:all:
 		exit_code=$?
 		set -e
 
