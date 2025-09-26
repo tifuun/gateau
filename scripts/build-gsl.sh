@@ -9,11 +9,11 @@ mkdir -p gsl
 cd gsl
 
 wget https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz
-wget https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz.sig
-wget https://www.gnu.org/software/gsl/key/gsl_key.txt
+#wget https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz.sig
+#wget https://www.gnu.org/software/gsl/key/gsl_key.txt
 
-gpg --import gsl_key.txt
-gpg --verify gsl-2.5.tar.gz.sig
+#gpg --import gsl_key.txt
+#gpg --verify gsl-2.5.tar.gz.sig
 
 tar xf gsl-2.5.tar.gz
 cd gsl-2.5
