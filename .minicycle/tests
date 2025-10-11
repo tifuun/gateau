@@ -13,12 +13,13 @@ rm -rf ./podman/output/*
 # (check dockerfile).
 # Unlikely that it fails on an inbetween version.
 GATEAU_TEST_VENVS="/venv3.9 /venv3.13" \
-	./podman/test-all.sh test11  \
-	2>&1 > /dev/null
+	./podman/test-all.sh test11
 
 if [ "$?" -ne 0 ]
 then
+	echo '#############################'
 	echo 'Something went wrong running test suite, check log.txt!'
+	echo '#############################'
 	exitcode=2
 fi
 
@@ -43,12 +44,13 @@ rm -rf ./podman/output/*
 
 GATEAU_TEST_VENVS="/venv3.9 /venv3.13" \
 	GATEAU_TEST_EDITABLE_INSTALL="yes" \
-	./podman/test-all.sh test11  \
-	2>&1 > /dev/null
+	./podman/test-all.sh test11
 
 if [ "$?" -ne 0 ]
 then
+	echo '#############################'
 	echo 'Something went wrong running test suite, check log.txt!'
+	echo '#############################'
 	exitcode=2
 fi
 
@@ -110,12 +112,13 @@ echo '#############################'
 
 rm -rf ./podman/output/*
 
-./podman/test-all.sh staticwheel  \
-	2>&1 > /dev/null
+./podman/test-all.sh staticwheel
 
 if [ "$?" -ne 0 ]
 then
+	echo '#############################'
 	echo 'Something went wrong building wheel'
+	echo '#############################'
 	exitcode=2
 fi
 
@@ -142,12 +145,13 @@ echo '#############################'
 
 rm -rf ./podman/output/*
 
-./podman/test-all.sh test-wheel  \
-	2>&1 > /dev/null
+./podman/test-all.sh test-wheel
 
 if [ "$?" -ne 0 ]
 then
+	echo '#############################'
 	echo 'Something went wrong testing wheel'
+	echo '#############################'
 	exitcode=2
 fi
 
