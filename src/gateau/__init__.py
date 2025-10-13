@@ -1,3 +1,4 @@
+from gateau import types
 from gateau import bindings
 from gateau import utilities
 from gateau import atmosphere_utils
@@ -13,6 +14,7 @@ __all__ = [
     'utilities',
     'atmosphere_utils',
     'selftest',
+    'types',
     ]
 
 
