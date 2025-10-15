@@ -15,6 +15,10 @@
 # Damn you steve jobs!!!!
 .DS_Store
 
+# Damn you bill gates!!!!
+$RECYCLE.BIN
+System Volume Information
+
 # vscope
 .vscode/*
 *.code-workspace
@@ -94,6 +98,8 @@ CMakeInit.txt
 # Allow .dat, it's used for resources
 !*.dat
 
+venv
+tmp
 docs
 doxy/docs
 podman/output

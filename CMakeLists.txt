@@ -10,7 +10,9 @@ option(BUILD_TESTS "Build unit tests with Google Test" OFF)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-find_package(GSL REQUIRED)
+
+#set(GSL_ROOT "tmp/gsl-msvc14-x64.2.3.0.2779/build/native/static")
+#find_package(GSL REQUIRED)
 
 include(CheckLanguage)
 
@@ -35,6 +37,16 @@ if(NOT BUILD_TESTS)
 
 		add_library(gateau SHARED ${CUDAfiles})
 		target_include_directories(gateau PRIVATE src/gateau/cuda src/gateau/include)
+
+
+
+
+		target_link_libraries(gateau
+			Z:/tmp/gsl-msvc14-x64.2.3.0.2779/build/native/static/gsl.lib
+			Z:/tmp/gsl-msvc14-x64.2.3.0.2779/build/native/static/gslcblas.lib
+		)
+
+
 		set_target_properties(gateau PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 		set_property(TARGET gateau PROPERTY CUDA_ARCHITECTURES OFF)
 		if(TARGET GSL::gsl)
