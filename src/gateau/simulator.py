@@ -16,7 +16,9 @@ from gateau.custom_logger import CustomLogger
 from gateau.atmosphere_utils import get_eta_atm
 
 from collections.abc import Callable
-from typing import Union
+from typing import Union, Any
+
+from beartype import beartype
 
 logging.getLogger(__name__)
 
@@ -35,6 +37,36 @@ class InitialError(Exception):
     Initial error. Raised when attempting to run a simulation without submitting all required dictionaries. 
     """
     pass
+
+def get_num_empty(func: Callable):
+    """!
+    Get number of parameters of callable with empty default value.
+    """
+    return len(filter(
+        lambda param: param.default is not inspect._empty
+        inspect.signature(scan_func).parameters.values()
+        ))
+
+def scan_func_wrap(
+        scan_func: Callable,
+        index: Union[int, None],
+        args,
+        ):
+    """!
+    Call `scan_func` with `args`, and return result or friendly error message.
+    """
+    try:
+        return scan_func(*args)
+
+    except TypeError as err:
+
+        num_empty = get_num_empty(scan_func)
+        raise ScanFuncError(
+            f"Scan function {scan_func} "
+            f"{f'at index {index} ' if index is not None else ''}"
+            "takes incorrect number "
+            f"of arguments {num_empty}, should be {len(args)}. "
+            ) from err
 
 class simulator(object):
     """!
@@ -111,10 +143,12 @@ class simulator(object):
 
         self.outPath = outPath
 
-    def set_gateau_dict(self, 
-                        input_dict: dict[str, any], 
-                        check_func: Callable, 
-                        label_dict: str) -> None:
+    def set_gateau_dict(
+            self, 
+            input_dict: dict[str, Any], 
+            check_func: Callable, 
+            label_dict: str,
+            ) -> None:
         """!
         Pass an input dictionary and check it for correctness.
 
@@ -134,19 +168,24 @@ class simulator(object):
             errstr = f"Errors encountered in {label_dict} dictionary in fields :{errlist}."
             raise FieldError(errstr)
 
-    def initialise(self, 
-                   t_obs: float, 
-                   az0: float,
-                   el0: float,
-                   scan_func: Union[Callable, list[Callable]],
-                   instrument_dict: dict[str, any],
-                   telescope_dict: dict[str, any],
-                   atmosphere_dict: dict[str, any],
-                   source_dict: dict[str, any],
-                   cascade_list: list[dict[str, any]]) -> tuple[np.ndarray, 
-                                                                np.ndarray, 
-                                                                np.ndarray, 
-                                                                np.ndarray]:
+    @beartype
+    def initialise(
+            self, 
+            t_obs: float, 
+            az0: float,
+            el0: float,
+            scan_func: Union[Callable, Sequence[Callable]],
+            instrument_dict: dict[str, Any],
+            telescope_dict: dict[str, Any],
+            atmosphere_dict: dict[str, Any],
+            source_dict: dict[str, Any],
+            cascade_list: list[dict[str, Any]],
+            ) -> tuple[
+                np.ndarray, 
+                np.ndarray, 
+                np.ndarray, 
+                np.ndarray
+                ]:
         """!
         Initialise a gateau setup. 
 
@@ -165,49 +204,92 @@ class simulator(object):
         @ingroup initialise
         """
 
+        self.set_gateau_dict(
+            instrument_dict,
+            gcheck.checkInstrumentDict,
+            "instrument",
+            )
 
-        self.set_gateau_dict(instrument_dict, gcheck.checkInstrumentDict, "instrument")
-        self.set_gateau_dict(telescope_dict, gcheck.checkTelescopeDict, "telescope")
-        self.set_gateau_dict(atmosphere_dict, gcheck.checkAtmosphereDict, "atmosphere")
-        self.set_gateau_dict(source_dict, gcheck.checkSourceDict, "source")
+        self.set_gateau_dict(
+            telescope_dict,
+            gcheck.checkTelescopeDict,
+            "telescope",
+            )
 
-        eta_cascade, psd_cascade = gcascade.get_cascade(cascade_list, self.source["f_src"])
+        self.set_gateau_dict(
+            atmosphere_dict,
+            gcheck.checkAtmosphereDict,
+            "atmosphere"
+            )
+
+        self.set_gateau_dict(
+            source_dict,
+            gcheck.checkSourceDict,
+            "source",
+            )
+
+        eta_cascade, psd_cascade = gcascade.get_cascade(
+            cascade_list, self.source["f_src"])
 
         eta_stage = np.array([x for arr in eta_cascade for x in arr])
         psd_stage = np.array([x for arr in psd_cascade for x in arr])
 
         self.cascade = {
-                "eta_stage"     : eta_stage,
-                "psd_stage"     : psd_stage,
-                "num_stage"     : len(eta_cascade) - 1
-                }
+            "eta_stage": eta_stage,
+            "psd_stage": psd_stage,
+            "num_stage": len(eta_cascade) - 1
+            }
 
         #### END SETUP INITIALISATION ####
         self.initialisedSetup = True
         
         #### INITIALISING OBSERVATION PARAMETERS ####
         # Calculate number of time evaluations
-        # Note that, in order to simplify TLS noise calculations, we make nTimes even
+        # Note that, in order to simplify TLS noise calculations,
+        # we make nTimes even
         self.nTimes = math.ceil(t_obs * self.instrument["f_sample"])
 
         if self.nTimes % 2 == 1:
             self.nTimes -= 1
         
-        times_array = np.arange(0, self.nTimes / self.instrument["f_sample"], 1 / self.instrument["f_sample"])
+        times_array = np.arange(
+            0,
+            self.nTimes / self.instrument["f_sample"],
+            1 / self.instrument["f_sample"]
+            )
 
-        if isinstance(scan_func, list):
-            az_scan, el_scan = scan_func[0](times_array, az0, el0)
+        if isinstance(scan_func, Sequence):
+            az_scan, el_scan = scan_func_wrap(
+                scan_func,
+                index=0,
+                args=(times_array, az0, el0)
+                )
+
             self.telescope["az_scan_center"] = az_scan
             self.telescope["el_scan_center"] = el_scan
-            for s_f in scan_func[1:]:
-                az_scan, el_scan = s_f(times_array, az_scan, el_scan)
+            for i in range(1, len(scan_func)):
+                az_scan, el_scan = scan_func_wrap(
+                    scan_func,
+                    index=1,
+                    args=(times_array, az_scan, el_scan)
+                    )
         
         else:
-            az_scan_center, el_scan_center = scan_func(times_array, az0, el0)
+            az_scan_center, el_scan_center = scan_func_wrap(
+                scan_func,
+                index=None,
+                args=(times_array, az0, el0),
+                )
             self.telescope["az_scan_center"] = az_scan_center
             self.telescope["el_scan_center"] = el_scan_center
+
+            # TODO why are we calling scan_func twice?
             
-            az_scan, el_scan = scan_func(times_array, az0, el0)
+            az_scan, el_scan = scan_func_wrap(
+                scan_func,
+                index=None,
+                args=(times_array, az0, el0),
+                )
 
         self.telescope["az_scan"] = az_scan
         self.telescope["el_scan"] = el_scan
@@ -222,7 +304,8 @@ class simulator(object):
         elif self.instrument.get("R") and self.instrument.get("nf_ch"):
             # R and number of channels given -> fl_ch unknowm
             idx_ch_arr = np.arange(self.instrument["nf_ch"])
-            self.instrument["f_ch_arr"] = f0_ch * (1 + 1 / self.instrument["R"])**idx_ch_arr
+            self.instrument["f_ch_arr"] = f0_ch * (
+                1 + 1 / self.instrument["R"]) ** idx_ch_arr
         
         elif self.instrument.get("R") and self.instrument.get("fl_ch"):
             # R and fl_ch given -> number of channels unknown
@@ -261,10 +344,12 @@ class simulator(object):
 
         return eta_total, eta_atm, az_scan, el_scan
         
-    def run(self, 
+    def run(
+            self, 
             verbosity: int = 1, 
             outname: str = "out", 
-            overwrite: bool = False) -> None:
+            overwrite: bool = False
+            ) -> None:
         """!
         Run a gateau simulation.
 
