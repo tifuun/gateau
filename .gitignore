@@ -108,6 +108,7 @@ gateau_test
 gateau_tests
 gsl
 
+!win/dep/*.zip
 
 
 
