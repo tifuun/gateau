@@ -36,7 +36,10 @@ class Instrument(Structure):
                 ("eta_pb", c_float),
                 ("az_fpa", POINTER(c_float)),
                 ("el_fpa", POINTER(c_float)),
-                ("num_spax", c_int)]
+                ("num_spax", c_int),
+                ("use_pink", c_int),
+                ("pink_level", POINTER(c_float)),
+                ("pink_conv", POINTER(c_float))]
 
 class Telescope(Structure):
     """!

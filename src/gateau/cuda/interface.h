@@ -13,6 +13,7 @@
 #include <string>
 #include <filesystem>
 
+#include <cufft.h>
 #include "cuda.h"
 #include "curand_kernel.h"
 
