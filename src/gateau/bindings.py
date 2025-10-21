@@ -13,6 +13,7 @@ from ctypes import (
     )
 from typing import Union
 from contextlib import ExitStack
+import platform
 
 import gateau.threadmgr as gmanager
 import gateau.structs as gstructs
@@ -26,16 +27,28 @@ def load_gateaulib() -> CDLL:
 
     @returns The ctypes library containing the C/C++ functions.
     """
+
+    if platform.system() == "Windows":
+        lib_filename = "gateau.dll"
+    elif platform.system() == "Darwin":
+        raise NotImplementedError(
+            "Mac OS is not supported by Gateau and never will be. Sorry."
+            )
+    else:
+        lib_filename = "libgateau.so"
+
     try:
-        with impresources.path(gateau, "libgateau.so") as sopath:
+
+        with impresources.path(gateau, lib_filename) as sopath:
             lib = CDLL(sopath)
+
 
     except OSError as err:
         raise OSError(
-            "Could not load libgateau.so!! Did it fail to compile? "
+            f"Could not load `{lib_filename}`!! Did it fail to compile? "
             "Is it compiled for the wrong architecture? Is the file "
             "missing? It should be under the root of the `gateau` "
-            "package, `src/gateau/libgateau.so` if you ran pip with "
+            f"package, `src/gateau/{lib_filename}` if you ran pip with "
             "`-e`. "
             ) from err
 

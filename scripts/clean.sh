@@ -13,5 +13,6 @@ rm -rf \
 	docs \
 	gsl \
 	Makefile \
+	src/gateau/libgateau.so \
 	gateau_test
 
