@@ -35,10 +35,40 @@ requires-python = '>=3.9'
 build.verbose = true
 logging.level = "DEBUG"
 
+sdist.include = [
+	"pyproject.toml",
+	"src/**",
+	"README.md",
+	"LICENSE"
+]
+
+sdist.exclude = [
+	"win",
+	]
+
+# Very important to exclude this using sdist.exclude
+# and not the traditional MANIFEST.in method
+# because, from what I can tell,
+# MANIFEST.in prevents files from being included in the wheel,
+# but NOT from being scanned during build time,
+# which, under our batsh*t build process for windows,
+# causes The Mother of All Edgecases:
+# skbuild_core running on the windows guest
+# stumbles upon files in `win` which are
+# symlinks forwarded from the host thru virtiofs,
+# tries to resolve them,
+# remembers that symlinks don't exist on windows,
+# and promptly dies of an aneurism.
+# Excluding directories using `scikit-build.sdist.exclude`
+# prevents skbuild from even looking into them,
+# and thus avoiding the issue.
+
+
 #editable.mode = "inplace"
 #wheel.packages = ["gateau"]
 
 #[tool.scikit-build.cmake.define]
 #CMAKE_LIBRARY_OUTPUT_DIRECTORY = "src/gateau"
+
 
 

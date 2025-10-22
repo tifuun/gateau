@@ -119,5 +119,12 @@ win/dep/*
 !win/dep/*.msi
 win/vim/old*
 
+win/tmp
+
+!archive/wheel/*.tar.gz
+
+win/pipcache
+!win/pipcache.annex
+
 
 

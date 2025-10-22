@@ -32,7 +32,7 @@ def load_gateaulib() -> CDLL:
         lib_filename = "gateau.dll"
     elif platform.system() == "Darwin":
         raise NotImplementedError(
-            "Mac OS is not supported by Gateau and never will be. Sorry."
+            "Mac OS is not supported by Glateau and never will be. Sorry."
             )
     else:
         lib_filename = "libgateau.so"
