@@ -1,6 +1,5 @@
 #!/bin/sh
 
-deps="qemu-system-x86_64 virtiofsd jq socat"
 qcow="$PWD/win/vm/5.final.qcow2"
 overlay="$PWD/win/tmp/overlay.qcow2"
 qga_sock="win/tmp/qga.sock"
@@ -21,6 +20,14 @@ die() {
 
 cleanup() {
 	eecho "CLEANING UP"
+
+	if [ -n "$GATEAU_DEBUG" ]
+	then
+		eecho "GATEAU_DEBUG is set, pausing. Press enter to exit."
+		read -r foo
+		echo "$foo"
+	fi
+
 	eecho "STOPPING VM"
 	qemu_pid="$(cat "$qemu_pid_file")"
 	if [ -n "$qemu_pid" ]
@@ -49,7 +56,30 @@ cleanup() {
 	eecho "BYE!"
 }
 
+qgasend() {
+	test -n "$1" || die "empty QGA command"
+	eecho "sending qga command: $1"
+	response="$( (printf '%s\n' "$1"; sleep 2) | socat - UNIX-CONNECT:"$qga_sock")"
+	eecho "received qga response: $response"
+	printf '%s' "$response" 
+}
+
+descramble_qga_status() {
+	test -n "$1" || die "empty QGA status"
+	err_data="$(
+		printf '%s' "$1" |
+			jq -r '.return."err-data"' |
+			base64 -d |
+			$iconv -f IBM866 -t UTF-8
+		)" || eecho "Error descrambling QGA status!"
+	eecho
+	eecho "QGA error data: $err_data"
+	eecho
+}
+
 trap cleanup EXIT
+trap cleanup HUP
+trap cleanup INT
 
 if [ "$(realpath "$0" 2>/dev/null)" != "$(realpath "./win/scripts/build-in-vm.sh" 2>/dev/null)" ]
 then
@@ -61,14 +91,42 @@ fi
 export PATH="$PATH:/usr/libexec"
 
 eecho "CHECKING DEPS"
-for dep in $deps
+
+for dep in qemu-system-x86_64 virtiofsd jq socat
 do
 	if ! command -v "$dep"
 	then
 		eecho "'$dep' is missing, go install it!"
+		eecho "Hint: some executables may get installed into "
+		eecho "/usr/libexec which is usually not in PATH, "
+		eecho "but I will check there is as well!"
 		exit 2
 	fi
 done
+
+if command -v "gnu-iconv"
+then
+	eecho "Found gnu iconv..."
+	iconv="gnu-iconv"
+else
+	iconv="iconv"
+fi
+
+if ! ( $iconv -l | grep 'IBM866' > /dev/null )
+then
+	eecho
+	eecho
+	eecho
+	eecho 'WARNING your iconv does not support IBM866. '
+	eecho 'This is not critical, but it means that I will not be able '
+	eecho 'to descramble error messages reported by qemu guest agent, '
+	eecho 'which might make debugging a pain. '
+	eecho 'To fix this, go install gnu iconv!'
+	eecho '(the package is called "gnu-libiconv" on Alpine Linux) '
+	eecho
+	eecho
+	eecho
+fi
 
 eecho "CHECKING VM IMAGE"
 if ! [ -r "$qcow" ]
@@ -172,7 +230,7 @@ qga_ok=""
 
 for i in $(seq 100)
 do
-	if printf '{"execute":"guest-ping"}' | socat - UNIX-CONNECT:"$qga_sock"
+	if [ -n "$(qgasend '{"execute":"guest-ping"}')" ]
 	then
 		eecho "Guest agent is ready."
 		qga_ok="yes"
@@ -182,33 +240,35 @@ do
 	sleep 1
 done
 
-sleep 999999
-
 if [ -z "$qga_ok" ]
 then
 	die "qemu agent did not start, bye"
 fi
 
+eecho "MOUNTING Z AND WAITING 2 seconds..."
+qgasend '{"execute": "guest-exec", "arguments":{"path":"cmd.exe","arg":["/c","sc start VirtioFsSvc"], "capture-output": true}}'
+eecho "Ideally should poll command and wait for result but whatever..."
+sleep 2
+
 eecho "RUNNING BUILD SCRIPT IN GUEST"
-exec_out=$(printf '{"execute":"guest-exec","arguments":{"path": "Z:\\win\\bat\\build.bat","capture-output": true}}' | socat - UNIX-CONNECT:"$qga_sock")
-exec_out_pid=$(echo "$exec_out" | jq -r .return.pid)
+#exec_out="$(qgasend '{"execute":"guest-exec","arguments":{"path": "Z:\\win\\bat\\build.bat","capture-output": true}}' )"
+exec_out="$(qgasend '{"execute": "guest-exec", "arguments":{"path":"cmd.exe","arg":["/c","Z:\\win\\bat\\build.bat"], "capture-output": true}}' )"
+exec_out_pid="$(echo "$exec_out" | jq -r '.return.pid')"
 
 test -n "$exec_out_pid" || die "could not get build script pid on guest, bye!"
+test ["$exec_out_pid" = "null"] && die "could not get build script pid on guest, bye!"
 
 exec_did_exit=""
 
 for i in $(seq 100)
 do
 	eecho "Waiting for build to complete (pid=$exec_out_pid, try=$i/100)..."
-	exec_status=$(
-		printf \
-			'{"execute": "guest-exec-status","arguments": {"pid": %s}}' \
-			"$exec_out_pid" \
-			| socat - UNIX-CONNECT:"$qga_sock"
-		)
+	exec_status=$(qgasend '{"execute": "guest-exec-status","arguments": {"pid": '"$exec_out_pid"'}}' )
 
 	test -n "$exec_status" \
 		|| die "could not get build script status on guest, bye!"
+
+	descramble_qga_status "$exec_status"
 
 	exec_exited=$(echo "$exec_status" | jq -r .return.exited)
 
@@ -227,5 +287,7 @@ done
 
 test -n "$exec_did_exit" \
 	|| die "Build script never exited on guest, bye!"
+
+cleanup
 
 

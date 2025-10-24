@@ -39,10 +39,35 @@ sdist.include = [
 	"pyproject.toml",
 	"src/**",
 	"README.md",
-	"LICENSE"
+	"LICENSE",
+	"CMakeLists.txt",
+	"pyproject.toml",
 ]
 
 sdist.exclude = [
+	"$RECYCLE.BIN",
+	".coverage",
+	".coveragerc",
+	".git",
+	".gitattributes",
+	".gitignore",
+	".minicycle",
+	"CMakeCache.txt",
+	"CMakeFiles",
+	"RELICENSING",
+	"System Volume Information",
+	"archive",
+	"dist",
+	"doxy",
+	"etc",
+	"gtest",
+	"htmlcov",
+	"podman",
+	"scripts",
+	"test_minimal",
+	"tests",
+	"venv",
+	"wheel",
 	"win",
 	]
 
