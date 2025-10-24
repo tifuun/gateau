@@ -109,9 +109,6 @@ gateau_test
 gateau_tests
 gsl
 
-win/proxpi/*
-proxpi
-!win/proxpi.tar.zst
 win/dep/*
 !win/dep/*.zip
 !win/dep/*.exe
@@ -123,8 +120,7 @@ win/tmp
 
 !archive/wheel/*.tar.gz
 
-win/pipcache
-!win/pipcache.annex
+!win/pipcache
 
 
 
