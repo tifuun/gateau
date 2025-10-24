@@ -185,14 +185,15 @@ __global__ void init_random_states(curandState *state,
     }
 }
 
-__global__ void calc_pink_psd(cufftComplex *output,
-                              float *pink_level,
-                              float *pink_conv,
+__global__ void calc_onef_psd(cufftComplex *output,
+                              float *onef_level,
+                              float *onef_conv,
+                              float onef_alpha,
                               curandState *state)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;                                 
                                                                                      
-    if (idx < (cnt / 2 + 1)) 
+    if (idx < (cnt / 2)) 
     {
         cufftComplex local;
         curandState localState = state[idx];
@@ -203,12 +204,12 @@ __global__ void calc_pink_psd(cufftComplex *output,
         }
 
         else {
-            float factor = sqrtf(1 / (idx * cf_sample / 2 / (cnt / 2 + 1)));
+            float factor = powf(1 / (4 * PI * idx * cf_sample / 2 / (cnt / 2 + 1)), onef_alpha/2);
             float pl_loc, pc_loc;
 
             for(int k=0; k<cnf_ch; k++) {
-                pl_loc = pink_level[k];
-                pc_loc = pink_conv[k];
+                pl_loc = sqrtf(onef_level[k] / cnt);
+                pc_loc = onef_conv[k];
                 local.x = factor * curand_normal(&localState) * pl_loc * pc_loc;
                 local.y = factor * curand_normal(&localState) * pl_loc * pc_loc;
                 output[k*(cnt / 2 + 1) + idx] = local;
@@ -462,6 +463,7 @@ void run_gateau(Instrument *instrument,
                  Cascade *cascade,
                  int nttot, 
                  char *outpath,
+                 char *outscale,
                  unsigned long long int seed,
                  char *atmpath
 		 ) 
@@ -505,6 +507,9 @@ void run_gateau(Instrument *instrument,
     float *eta_atm;
 
     const auto processor_count = std::thread::hardware_concurrency();
+
+    char *power_str = "P";
+    char *tb_str = "Tb";
 
     readEtaATM<float, ArrSpec>(&eta_atm, &pwv_atm, &f_atm, atmpath);
     
@@ -604,7 +609,7 @@ void run_gateau(Instrument *instrument,
     float *c1 = new float[nf_ch];
     
     // Change this so that it takes a variable
-    if(true)
+    if(!strcmp(outscale, tb_str))
     {
         float *Psky = new float[nf_ch * NPWV]();
         float *Tsky = new float[nf_ch * NPWV]();
@@ -670,7 +675,7 @@ void run_gateau(Instrument *instrument,
         delete[] Tsky;   
     }
 
-    else
+    if(!strcmp(outscale, power_str))
     {
         for(int i=0; i<nf_ch; i++)
         {
@@ -800,26 +805,30 @@ void run_gateau(Instrument *instrument,
                 gpuErrchk( cudaMalloc((void**)&d_nepout, nf_sub_fnt * sizeof(float)) );
                 gpuErrchk( cudaMemcpyToSymbol(cnt, &nt_sub_scr_job, sizeof(int)) );
 
-                if(instrument->use_pink) {
+                if(instrument->use_onef) {
                     int ntscr_h = nt_sub_scr_job / 2 + 1;
                     nBlocks1D = ceilf((float)(ntscr_h) / NTHREADS1D / numSMs);
                     blockSize1D = NTHREADS1D;
                     gridSize1D = nBlocks1D*numSMs;
 
-                    float *d_pink_level, *d_pink_conv;
-                    gpuErrchk( cudaMalloc((void**)&d_pink_level, nf_ch * sizeof(float)) );
-                    gpuErrchk( cudaMalloc((void**)&d_pink_conv, nf_ch * sizeof(float)) );
-                    gpuErrchk( cudaMemcpy(d_pink_level, instrument->pink_level, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
-                    gpuErrchk( cudaMemcpy(d_pink_conv, instrument->pink_conv, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
+                    float *d_onef_level, *d_onef_conv;
+                    gpuErrchk( cudaMalloc((void**)&d_onef_level, nf_ch * sizeof(float)) );
+                    gpuErrchk( cudaMalloc((void**)&d_onef_conv, nf_ch * sizeof(float)) );
+                    gpuErrchk( cudaMemcpy(d_onef_level, instrument->onef_level, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
+                    gpuErrchk( cudaMemcpy(d_onef_conv, instrument->onef_conv, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
 
-                    cufftComplex *d_pink_out;
-                    gpuErrchk( cudaMalloc((void**)&d_pink_out, ntscr_h*nf_ch * sizeof(cufftComplex)) );
+                    cufftComplex *d_onef_out;
+                    gpuErrchk( cudaMalloc((void**)&d_onef_out, ntscr_h*nf_ch * sizeof(cufftComplex)) );
 
-                    calc_pink_psd<<<gridSize1D, blockSize1D>>>(d_pink_out, d_pink_level, d_pink_conv, devstates);
+                    calc_onef_psd<<<gridSize1D, blockSize1D>>>(d_onef_out, 
+                            d_onef_level, 
+                            d_onef_conv, 
+                            instrument->onef_alpha,
+                            devstates);
                     gpuErrchk( cudaDeviceSynchronize() );
                     
-                    gpuErrchk( cudaFree(d_pink_level) );
-                    gpuErrchk( cudaFree(d_pink_conv) );
+                    gpuErrchk( cudaFree(d_onef_level) );
+                    gpuErrchk( cudaFree(d_onef_conv) );
 
                     cufftHandle plan;
                     int rank = 1;
@@ -833,9 +842,9 @@ void run_gateau(Instrument *instrument,
                             inembed, istride, idist,
                             onembed, ostride, odist, CUFFT_C2R, nf_ch) );
 
-                    CUFFT_CALL( cufftExecC2R(plan, d_pink_out, d_sigout) );
+                    CUFFT_CALL( cufftExecC2R(plan, d_onef_out, d_sigout) );
                     gpuErrchk( cudaDeviceSynchronize() );
-                    gpuErrchk( cudaFree(d_pink_out) );
+                    gpuErrchk( cudaFree(d_onef_out) );
 
                     cufftDestroy(plan);
                 }

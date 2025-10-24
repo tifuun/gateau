@@ -43,14 +43,17 @@ def checkInstrumentDict(instrumentDict):
     if instrumentDict.get("order") is None:
         instrumentDict["order"] = 1
 
-    if instrumentDict.get("pink_level") is None:
-        instrumentDict["use_pink"] = 0
+    if instrumentDict.get("onef_level") is None:
+        instrumentDict["use_onef"] = 0
 
     else:
-        instrumentDict["use_pink"] = 1
+        instrumentDict["use_onef"] = 1
 
-    if instrumentDict.get("pink_conv") is None:
-        instrumentDict["pink_conv"] = 1
+    if instrumentDict.get("onef_alpha") is None:
+        instrumentDict["onef_alpha"] = 1
+
+    if instrumentDict.get("onef_conv") is None:
+        instrumentDict["onef_conv"] = 1
 
     if instrumentDict.get("material") is None:
         instrumentDict["material"] = "Al_NbTiN"

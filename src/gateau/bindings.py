@@ -46,6 +46,7 @@ def load_gateaulib() -> CDLL:
                                POINTER(gstructs.Cascade),
                                c_int, 
                                c_char_p,
+                               c_char_p,
                                c_ulonglong,
                                c_char_p,
                                ]
@@ -62,7 +63,8 @@ def run_gateau(instrument: dict[str, any],
                source: dict[str, any], 
                cascade: dict[str, any], 
                nTimes: int, 
-               outpath: str, 
+               outpath: str,
+               outscale: str,
                seed: int = 0,
                resourcepath: Union[str, None] = None, 
                ) -> None:
@@ -76,6 +78,8 @@ def run_gateau(instrument: dict[str, any],
     @param source Dictionary containing astronomical source parameters.
     @param nTimes Number of time evaluations.
     @param outpath Path to directory where gateau output is stored.
+    @param outscale Scale of stored output (brightness temperature or power).
+    @param seed Seed to use for noise calculations.
     @param resourcepath Path to resources folder (None for autodetect)
     """
 
@@ -96,6 +100,7 @@ def run_gateau(instrument: dict[str, any],
 
     cnTimes = c_int(nTimes)
     coutpath = c_char_p(outpath.encode())
+    coutscale = c_char_p(outscale.encode())
     # FIXME bare encode
     cseed = c_ulonglong(seed)
 
@@ -115,6 +120,7 @@ def run_gateau(instrument: dict[str, any],
             _cascade,
             cnTimes,
             coutpath,
+            coutscale,
             cseed,
             catmpath,
             ]

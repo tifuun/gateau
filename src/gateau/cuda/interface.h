@@ -12,6 +12,7 @@
 #include <thread>
 #include <string>
 #include <filesystem>
+#include <string.h>
 
 #include <cufft.h>
 #include "cuda.h"
@@ -39,6 +40,7 @@ extern "C"
                                Cascade *cascade,
                                int nttot, 
                                char *outpath,
+                               char *outscale,
                                unsigned long long int seed,
                                char *atmpath);
 }
