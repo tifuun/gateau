@@ -20,14 +20,15 @@ def generateFilterbankFromR(instrumentDict: dict[str, any],
     order       = instrumentDict.get("order")
     f_filt      = instrumentDict.get("f_ch_arr")
     f_src       = sourceDict.get("f_src")
-    
-    gamma       = f_filt[:,None] / (2*R)
-
+    gamma       = (f_filt / (2*R))[:,None]
     A = 1
 
     if instrumentDict["box_eq"]:
         A = 4 / np.pi
     lorentzian = (A * gamma**2 / ((f_src[None,:] - f_filt[:,None])**2 + gamma**2))**order
+
+    if instrumentDict["sec_harmonic"]:
+        lorentzian += (A * 2 * gamma**2 / ((f_src[None,:] - 2*f_filt[:,None])**2 + 2*gamma**2))**order
 
     if (cutoff := instrumentDict.get("cutoff")) is not None:
         lorentzian[:,f_src < cutoff] = 0

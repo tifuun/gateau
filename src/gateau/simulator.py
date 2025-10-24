@@ -10,7 +10,7 @@ import gateau.input_checker as gcheck
 import gateau.bindings as gbind
 import gateau.cascade as gcascade
 
-import psutil
+import shutil
 import logging
 from gateau.custom_logger import CustomLogger
 from gateau.atmosphere_utils import get_eta_atm
@@ -20,9 +20,7 @@ from typing import Union
 
 logging.getLogger(__name__)
 
-MEMFRAC = 0.5
-MEMBUFF = MEMFRAC * psutil.virtual_memory().total
-T_OBS_BUFF = 0.8
+MEMFRAC = 0.8
 
 class FieldError(Exception):
     """!
@@ -192,7 +190,7 @@ class simulator(object):
 
         if self.nTimes % 2 == 1:
             self.nTimes -= 1
-        
+
         times_array = np.arange(0, self.nTimes / self.instrument["f_sample"], 1 / self.instrument["f_sample"])
 
         if isinstance(scan_func, list):
@@ -231,13 +229,26 @@ class simulator(object):
             self.instrument["f_ch_arr"] = f0_ch * (1 + 1 / self.instrument["R"])**idx_ch_arr
                 
         self.instrument["filterbank"] = gifu.generateFilterbankFromR(self.instrument, self.source)
+
+        if self.instrument["use_onef"]:
+            if isinstance(self.instrument["onef_level"], float) or isinstance(self.instrument["onef_level"], int):
+                self.instrument["onef_level"] *= np.ones(self.instrument["nf_ch"])
+            if isinstance(self.instrument["onef_conv"], float) or isinstance(self.instrument["onef_conv"], int):
+                self.instrument["onef_conv"] *= np.ones(self.instrument["nf_ch"])
+
+        else:
+            self.instrument["onef_level"] = np.zeros(self.instrument["nf_ch"])
+            self.instrument["onef_conv"] = np.zeros(self.instrument["nf_ch"])
         
         if self.instrument.get("pointings") is None:
             if self.instrument.get("spacing") is None or self.instrument.get("radius") is None:
                 self.instrument["pointings"] = np.zeros(1), np.zeros(1)
+                self.instrument["n_spax"] = 1
             
             else:
                 self.instrument["pointings"] = gifu.generate_fpa_pointings(self.instrument) 
+                self.instrument["n_spax"] = self.instrument["pointings"][0].size
+        
 
         #### INITIALISING TELESCOPE PARAMETERS ####
         if isinstance(self.telescope.get("eta_taper"), float):
@@ -264,7 +275,8 @@ class simulator(object):
     def run(self, 
             verbosity: int = 1, 
             outname: str = "out", 
-            overwrite: bool = False) -> None:
+            overwrite: bool = False,
+            outscale: str = "Tb") -> None:
         """!
         Run a gateau simulation.
 
@@ -277,6 +289,8 @@ class simulator(object):
         @param outname Name ofirectory to store output in. Directory will be placed in outPath.
         @param overwrite Whether to overwrite existing output directories. 
             If False (default), a prompt will appear to either overwrite or specify new directory.
+        @param outscale Store output in brightness temperature [K] or power [W].
+            Accepts "Tb" or "P". Defaults to "Tb".
         """
 
         if not self.initialisedSetup:
@@ -304,9 +318,19 @@ class simulator(object):
                     shutil.rmtree(outpath)
                 else:
                     outpath = input("\033[93mSpecify new output path: > ")
+        
+        # Check if enough HDD is available in outpath for this simulation
+        n_bytes_required = ((self.instrument["nf_ch"] + 2)*self.instrument["n_spax"] + 1) * self.nTimes * 4
+        if (n_bytes_free := int(MEMFRAC * shutil.disk_usage(outpath).free)) < n_bytes_required:
+            self.clog.warning(f"Required disk space of {n_bytes_required} bytes exceeds available buffer of {n_bytes_free}")
+            choice = input("\033[93mProceed (y/n)? > ").lower()
+            if choice == "y" or choice == "":
+                pass
+            else:
+                exit()
 
         # Create folders for each spaxel
-        for idx_spax in range(self.instrument.get("pointings")[0].size):
+        for idx_spax in range(self.instrument.get("n_spax")):
             os.makedirs(os.path.join(outpath, str(idx_spax)))
         self.clog.info("\033[1;32m*** STARTING gateau SIMULATION ***")
         
@@ -316,7 +340,8 @@ class simulator(object):
                          self.source,
                          self.cascade,
                          self.nTimes, 
-                         outpath)
+                         outpath,
+                         outscale)
         
         self.clog.info("\033[1;32m*** FINISHED gateau SIMULATION ***")
 
