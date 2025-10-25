@@ -401,3 +401,105 @@ because they are also on a separate layer.
 	that already has the same name:
 	`podman run --name foobar --replace -ti <IMAGE-ID-OR-TAG> sh`
 
+## Windows
+
+Unfortunately, Gateau supports Windows.
+You can make a windows build of Gateau using
+the `./win/scripts/build-in-vm.sh` script,
+which launches a windows virtual machine and builds Gateau inside it.
+The prerequisites for using the `build-in-vm.sh` script are detailed below.
+The script also contains checks for all of these,
+so it should be fine to just run
+and it will tell you what you need to do.
+
+1. *Acquire the VM image.*
+	We have made a pre-built windows 10 image with
+	everything needed to build Gateau inside of it.
+	The image is located in `win/vm/5.final.qcow2`
+	and managed using [git-annex](https://git-annex.branchable.com/).
+	You can download it in the following steps:
+
+	1. Install `git-annex` from your system's package manager
+	1. Initialize your repo for use with annex: `git annex init`
+	1. Sync annex metadata: `git annex sync origin`
+	1. Enable the remote containing the image:
+		`WEBDAV_USERNAME=tifuun WEBDAV_PASSWORD="xxx" git annex enableremote dav`
+		- Ask maybetree for the password.
+			Due to licensing issues, we cannot distribute
+			our windows 10 image publicly.
+	1. Download the image: `git annex get win/vm/5.final.qcow2`
+		- The image weighs 40GB and the server is slow,
+			so it will take some time
+		- In case git-annex complains about a "stalled transfer",
+			just let it finish its job don't CTRL+C it.
+1. *Acquire python deps.*
+	We freeze all of the python dependendencies for the windows
+	version of gateau.
+	Once you've set up git-annex as detailed above,
+	run `git annex get win/pipcache`
+	to download them.
+	- If you would like to bump the python depenencies to their latest
+		versions available on pypi, simply clear out the
+		`win/pipcache` directory, run
+		`win/scripts/compile_requirements.sh` script
+		followed by `win/scripts/download_wheels.sh` script.
+		
+		When you make a new commit, make sure to track the
+		bumped versions with git-annex instead of checking
+		them directly into git:
+		run `git annex add win/pipcache` to put them in the annex,
+		then make the git commit as usual,
+		then `git annex copy --to dav win/pipcache` to upload them
+		to our annex remote,
+		and finally `git annex sync origin` to update
+		metadata about the new files' presence.
+
+1. *Install systemwide deps.*
+	In order to run the emulator,
+	you need to install `qemu-system-x86_64`,
+	`virtiofsd`, `jq`, and `socat`.
+	These are very standard programs likely available thru
+	your system's package manager.
+	- Alpine Linux users are also encouraged to install
+		`gnu-libiconv` package
+		so that the script can descramble Russian error messages
+		coming from the VM.
+
+1. *Run the script.*
+	Once everything is in order,
+	brace yourself for the windows bootloader jumpscare and
+	run `./win/scripts/build-in-vm.sh`.
+	Although the VM runs with a virtual display, it will
+	just show the login prompt.
+	Keep and eye on the console output for information.
+	If all goes well, the built wheels
+	should end up in `dist`.
+
+### Technical details on the windows build script
+
+- If error or unexpected condition is required,
+	script will shut down vm gracefully.
+	Pass `GATEAU_DEBUG` to add a pause before
+	the shutdown, it can be useful for debugging.
+
+- Script creates a read-write overlay of the vm image
+	in `win/tmp/overlay.qcow2`, so changes across vm
+	runs persist. Simply delete the overlay file,
+	and the next run of the vm will be fresh from the original
+	`win/vm/5.final.qcow2` image.
+
+- Username and password for the VM: `maybetree` and `abundance`.
+	- Make sure to switch keyboard to english
+		by pressing CTRL+SHIFT at the login prompt.
+
+- Although Windows contains a networking stack and networking hardware drivers,
+	it is essentially an offline-only operating system,
+	because any connection to the internet will cause it to download
+	and autoinstall updates which will likely if not certainly
+	brick it.
+	Therefore, do not connect the VM to the internet.
+	You can use virtiofs to share files between the guest and host,
+	or, import the image into `virt-manager`
+	where you can set up an isolated network that lets guest see the host
+	but not the outside internet.
+

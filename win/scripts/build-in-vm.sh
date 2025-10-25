@@ -18,6 +18,104 @@ die() {
 	exit 1
 }
 
+if [ "$(realpath "$0" 2>/dev/null)" != "$(realpath "./win/scripts/build-in-vm.sh" 2>/dev/null)" ]
+then
+	eecho "Must run from root of repo!!"
+	exit 9
+fi
+
+# Sometimes virtiofsd is in /usr/libexec which is usually not in PATH
+export PATH="$PATH:/usr/libexec"
+
+eecho "CHECKING DEPS"
+
+for dep in qemu-system-x86_64 virtiofsd jq socat
+do
+	if ! command -v "$dep"
+	then
+		eecho "'$dep' is missing, go install it!"
+		eecho "Hint: some executables may get installed into "
+		eecho "/usr/libexec which is usually not in PATH, "
+		eecho "but I will check there is as well!"
+		exit 2
+	fi
+done
+
+if command -v "gnu-iconv"
+then
+	eecho "Found gnu iconv..."
+	iconv="gnu-iconv"
+else
+	iconv="iconv"
+fi
+
+if ! ( $iconv -l | grep 'IBM866' > /dev/null )
+then
+	eecho
+	eecho
+	eecho
+	eecho 'WARNING your iconv does not support IBM866. '
+	eecho 'This is not critical, but it means that I will not be able '
+	eecho 'to descramble error messages reported by qemu guest agent, '
+	eecho 'which might make debugging a pain. '
+	eecho 'To fix this, go install gnu iconv!'
+	eecho '(the package is called "gnu-libiconv" on Alpine Linux) '
+	eecho
+	eecho
+	eecho
+fi
+
+if [ -n "$(find dist -name '*.whl')" ]
+then
+	eecho "'dist' folder is not empty! Please clear out anything in "
+	eecho "'dist' to avoid conflicts. "
+	exit 5
+fi
+
+eecho "CHECKING VM IMAGE"
+if ! [ -r "$qcow" ]
+then
+	eecho "qcow vm image at '$qcow' is missing or inaccessible!"
+	eecho "Install and configure git-annex, then run "
+	eecho "'git annex get win/vm/5.final.qcow2' and wait for the download "
+	eecho "(40GB + hosted on a slow server, so it'll take a while.)"
+	exit 3
+fi
+
+eecho "CHECKING PIPCACHE"
+if ! [ -r "$( find win/pipcache/ -name 'scikit_build_core*.whl' | head -n 1 )" ]
+then
+	eecho "Looks like python dependencies in 'win/pipcache' are "
+	eecho "missing or inaccessible. "
+	eecho "Set up and configure git-annex, then run "
+	eecho "git annex get win/pipcache to download them, "
+	eecho "or see win/scripts/compile-requirements.sh "
+	eecho "and win/scripts/download-wheels.sh "
+	eecho "to fetch newer versions from pypi. "
+	exit 2
+fi
+
+eecho "MAKING TMP DIRS"
+mkdir -p "$(dirname "$qmon_sock")" || die "Could not mkdir for '$qmon_sock'"
+mkdir -p "$(dirname "$vfsd_sock")" || die "Could not mkdir for '$vfsd_sock'"
+mkdir -p "$(dirname "$qga_sock")" || die "Could not mkdir for '$qga_sock'"
+mkdir -p "$(dirname "$overlay")" || die "Could not mkdir for '$overlay'"
+mkdir -p "$(dirname "$qemu_pid_file")" || die "Could not mkdir for '$qemu_pid_file'"
+
+eecho "MAKING OVERLAY qcow2"
+
+if [ -r "$overlay" ]
+then
+	eecho "OVERLAY EXISTS, NOT MAKING NEW ONE."
+else
+	qemu-img create -f qcow2 -F qcow2 -b "$qcow" "$overlay" \
+		|| die "Could not make overlay qcow2"
+
+	qemu-img info "$overlay" \
+		|| die "Could not get info on overlay qcow2 -- is it borked?"
+fi
+
+
 cleanup() {
 	eecho "CLEANING UP"
 
@@ -80,80 +178,6 @@ descramble_qga_status() {
 trap cleanup EXIT
 trap cleanup HUP
 trap cleanup INT
-
-if [ "$(realpath "$0" 2>/dev/null)" != "$(realpath "./win/scripts/build-in-vm.sh" 2>/dev/null)" ]
-then
-	eecho "Must run from root of repo!!"
-	exit 9
-fi
-
-# Sometimes virtiofsd is in /usr/libexec which is usually not in PATH
-export PATH="$PATH:/usr/libexec"
-
-eecho "CHECKING DEPS"
-
-for dep in qemu-system-x86_64 virtiofsd jq socat
-do
-	if ! command -v "$dep"
-	then
-		eecho "'$dep' is missing, go install it!"
-		eecho "Hint: some executables may get installed into "
-		eecho "/usr/libexec which is usually not in PATH, "
-		eecho "but I will check there is as well!"
-		exit 2
-	fi
-done
-
-if command -v "gnu-iconv"
-then
-	eecho "Found gnu iconv..."
-	iconv="gnu-iconv"
-else
-	iconv="iconv"
-fi
-
-if ! ( $iconv -l | grep 'IBM866' > /dev/null )
-then
-	eecho
-	eecho
-	eecho
-	eecho 'WARNING your iconv does not support IBM866. '
-	eecho 'This is not critical, but it means that I will not be able '
-	eecho 'to descramble error messages reported by qemu guest agent, '
-	eecho 'which might make debugging a pain. '
-	eecho 'To fix this, go install gnu iconv!'
-	eecho '(the package is called "gnu-libiconv" on Alpine Linux) '
-	eecho
-	eecho
-	eecho
-fi
-
-eecho "CHECKING VM IMAGE"
-if ! [ -r "$qcow" ]
-then
-	eecho "qcow vm image at '$qcow' is missing or inaccessible, bye!"
-	exit 3
-fi
-
-eecho "MAKING TMP DIRS"
-mkdir -p "$(dirname "$qmon_sock")" || die "Could not mkdir for '$qmon_sock'"
-mkdir -p "$(dirname "$vfsd_sock")" || die "Could not mkdir for '$vfsd_sock'"
-mkdir -p "$(dirname "$qga_sock")" || die "Could not mkdir for '$qga_sock'"
-mkdir -p "$(dirname "$overlay")" || die "Could not mkdir for '$overlay'"
-mkdir -p "$(dirname "$qemu_pid_file")" || die "Could not mkdir for '$qemu_pid_file'"
-
-eecho "MAKING OVERLAY qcow2"
-
-if [ -r "$overlay" ]
-then
-	eecho "OVERLAY EXISTS, NOT MAKING NEW ONE."
-else
-	qemu-img create -f qcow2 -F qcow2 -b "$qcow" "$overlay" \
-		|| die "Could not make overlay qcow2"
-
-	qemu-img info "$overlay" \
-		|| die "Could not get info on overlay qcow2 -- is it borked?"
-fi
 
 eecho "STARTING VIRTIOFSD"
 virtiofsd \
@@ -289,5 +313,7 @@ test -n "$exec_did_exit" \
 	|| die "Build script never exited on guest, bye!"
 
 cleanup
+
+eecho "Looks like the build succeeded, wheels should be under 'dist'."
 
 
