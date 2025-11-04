@@ -35,9 +35,9 @@ struct Instrument {
     float *el_fpa;      /**< Array with elevation pointings for FPA.*/
     int num_spax; 
     int use_onef;
-    float onef_alpha;
     float *onef_level;
     float *onef_conv;
+    float *onef_alpha;
 };
 
 struct Telescope {

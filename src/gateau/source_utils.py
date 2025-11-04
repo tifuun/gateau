@@ -91,10 +91,13 @@ def convolve_source_cube(source_cube: np.ndarray,
 
     return out
 
+#def ff_from_aperture(az_grid, el_grid, k, R):
+
 
 def airy(source_slice, az_grid, el_grid, k, R):
     theta = np.radians(np.sqrt((az_grid)**2 + (el_grid)**2))
     airy = np.nan_to_num((2 * j1(k * R * np.sin(theta)) / (k * R * np.sin(theta)))**2, nan=1)
+    airy /= np.nanmax(airy)
 
-    return np.nansum(source_slice * airy.ravel()) / np.nansum(airy)
+    return np.nansum(source_slice * airy.ravel())
 
