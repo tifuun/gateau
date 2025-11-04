@@ -188,7 +188,7 @@ __global__ void init_random_states(curandState *state,
 __global__ void calc_onef_psd(cufftComplex *output,
                               float *onef_level,
                               float *onef_conv,
-                              float onef_alpha,
+                              float *onef_alpha,
                               curandState *state)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;                                 
@@ -204,14 +204,14 @@ __global__ void calc_onef_psd(cufftComplex *output,
         }
 
         else {
-            float factor = powf(1 / (4 * PI * idx * cf_sample / 2 / (cnt / 2 + 1)), onef_alpha/2);
-            float pl_loc, pc_loc;
+            //float factor = 1 / (4 * PI * idx * cf_sample / 2 / (cnt / 2 + 1));
+            float factor = 1 / (idx * cf_sample / 2 / (cnt / 2 + 1));
+            float factor_loc;
 
             for(int k=0; k<cnf_ch; k++) {
-                pl_loc = sqrtf(onef_level[k] / cnt);
-                pc_loc = onef_conv[k];
-                local.x = factor * curand_normal(&localState) * pl_loc * pc_loc;
-                local.y = factor * curand_normal(&localState) * pl_loc * pc_loc;
+                factor_loc = sqrtf(onef_level[k] / cnt) * onef_conv[k] * powf(factor, onef_alpha[k]/2);
+                local.x = factor_loc * curand_normal(&localState);
+                local.y = factor_loc * curand_normal(&localState);
                 output[k*(cnt / 2 + 1) + idx] = local;
             }
             state[idx] = localState;
@@ -811,11 +811,13 @@ void run_gateau(Instrument *instrument,
                     blockSize1D = NTHREADS1D;
                     gridSize1D = nBlocks1D*numSMs;
 
-                    float *d_onef_level, *d_onef_conv;
+                    float *d_onef_level, *d_onef_conv, *d_onef_alpha;
                     gpuErrchk( cudaMalloc((void**)&d_onef_level, nf_ch * sizeof(float)) );
                     gpuErrchk( cudaMalloc((void**)&d_onef_conv, nf_ch * sizeof(float)) );
+                    gpuErrchk( cudaMalloc((void**)&d_onef_alpha, nf_ch * sizeof(float)) );
                     gpuErrchk( cudaMemcpy(d_onef_level, instrument->onef_level, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
                     gpuErrchk( cudaMemcpy(d_onef_conv, instrument->onef_conv, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
+                    gpuErrchk( cudaMemcpy(d_onef_alpha, instrument->onef_alpha, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
 
                     cufftComplex *d_onef_out;
                     gpuErrchk( cudaMalloc((void**)&d_onef_out, ntscr_h*nf_ch * sizeof(cufftComplex)) );
@@ -823,12 +825,13 @@ void run_gateau(Instrument *instrument,
                     calc_onef_psd<<<gridSize1D, blockSize1D>>>(d_onef_out, 
                             d_onef_level, 
                             d_onef_conv, 
-                            instrument->onef_alpha,
+                            d_onef_alpha,
                             devstates);
                     gpuErrchk( cudaDeviceSynchronize() );
                     
                     gpuErrchk( cudaFree(d_onef_level) );
                     gpuErrchk( cudaFree(d_onef_conv) );
+                    gpuErrchk( cudaFree(d_onef_alpha) );
 
                     cufftHandle plan;
                     int rank = 1;
@@ -846,7 +849,8 @@ void run_gateau(Instrument *instrument,
                     gpuErrchk( cudaDeviceSynchronize() );
                     gpuErrchk( cudaFree(d_onef_out) );
 
-                    cufftDestroy(plan);
+                    CUFFT_CALL( cufftDestroy(plan) );
+                    gpuErrchk( cudaDeviceSynchronize() );
                 }
 
                 else {
@@ -886,7 +890,7 @@ void run_gateau(Instrument *instrument,
                                        d_az_trace,
                                        d_el_trace,
                                        d_pwv_trace,
-                                       d_time_trace,
+                                       d_time_trace, 
                                        idx_offset);
                 gpuErrchk( cudaDeviceSynchronize() );
 
@@ -936,8 +940,8 @@ void run_gateau(Instrument *instrument,
                 if(idx_spax == 0) 
                 {
                     std::string timename = std::to_string(idx_write) + "time.out";
-                    std::vector<float> timeout(nt_sub_scr);
-                    gpuErrchk( cudaMemcpy(timeout.data(), d_time_trace, nt_sub_scr * sizeof(float), cudaMemcpyDeviceToHost) );
+                    std::vector<float> timeout(nt_sub_scr_job);
+                    gpuErrchk( cudaMemcpy(timeout.data(), d_time_trace, nt_sub_scr_job * sizeof(float), cudaMemcpyDeviceToHost) );
                     write1DArray<float>(timeout, str_outpath, timename);
                     gpuErrchk( cudaFree(d_time_trace) );
                 }
