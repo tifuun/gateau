@@ -70,14 +70,3 @@ def average_over_filterbank(array_to_average: np.ndarray,
     array_tiled = np.squeeze(array_to_average)[None,:] * filterbank
     return np.nansum(array_tiled, axis=1) / div
 
-
-
-
-
-
-
-
-
-
-
-

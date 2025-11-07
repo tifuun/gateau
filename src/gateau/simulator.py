@@ -9,6 +9,7 @@ import gateau.ifu as gifu
 import gateau.input_checker as gcheck
 import gateau.bindings as gbind
 import gateau.cascade as gcascade
+import gateau.output_utils as goututils
 
 import shutil
 import logging
@@ -265,7 +266,7 @@ class simulator(object):
             self.telescope["eta_taper"] *= eta_surf 
 
         # Some handy returns
-        eta_total = self.telescope["eta_taper"]
+        eta_total = copy.deepcopy(self.telescope["eta_taper"])
         for eta in eta_cascade:
             eta_total *= eta
 
@@ -273,7 +274,15 @@ class simulator(object):
                               self.atmosphere["PWV0"],
                               np.mean(el_scan))
 
-        return eta_total, eta_atm, az_scan, el_scan
+        eta_total_chan = goututils.average_over_filterbank(eta_total, 
+                                                           self.instrument["filterbank"],
+                                                           norm = True)
+        
+        eta_atm_chan = goututils.average_over_filterbank(eta_atm, 
+                                                         self.instrument["filterbank"],
+                                                         norm = True)
+
+        return eta_total_chan, eta_atm_chan, az_scan, el_scan
         
     def run(self, 
             verbosity: int = 1, 

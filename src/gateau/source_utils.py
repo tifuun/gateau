@@ -6,67 +6,71 @@ import scipy.constants as scc
 import math
 from functools import partial
 import warnings
-warnings.filterwarnings("ignore")
+from numpy.fft import fft2, ifft2, fftshift, ifftshift, fftfreq
+from scipy.interpolate import griddata
 
 from typing import Tuple
 
 from gateau.custom_logger import parallel_iterator
 
-NCPU = multiprocessing.cpu_count()
+warnings.filterwarnings("ignore")
 
-def convolve_source_cube_pool(args: Tuple[np.ndarray, 
-                                     np.ndarray, 
-                                     int], 
+NCPU = multiprocessing.cpu_count()
+FACTOR_PAD = 3
+
+def convolve_source_cube_pool(args: Tuple[np.ndarray, np.ndarray, int], 
                               diameter_tel: float, 
                               az_arr: np.ndarray, 
-                              el_arr: np.ndarray) -> np.ndarray:
+                              el_arr: np.ndarray,
+                              edge_taper: float,
+                              source_cube_unit: str) -> np.ndarray:
     
-
     source_cube, f_src, thread_idx = args
     Rtel = diameter_tel / 2
 
-    d_az = az_arr[1] - az_arr[0]
-    d_el = el_arr[1] - el_arr[0]
-
-    k = 2 * np.pi * f_src / scc.c
+    lam_arr = scc.c / f_src
     
     source_cube_convolved = np.zeros(source_cube.shape)
 
-    for i, _k in enumerate(parallel_iterator(k, thread_idx)):
-        lim = 100 * np.pi * 1.2 / _k / Rtel
-
-        n_fp_az = math.ceil(lim / d_az)
-        n_fp_el = math.ceil(lim / d_el)
-
-        if n_fp_az % 2 == 0:
-            n_fp_az += 1
+    for i, lam in enumerate(parallel_iterator(lam_arr, thread_idx)):
+        cval = (np.nanmean(source_cube[:,0,i]) + np.nanmean(source_cube[:,-1,i]) + \
+                np.nanmean(source_cube[0,:,i]) + np.nanmean(source_cube[-1,:,i]))
         
-        if n_fp_el % 2 == 0:
-            n_fp_el += 1
+        ff = ff_from_aperture(az_arr, el_arr, lam, Rtel, edge_taper)
 
-        lim_az_sub = n_fp_az * d_az
-        lim_el_sub = n_fp_el * d_el
-        
-        az_grid_sub, el_grid_sub = np.mgrid[-lim_az_sub:lim_az_sub:n_fp_az * 1j, 
-                                            -lim_el_sub:lim_el_sub:n_fp_el * 1j]
+        norm = 1
+        etendu = np.pi*Rtel**2
 
-        _func = partial(airy, 
-                        az_grid = az_grid_sub,
-                        el_grid = el_grid_sub,
-                        k = _k,
-                        R = Rtel) 
+        if source_cube_unit == "I_nu":
+            norm = np.nansum(ff)
+            etendu = lam**2
 
-        source_cube_convolved[:,:,i] = generic_filter(source_cube[:,:,i], 
-                                                      _func, 
-                                                      size=(n_fp_az, n_fp_el))
+        func = partial(moving_sum, 
+                       ff_pattern=ff,
+                       norm=norm)
+
+        if source_cube_unit == "F_nu_beam":
+            source_cube_convolved[:,:,i] = etendu * source_cube[:,:,i]
+
+        else:
+            source_cube_convolved[:,:,i] = etendu * generic_filter(source_cube[:,:,i], 
+                                                      func, 
+                                                      size=ff.shape,
+                                                      mode="constant",
+                                                      cval=cval)
     return source_cube_convolved
+
+def moving_sum(source_slice, ff_pattern, norm):
+    return np.nansum(source_slice * ff_pattern.ravel()) / norm
 
 def convolve_source_cube(source_cube: np.ndarray,
                          az_arr: np.ndarray,
                          el_arr: np.ndarray,
                          f_src: np.ndarray,
                          diameter_tel: float,
-                         num_threads: int = NCPU)-> np.ndarray:
+                         edge_taper: float = -10,
+                         source_cube_unit: str = "I_nu",
+                         num_threads: int = NCPU) -> np.ndarray:
     
     print("\033[1;32m*** CONVOLVING SOURCE CUBE ***")
     
@@ -84,20 +88,56 @@ def convolve_source_cube(source_cube: np.ndarray,
     func_to_pool = partial(convolve_source_cube_pool, 
                            diameter_tel=diameter_tel,
                            az_arr = az_arr, 
-                           el_arr = el_arr)
+                           el_arr = el_arr,
+                           edge_taper=edge_taper,
+                           source_cube_unit=source_cube_unit)
     
     with multiprocessing.get_context("spawn").Pool(num_threads) as pool:
         out = np.concatenate(pool.map(func_to_pool, args), axis=-1)
 
     return out
 
-#def ff_from_aperture(az_grid, el_grid, k, R):
+def ff_from_aperture(az_arr, 
+                     el_arr, 
+                     lam, 
+                     R,
+                     edge_taper):
+
+    az_c = np.nanmean(az_arr)
+    el_c = np.nanmean(el_arr)
+
+    nu = az_arr.size*FACTOR_PAD
+    nv = el_arr.size*FACTOR_PAD
+
+    Rk = R  / lam
+
+    sigma = Rk / np.sqrt(2 * np.log(10**(-edge_taper/20)))
+
+    u = np.linspace(-Rk, Rk, nu)*FACTOR_PAD
+    v = np.linspace(-Rk, Rk, nv)*FACTOR_PAD
+                                  
+    du = u[1] - u[0]              
+    dv = v[1] - v[0]              
+
+    ugr, vgr = np.mgrid[-Rk*FACTOR_PAD:Rk*FACTOR_PAD:nu*1j,
+                        -Rk*FACTOR_PAD:Rk*FACTOR_PAD:nv*1j]
+
+    mask_R = np.sqrt(ugr**2 + vgr**2) < Rk
+    aper_power = np.exp(-0.5 * (ugr**2 + vgr**2) / sigma**2) * mask_R
+
+    ff_pattern = np.absolute(fftshift(fft2(aper_power)))**2
+    ff_pattern /= np.nanmax(ff_pattern)
+
+    az_fft = np.arcsin(fftshift(fftfreq(nu, d=du))) * 180 / np.pi + az_c
+    el_fft = np.arcsin(fftshift(fftfreq(nv, d=dv))) * 180 / np.pi + el_c
 
 
-def airy(source_slice, az_grid, el_grid, k, R):
-    theta = np.radians(np.sqrt((az_grid)**2 + (el_grid)**2))
-    airy = np.nan_to_num((2 * j1(k * R * np.sin(theta)) / (k * R * np.sin(theta)))**2, nan=1)
-    airy /= np.nanmax(airy)
+    az_fft_gr, el_fft_gr = np.mgrid[az_fft[0]:az_fft[-1]:nu*1j, 
+                                    el_fft[0]:el_fft[-1]:nv*1j]
+    
+    az_gr, el_gr = np.mgrid[az_arr[0]:az_arr[-1]:az_arr.size*1j, 
+                            el_arr[0]:el_arr[-1]:el_arr.size*1j]
 
-    return np.nansum(source_slice * airy.ravel())
+    ff_pattern_interp = griddata((az_fft_gr.ravel(), el_fft_gr.ravel()), ff_pattern.ravel(), (az_gr, el_gr), method="linear")
 
+    return ff_pattern_interp
