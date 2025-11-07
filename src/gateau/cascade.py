@@ -67,6 +67,7 @@ def window_trans(
     )
 
     eta.append(refr)
+    print(eta)
     psd.append(psd_refr)
 
     if not window_AR:
@@ -296,6 +297,7 @@ def get_cascade(cascade_list: list[dict[str, any]],
                                           casc.get("window_AR"), 
                                           casc.get("T_parasitic_refl"), 
                                           casc.get("T_parasitic_refr")) 
+                print(etas)
                 all_eta.extend(etas)
                 all_psd.extend(psds)
     

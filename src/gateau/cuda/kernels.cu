@@ -159,7 +159,7 @@ __host__ void initCUDA(Instrument *instrument,
     gpuErrchk( cudaMemcpyToSymbol(cnt, &nTimes, sizeof(int)) );
     gpuErrchk( cudaMemcpyToSymbol(cnf_ch, &(instrument->nf_ch), sizeof(int)) );
     gpuErrchk( cudaMemcpyToSymbol(cnum_stage, &num_stage, sizeof(int)) );
-    
+
     // ATMOSPHERE PARAMETERS
     gpuErrchk( cudaMemcpyToSymbol(ch_column, &(atmosphere->h_column), sizeof(float)) );
     gpuErrchk( cudaMemcpyToSymbol(cv_wind, &(atmosphere->v_wind), sizeof(float)) );
@@ -307,7 +307,7 @@ __global__ void calc_power(float *az_trace,
         // DEFINITIONS OF REGISTER VARIABLES //
         ///////////////////////////////////////
         // FLOATS
-        float I_nu;             // Specific intensity of source.
+        float psd_nu;             // Specific intensity of source.
         float t, u;             // Interpolation factors
         float eta_atm_interp;   // Interpolated eta_atm, over frequency and PWV
         float freq;             // Bin frequency
@@ -334,8 +334,8 @@ __global__ void calc_power(float *az_trace,
 
         __syncthreads();
 
-        int iAz = floorf((temp1 - az_src.start) / az_src.step);
-        int iEl = floorf((temp2 - el_src.start) / el_src.step);
+        int iaz = floorf((temp1 - az_src.start) / az_src.step);
+        int iel = floorf((temp2 - el_src.start) / el_src.step);
 
         float az_src_max = az_src.start + az_src.step * (az_src.num - 1);
         float el_src_max = el_src.start + el_src.step * (el_src.num - 1);
@@ -350,18 +350,18 @@ __global__ void calc_power(float *az_trace,
             temp2 = el_src_max;
         }
         
-        x0y0 = f_src.num * (iAz + iEl * az_src.num);
-        x1y0 = f_src.num * (iAz + 1 + iEl * az_src.num);
-        x0y1 = f_src.num * (iAz + (iEl+1) * az_src.num);
-        x1y1 = f_src.num * (iAz + 1 + (iEl+1) * az_src.num);
+        x0y0 = f_src.num * (iaz + iel * az_src.num);
+        x1y0 = f_src.num * (iaz + 1 + iel * az_src.num);
+        x0y1 = f_src.num * (iaz + (iel+1) * az_src.num);
+        x1y1 = f_src.num * (iaz + 1 + (iel+1) * az_src.num);
         
-        t = (temp1 - (az_src.start + az_src.step*iAz)) / az_src.step;
-        u = (temp2 - (el_src.start + el_src.step*iEl)) / el_src.step;
+        t = (temp1 - (az_src.start + az_src.step*iaz)) / az_src.step;
+        u = (temp2 - (el_src.start + el_src.step*iel)) / el_src.step;
         
-        I_nu = (1-t)*(1-u) * source[x0y0 + idy];
-        I_nu += t*(1-u) * source[x1y0 + idy];
-        I_nu += (1-t)*u * source[x0y1 + idy];
-        I_nu += t*u * source[x1y1 + idy];
+        psd_nu = (1-t)*(1-u) * source[x0y0 + idy];
+        psd_nu += t*(1-u) * source[x1y0 + idy];
+        psd_nu += (1-t)*u * source[x0y1 + idy];
+        psd_nu += t*u * source[x1y1 + idy];
 
         freq = f_src.start + f_src.step * idy;
 
@@ -375,7 +375,7 @@ __global__ void calc_power(float *az_trace,
         psd_atm_loc = psd_atm[idy];
 
         // Initial pass through atmosphere
-        psd_in = eta_ap_loc * I_nu * CL*CL / (freq*freq); 
+        psd_in = eta_ap_loc * psd_nu; 
         
         psd_in = rad_trans(psd_in, eta_atm_interp, psd_atm_loc);
 
@@ -797,14 +797,9 @@ void run_gateau(Instrument *instrument,
                 
                 nf_sub_fnt = nf_ch * nt_sub_scr_job;
                 
-                gpuErrchk( cudaMalloc((void**)&d_az_trace, nt_sub_scr_job * sizeof(float)) );
-                gpuErrchk( cudaMalloc((void**)&d_el_trace, nt_sub_scr_job * sizeof(float)) );
-                gpuErrchk( cudaMalloc((void**)&d_pwv_trace, nt_sub_scr_job * sizeof(float)) );
-                gpuErrchk( cudaMalloc((void**)&d_time_trace, nt_sub_scr_job * sizeof(float)) );
                 gpuErrchk( cudaMalloc((void**)&d_sigout, nf_sub_fnt * sizeof(float)) );
-                gpuErrchk( cudaMalloc((void**)&d_nepout, nf_sub_fnt * sizeof(float)) );
                 gpuErrchk( cudaMemcpyToSymbol(cnt, &nt_sub_scr_job, sizeof(int)) );
-
+                
                 if(instrument->use_onef) {
                     int ntscr_h = nt_sub_scr_job / 2 + 1;
                     nBlocks1D = ceilf((float)(ntscr_h) / NTHREADS1D / numSMs);
@@ -856,6 +851,13 @@ void run_gateau(Instrument *instrument,
                 else {
                     gpuErrchk( cudaMemset(d_sigout, 0, nf_sub_fnt * sizeof(float)) );
                 }
+                
+                gpuErrchk( cudaMalloc((void**)&d_az_trace, nt_sub_scr_job * sizeof(float)) );
+                gpuErrchk( cudaMalloc((void**)&d_el_trace, nt_sub_scr_job * sizeof(float)) );
+                gpuErrchk( cudaMalloc((void**)&d_pwv_trace, nt_sub_scr_job * sizeof(float)) );
+                gpuErrchk( cudaMalloc((void**)&d_time_trace, nt_sub_scr_job * sizeof(float)) );
+                gpuErrchk( cudaMalloc((void**)&d_nepout, nf_sub_fnt * sizeof(float)) );
+
                 
                 nBlocks1D = ceilf((float)nt_sub_scr_job / NTHREADS1D / numSMs);
                 blockSize1D = NTHREADS1D;
