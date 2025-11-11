@@ -142,24 +142,11 @@ class simulator(object):
                    telescope_dict: dict[str, any],
                    atmosphere_dict: dict[str, any],
                    source_dict: dict[str, any],
-                   cascade_list: list[dict[str, any]]) -> tuple[np.ndarray, 
-                                                                np.ndarray, 
-                                                                np.ndarray, 
-                                                                np.ndarray]:
+                   cascade_list: list[dict[str, any]],
+                   return_full: bool = False) -> Union[None, dict[str, any]]:
         """!
         Initialise a gateau setup. 
 
-        @param use_ARIS Whether to load an ARIS screen or not. 
-            Some functions of gateau do not require an ARIS screen to be loaded. 
-            Setting this parameter to False could reduce total memory footprint in these cases.
-            Default is True (load the ARIS screen).
-        @param number Number of ARIS chunks to concatenate and load into memory.
-        @param start ARIS chunk to start with. 
-        
-        @returns Three arrays: 
-                - total transmission efficiency of cascade for an astronomical source, averaged over filterbank.
-                - azimuth angle over total scan.
-                - elevation angle over total scan.
 
         @ingroup initialise
         """
@@ -170,7 +157,7 @@ class simulator(object):
         self.set_gateau_dict(atmosphere_dict, gcheck.checkAtmosphereDict, "atmosphere")
         self.set_gateau_dict(source_dict, gcheck.checkSourceDict, "source")
 
-        eta_cascade, psd_cascade = gcascade.get_cascade(cascade_list, self.source["f_src"])
+        eta_cascade, psd_cascade, eta_ap = gcascade.get_cascade(cascade_list, self.source["f_src"])
 
         eta_stage = np.array([x for arr in eta_cascade for x in arr])
         psd_stage = np.array([x for arr in psd_cascade for x in arr])
@@ -258,31 +245,39 @@ class simulator(object):
         if isinstance(self.telescope.get("eta_taper"), float):
             self.telescope["eta_taper"] *= np.ones(self.source["f_src"].size)
         
-        if self.telescope["s_rms"] is not None:
+        if self.telescope.get("s_rms") is not None:
             self.telescope["s_rms"] *= 1e-6 # Convert um to m
 
             eta_surf = np.exp(-(4 * np.pi * self.telescope["s_rms"] * self.source["f_src"] / self.c)**2)
 
             self.telescope["eta_taper"] *= eta_surf 
 
-        # Some handy returns
-        eta_total = copy.deepcopy(self.telescope["eta_taper"])
-        for eta in eta_cascade:
-            eta_total *= eta
+        if return_full:
+            eta_taper = copy.deepcopy(self.telescope["eta_taper"])
+            eta_ap *= eta_taper
 
-        eta_atm = get_eta_atm(self.source["f_src"],
-                              self.atmosphere["PWV0"],
-                              np.mean(el_scan))
+            eta_atm = get_eta_atm(self.source["f_src"],
+                                  self.atmosphere["PWV0"],
+                                  np.mean(el_scan))
 
-        eta_total_chan = goututils.average_over_filterbank(eta_total, 
-                                                           self.instrument["filterbank"],
-                                                           norm = True)
-        
-        eta_atm_chan = goututils.average_over_filterbank(eta_atm, 
-                                                         self.instrument["filterbank"],
-                                                         norm = True)
+            eta_ap_chan = goututils.average_over_filterbank(eta_ap, 
+                                                            self.instrument["filterbank"],
+                                                            norm = True)
+            
+            eta_atm_chan = goututils.average_over_filterbank(eta_atm, 
+                                                             self.instrument["filterbank"],
+                                                             norm = True)
+            
+            out_dict = {
+                    "eta_ap"     : eta_ap_chan,
+                    "eta_atm"    : eta_atm_chan,
+                    "f_ch_arr"   : copy.deepcopy(self.instrument["f_ch_arr"]),
+                    "filterbank" : copy.deepcopy(self.instrument["filterbank"]),
+                    "az_scan"    : az_scan,
+                    "el_scan"    : el_scan
+                    }
 
-        return eta_total_chan, eta_atm_chan, az_scan, el_scan
+            return out_dict 
         
     def run(self, 
             verbosity: int = 1, 

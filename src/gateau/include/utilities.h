@@ -94,6 +94,8 @@ __host__ void resp_calibration(int start,
     float psd_atm_loc;
     float temp1, temp2;
 
+    float *eta_atm_smooth = new float[nf_ch](); 
+
     for(int idx=start; idx<stop; idx++)
     {
         pwv_loc = PWV_START + idx*DPWV;
@@ -131,10 +133,15 @@ __host__ void resp_calibration(int start,
                 psd_in_k = rad_trans(psd_in, eta_kj*temp1, temp2);
 
                 Psky[k*NPWV + idx] += psd_in_k * f_src->step; 
-                Tsky[k*NPWV + idx] += eta_kj * (1 - eta_atm_interp) * Tp_atm / eta_kj_sum[k]; 
+                eta_atm_smooth[k] += eta_kj * eta_atm_interp;
             }
         }
+        for(int k=0; k<nf_ch; k++) {
+            Tsky[k*NPWV + idx] += (1 - eta_atm_smooth[k] / eta_kj_sum[k]) * Tp_atm; 
+            eta_atm_smooth[k] = 0.;
+        }
     }
+    delete[] eta_atm_smooth;
 }
 
 __host__ void fit_calibration(float *Psky,

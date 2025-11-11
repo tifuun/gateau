@@ -375,7 +375,7 @@ __global__ void calc_power(float *az_trace,
         psd_atm_loc = psd_atm[idy];
 
         // Initial pass through atmosphere
-        psd_in = eta_ap_loc * psd_nu; 
+        psd_in = eta_ap_loc * psd_nu * 0.5; 
         
         psd_in = rad_trans(psd_in, eta_atm_interp, psd_atm_loc);
 

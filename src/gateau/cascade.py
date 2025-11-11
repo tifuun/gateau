@@ -67,7 +67,6 @@ def window_trans(
     )
 
     eta.append(refr)
-    print(eta)
     psd.append(psd_refr)
 
     if not window_AR:
@@ -254,14 +253,18 @@ def get_cascade(cascade_list: list[dict[str, any]],
     # Now get eta for groups
     all_eta = []
     all_psd = []
+    eta_ap = np.ones(f_src.size)
 
     for casc_t, idx_group in zip(cascade_type_list_uniq, idx_group_list_uniq):
+        eta_ap_flag = 0
+        
         # This cascade group is reflective
         if casc_t == 0:
             eta_grouped = np.ones(f_src.size)
 
             if (T_casc := cascade_list[idx_group[0]].get("T_parasitic")) == "atmosphere":
                 all_psd.append(-1*np.ones(f_src.size)) # Group couples to atmosphere: set all psd here to -1 and deal with it in CUDA backend.
+                eta_ap_flag = 1
             else:
                 all_psd.append(johnson_nyquist_psd(f_src, T_casc)) # Calculate psd for T_parasitic
 
@@ -286,6 +289,9 @@ def get_cascade(cascade_list: list[dict[str, any]],
                     eta_grouped *= sizer(eta, f_src)
             
             all_eta.append(eta_grouped)
+            
+            if eta_ap_flag:
+                eta_ap *= eta_grouped
         
         if casc_t == 1:
             for idx_g in idx_group:
@@ -297,8 +303,7 @@ def get_cascade(cascade_list: list[dict[str, any]],
                                           casc.get("window_AR"), 
                                           casc.get("T_parasitic_refl"), 
                                           casc.get("T_parasitic_refr")) 
-                print(etas)
                 all_eta.extend(etas)
                 all_psd.extend(psds)
     
-    return all_eta, all_psd
+    return all_eta, all_psd, eta_ap
