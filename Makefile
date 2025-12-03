@@ -11,7 +11,7 @@ INCLUDES    := -Isrc/gateau/include \
 NVCCFLAGS   := -Xcompiler -fPIC -shared
 
 LDFLAGS     := -L$(CUDA_LIB64)
-LDLIBS      := -lgsl -lgslcblas -lcufft_static -lcudart_static -lculibos
+LDLIBS      := -lcfitsio -lgsl -lgslcblas -lcufft_static -lcudart_static -lculibos
 
 CU_SOURCES  := src/gateau/cuda/kernels.cu
 
@@ -24,16 +24,14 @@ all: $(TARGET_WHEEL)
 
 lib: $(TARGET_LIB)
 
-$(TARGET_WHEEL): $(TARGET_WHEEL_WRONG)
+$(TARGET_WHEEL): $(TARGET_LIB)
 	#./scripts/wheelrename.sh
-	cp --reflink=auto $(TARGET_WHEEL_WRONG) $(TARGET_WHEEL)
-
-$(TARGET_WHEEL_WRONG): $(TARGET_LIB)
 	$(PYTHON) -m build
+	mv $(TARGET_WHEEL_WRONG) $(TARGET_WHEEL)
 
 $(TARGET_LIB): $(CU_SOURCES)
 	$(NVCC) $(NVCCFLAGS) $(INCLUDES) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 clean:
-	rm -f $(TARGET_LIB) *.o
+	rm -rf $(TARGET_LIB) *.o dist
 
