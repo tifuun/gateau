@@ -1,6 +1,14 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["uv-build"]
+build-backend = "uv_build"
+
+[tool.uv-build]
+build = [
+    { name = "compile-libgateau", run = "make lib" }
+]
+
+[tool.uv-build.hooks]
+# Additional hooks or custom steps can be added as needed
 
 [project]
 license = "AGPL-3.0-only"
@@ -31,8 +39,6 @@ classifiers = [
 
 requires-python = '>=3.9'
 
-[tool.setuptools.package-data]
-gateau = ["libgateau.so"]
 
 
 

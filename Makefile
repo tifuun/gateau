@@ -20,7 +20,7 @@ TARGET_WHEEL_WRONG  := dist/gateau-$(GATEAU_VERSION)-py3-none-any.whl
 TARGET_WHEEL  := dist/gateau-$(GATEAU_VERSION)-cp39.cp310.cp311.cp312.cp313-none-manylinux_2_31_x86_64.whl
 
 # Default target
-all: $(TARGET_WHEEL)
+wheel: $(TARGET_WHEEL)
 
 lib: $(TARGET_LIB)
 
@@ -31,6 +31,9 @@ $(TARGET_WHEEL): $(TARGET_LIB)
 
 $(TARGET_LIB): $(CU_SOURCES)
 	$(NVCC) $(NVCCFLAGS) $(INCLUDES) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+rename:
+	mv $(TARGET_WHEEL_WRONG) $(TARGET_WHEEL)
 
 clean:
 	rm -rf $(TARGET_LIB) *.o dist
