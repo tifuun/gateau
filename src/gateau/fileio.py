@@ -2,6 +2,11 @@ import numpy as np
 import os
 import struct
 
+NFIELDS = 3
+
+def get_num_chunks(path: str) -> int:
+    return len(os.listdir(path)) // NFIELDS
+
 def unpack_output(path: str, 
                   path_spaxel: str,
                   chunk_idx: int) -> dict[str, np.ndarray]:

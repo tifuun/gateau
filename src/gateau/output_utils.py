@@ -10,8 +10,7 @@ import csv
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RectBivariateSpline
 
-from gateau.parallel import get_num_chunks 
-from gateau.fileio import unpack_output
+from gateau.fileio import get_num_chunks, unpack_output
 from gateau import resources
 
 def yield_output(path, spaxel = 0):
@@ -70,15 +69,4 @@ def average_over_filterbank(array_to_average: np.ndarray,
 
     array_tiled = np.squeeze(array_to_average)[None,:] * filterbank
     return np.nansum(array_tiled, axis=1) / div
-
-
-
-
-
-
-
-
-
-
-
 

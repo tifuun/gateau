@@ -23,7 +23,8 @@ NCPU = multiprocessing.cpu_count()
 def prep_atm_ARIS_pool(args: Tuple[np.ndarray,
                                    int], 
                        path_to_aris: str, 
-                       diameter_tel: float) -> None:
+                       diameter_tel: float,
+                       num_screens: int) -> None:
     Rtel = diameter_tel / 2
     std = Rtel/np.sqrt( 2.*np.log(10.) )
     truncate = Rtel/std
@@ -45,7 +46,7 @@ def prep_atm_ARIS_pool(args: Tuple[np.ndarray,
        
         if not subchunk[0,0]:
             with open(os.path.join(prepd_path, "atm_meta.datp"), "w") as metafile:
-                metafile.write(f"{len(files)} {n_subx} {n_suby}")
+                metafile.write(f"{num_screens} {n_subx} {n_suby}")
 
         dEPL = subchunk[:,2].reshape((n_subx, n_suby))
         dPWV = (1./6.3003663 * dEPL*1e-6)*1e+3 #in mm
@@ -85,7 +86,8 @@ def prep_atm_ARIS(path_to_aris, diameter_tel, num_threads = NCPU):
 
     func_to_pool = partial(prep_atm_ARIS_pool, 
                            path_to_aris=path_to_aris,
-                           diameter_tel=diameter_tel)
+                           diameter_tel=diameter_tel,
+                           num_screens=len(screen_files))
 
     with multiprocessing.get_context("spawn").Pool(num_threads) as pool:
         pool.map(func_to_pool, args)

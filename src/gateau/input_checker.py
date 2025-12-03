@@ -20,7 +20,13 @@ def checkTelescopeDict(telescopeDict):
     return errlist
 
 def checkInstrumentDict(instrumentDict):
-    checklist = ["material", "f0_ch", "f_sample", "box_eq", "order", "radius"]
+    checklist = ["material", 
+                 "f0_ch", 
+                 "f_sample",
+                 "sec_harmonic",
+                 "box_eq", 
+                 "order", 
+                 "radius"]
 
     errlist = []
 
@@ -28,11 +34,26 @@ def checkInstrumentDict(instrumentDict):
     if isinstance(instrumentDict.get("f0_ch"), np.ndarray):
         instrumentDict["nf_ch"] = instrumentDict.get("f0_ch").size
 
+    if instrumentDict.get("sec_harmonic") is None:
+        instrumentDict["sec_harmonic"] = False
+
     if instrumentDict.get("box_eq") is None:
         instrumentDict["box_eq"] = True
 
     if instrumentDict.get("order") is None:
         instrumentDict["order"] = 1
+
+    if instrumentDict.get("onef_level") is None:
+        instrumentDict["use_onef"] = 0
+
+    else:
+        instrumentDict["use_onef"] = 1
+
+    if instrumentDict.get("onef_alpha") is None:
+        instrumentDict["onef_alpha"] = 1
+
+    if instrumentDict.get("onef_conv") is None:
+        instrumentDict["onef_conv"] = 1
 
     if instrumentDict.get("material") is None:
         instrumentDict["material"] = "Al_NbTiN"

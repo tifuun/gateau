@@ -39,6 +39,9 @@ def allfillInstrument(InstDict: dict[str, any],
     arr_filterbank = ar.array('f', InstDict["filterbank"].ravel())
     arr_az_fpa = ar.array('f', InstDict["pointings"][0].ravel())
     arr_el_fpa = ar.array('f', InstDict["pointings"][1].ravel())
+    arr_onef_level = ar.array('f', InstDict["onef_level"].ravel())
+    arr_onef_conv = ar.array('f', InstDict["onef_conv"].ravel())
+    arr_onef_alpha = ar.array('f', InstDict["onef_alpha"].ravel())
 
     InstStruct.nf_ch = c_int(InstDict["nf_ch"])
     InstStruct.f_sample = c_float(InstDict["f_sample"])
@@ -48,6 +51,10 @@ def allfillInstrument(InstDict: dict[str, any],
     InstStruct.az_fpa = (c_float * InstDict["pointings"][0].size).from_buffer(arr_az_fpa)
     InstStruct.el_fpa = (c_float * InstDict["pointings"][1].size).from_buffer(arr_el_fpa)
     InstStruct.num_spax = c_int(InstDict["pointings"][0].size)
+    InstStruct.use_onef = c_int(InstDict["use_onef"])
+    InstStruct.onef_level = (c_float * InstDict["nf_ch"]).from_buffer(arr_onef_level)
+    InstStruct.onef_conv = (c_float * InstDict["nf_ch"]).from_buffer(arr_onef_conv)
+    InstStruct.onef_alpha = (c_float * InstDict["nf_ch"]).from_buffer(arr_onef_alpha)
 
 def allfillTelescope(TelDict: dict[str, any], 
                      TelStruct: Structure) -> None:
