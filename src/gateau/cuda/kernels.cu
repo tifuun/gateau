@@ -1,5 +1,8 @@
 #include "interface.h"
 
+
+#include <fitsio.h>
+
 /*! \file Kernels.cu
     \brief Definitions of CUDA kernels for gateau.
 
@@ -343,8 +346,10 @@ __global__ void calc_power(float *az_trace,
         float az_src_max = az_src.start + az_src.step * (az_src.num - 1);
         float el_src_max = el_src.start + el_src.step * (el_src.num - 1);
 
-        bool offsource = ((temp1 < az_src.start) or (temp1 > az_src_max)) or 
-                         ((temp2 < el_src.start) or (temp2 > el_src_max));
+	// THis line used to have `or` instead of `||` but apparently
+	// Bill Gates says this is a no-no
+        bool offsource = ((temp1 < az_src.start) || (temp1 > az_src_max)) || 
+                         ((temp2 < el_src.start) || (temp2 > el_src_max));
 
         // This can be improved quite alot...
         if(offsource) 
@@ -477,6 +482,15 @@ void run_gateau(Instrument *instrument,
                  char *atmpath
 		 ) 
 {
+	// TESTING CFITSIO
+
+    fitsfile *fptr;
+    int status=0;
+    fits_open_file(&fptr, "tq123x.kjl", READWRITE, &status);
+    printf("  ffopen fptr, status  = %lu %d (expect an error)\n", 
+           (unsigned long) fptr, status);
+    ffclos(fptr, &status);
+
     // DEVICE POINTERS: FLOATS
     float *d_sigout;        // Output power/temperature array
     float *d_nepout;        // Output NEP array

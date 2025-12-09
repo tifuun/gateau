@@ -1,3 +1,4 @@
+from gateau import types
 from gateau import bindings
 from gateau import output_utils
 from gateau import source_utils
@@ -15,6 +16,7 @@ __all__ = [
     'source_utils',
     'atmosphere_utils',
     'selftest',
+    'types',
     ]
 
 

@@ -3,15 +3,19 @@ cmake_minimum_required(VERSION 3.16.3)
 project(gateau 
 	VERSION 0.1.4 
 	DESCRIPTION "gateau: GPU-Accelerated Time-dEpendent observAtion simUlator"
-	LANGUAGES CXX C)
+	LANGUAGES CXX C CUDA)
 
 option(BUILD_TESTS "Build unit tests with Google Test" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+<<<<<<< HEAD
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(CFITSIO REQUIRED cfitsio)
+=======
+
+>>>>>>> origin/maybetree
 find_package(GSL REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
@@ -23,21 +27,43 @@ if(NOT BUILD_TESTS)
 	if("${SKBUILD_STATE}" STREQUAL "editable")
 		set(
 			CMAKE_LIBRARY_OUTPUT_DIRECTORY
-			"${CMAKE_CURRENT_SOURCE_DIR}/src/${SKBUILD_PROJECT_NAME}"
+			"${CMAKE_CURRENT_SOURCE_DIR}\\src\\gateau"
 		)
 	else()
 		set(
 			CMAKE_LIBRARY_OUTPUT_DIRECTORY
-			"${SKBUILD_PLATLIB_DIR}/${SKBUILD_PROJECT_NAME}"
+			"${SKBUILD_PLATLIB_DIR}\\gateau"
 		)
 	endif()
+
+	#set(
+	#	CMAKE_LIBRARY_OUTPUT_DIRECTORY
+	#	"Z:\\src\\gateau"
+	#)
 
 	if(CMAKE_CUDA_COMPILER)
 		enable_language(CUDA)
 		file(GLOB CUDAfiles src/gateau/cuda/*.cu)
 
 		add_library(gateau SHARED ${CUDAfiles})
+
+
+		target_include_directories(gateau
+			PRIVATE
+			Z:\\win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native
+		)
+
+		target_link_libraries(gateau
+			Z:\\win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native\\static\\gsl.lib
+			Z:\\win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native\\static\\gslcblas.lib
+		)
+
+
 		target_include_directories(gateau PRIVATE src/gateau/cuda src/gateau/include)
+
+
+
+
 		set_target_properties(gateau PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 		set_property(TARGET gateau PROPERTY CUDA_ARCHITECTURES OFF)
         target_include_directories(gateau PRIVATE ${CFITSIO_INCLUDE_DIRS})
@@ -49,6 +75,14 @@ if(NOT BUILD_TESTS)
 			target_include_directories(gateau PRIVATE ${GSL_INCLUDE_DIRS})
 			target_link_libraries(gateau PRIVATE ${GSL_LIBRARIES})
 		endif()
+
+
+		# Only needed on w*ndows?
+		install(TARGETS gateau
+			LIBRARY DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
+			RUNTIME DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
+		)
+
 	else()
 		message(FATAL_ERROR "FATAL ERROR: no CUDA compiler detected. Not building GATEAU.")
 	endif()
@@ -78,4 +112,5 @@ else()
     gtest_discover_tests(gateau_tests)
 
 endif()
+
 

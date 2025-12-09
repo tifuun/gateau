@@ -1,6 +1,14 @@
 [build-system]
-requires = ["scikit-build-core"]
-build-backend = "scikit_build_core.build"
+requires = ["uv-build"]
+build-backend = "uv_build"
+
+[tool.uv-build]
+build = [
+    { name = "compile-libgateau", run = "make lib" }
+]
+
+[tool.uv-build.hooks]
+# Additional hooks or custom steps can be added as needed
 
 [project]
 license = "AGPL-3.0-only"
@@ -31,13 +39,6 @@ classifiers = [
 
 requires-python = '>=3.9'
 
-[tool.scikit-build]
-build.verbose = true
-logging.level = "DEBUG"
-#editable.mode = "inplace"
-#wheel.packages = ["gateau"]
 
-#[tool.scikit-build.cmake.define]
-#CMAKE_LIBRARY_OUTPUT_DIRECTORY = "src/gateau"
 
 

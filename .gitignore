@@ -15,6 +15,10 @@
 # Damn you steve jobs!!!!
 .DS_Store
 
+# Damn you bill gates!!!!
+$RECYCLE.BIN
+System Volume Information
+
 # vscope
 .vscode/*
 *.code-workspace
@@ -38,6 +42,7 @@
 *.out
 *.a
 *.so
+*.dll
 
 # Python
 __pycache__/
@@ -94,6 +99,8 @@ CMakeInit.txt
 # Allow .dat, it's used for resources
 !*.dat
 
+venv
+tmp
 docs
 doxy/docs
 podman/output
@@ -102,6 +109,18 @@ gateau_test
 gateau_tests
 gsl
 
+win/dep/*
+!win/dep/*.zip
+!win/dep/*.exe
+!win/dep/*.zst
+!win/dep/*.msi
+win/vim/old*
 
+win/tmp
+
+!archive/wheel/*.tar.gz
+
+!win/pipcache
+*.deb
 
 
