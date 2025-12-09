@@ -285,10 +285,11 @@ __global__ void calc_power(float *az_trace,
                             ArrSpec az_src, 
                             ArrSpec el_src,
                             ArrSpec f_src,
-                            float *eta_ap,
+                            float *eta_illum,
                             float *psd_atm,
                             float *eta_cascade,
                             float *psd_cascade,
+                            float *psd_cmb,
                             float *eta_atm,
                             float *filterbank,
                             float *sigout, 
@@ -314,9 +315,11 @@ __global__ void calc_power(float *az_trace,
         float psd_in;           // Local variable for storing PSD.
         float psd_in_k;         // Local variable for calculating psd per channel
         float eta_kj;           // Filter efficiency for bin j, at channel k.
-        float eta_ap_loc;       // Local variable for storing aperture efficiency
+        float eta_illum_loc;       // Local variable for storing aperture efficiency
         float sigfactor;        // Factor for calculating power. Perform outside of channel loop for speed.
         float psd_parasitic_use;
+        float psd_cmb_loc;
+        float psd_sky;
         float temp1, temp2, temp3;
         float psd_atm_loc;
 
@@ -369,14 +372,19 @@ __global__ void calc_power(float *az_trace,
                     &pwv_atm, &f_atm,
                     eta_atm, 0, eta_atm_interp);
 
-        eta_ap_loc = eta_ap[idy]; 
+        eta_illum_loc = eta_illum[idy]; 
 
         eta_atm_interp = __powf(eta_atm_interp, csc_el_shared[threadIdx.x]);
         psd_atm_loc = psd_atm[idy];
-
-        // Initial pass through atmosphere
-        psd_in = eta_ap_loc * psd_nu * 0.5; 
         
+        psd_cmb_loc = psd_cmb[idy];
+        // Coupling to source
+        psd_in = eta_illum_loc * psd_nu * 0.5 + psd_cmb_loc;
+
+        // Calculate blank sky psd for stages involving spillover to sky
+        psd_sky = rad_trans(psd_cmb_loc, eta_atm_interp, psd_atm_loc);
+        
+        // Initial pass through atmosphere
         psd_in = rad_trans(psd_in, eta_atm_interp, psd_atm_loc);
 
         // Radiative transfer cascade
@@ -386,7 +394,7 @@ __global__ void calc_power(float *az_trace,
             psd_parasitic_use = psd_cascade[n*f_src.num + idy];
             if (psd_parasitic_use < 0) 
             {
-                psd_parasitic_use = eta_atm_interp * psd_atm_loc;
+                psd_parasitic_use = psd_sky;
             }
 
             psd_in = rad_trans(psd_in, eta_cascade[n*f_src.num + idy], psd_parasitic_use);
@@ -399,11 +407,12 @@ __global__ void calc_power(float *az_trace,
         for(int k=0; k<cnf_ch; k++) {
             eta_kj = filterbank[k*f_src.num + idy] * temp1;
             psd_in_k = rad_trans(psd_in, eta_kj, temp2);
+            //psd_in_k = psd_in * eta_kj;
 
             sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
 
             atomicAdd(&sigout[k*cnt + idx], sigfactor); 
-            atomicAdd(&nepout[k*cnt + idx], sigfactor * (HP * freq + eta_kj * psd_in_k + cGR_factor)); 
+            atomicAdd(&nepout[k*cnt + idx], sigfactor * (HP * freq + psd_in_k + cGR_factor)); 
         }
     }
 }
@@ -574,16 +583,18 @@ void run_gateau(Instrument *instrument,
     gpuErrchk( cudaMemcpy(d_psd_atm, psd_atm.data(), nf_src * sizeof(float), cudaMemcpyHostToDevice) );
     
     // Allocate cascade arrays
-    float *d_eta_cascade, *d_psd_cascade;
+    float *d_eta_cascade, *d_psd_cascade, *d_psd_cmb;
     gpuErrchk( cudaMalloc((void**)&d_eta_cascade, nf_src * (cascade->num_stage + 1) * sizeof(float)) );
     gpuErrchk( cudaMalloc((void**)&d_psd_cascade, nf_src * (cascade->num_stage + 1) * sizeof(float)) );
+    gpuErrchk( cudaMalloc((void**)&d_psd_cmb, nf_src * sizeof(float)) );
     gpuErrchk( cudaMemcpy(d_eta_cascade, cascade->eta_cascade, nf_src * (cascade->num_stage + 1) * sizeof(float), cudaMemcpyHostToDevice) );
     gpuErrchk( cudaMemcpy(d_psd_cascade, cascade->psd_cascade, nf_src * (cascade->num_stage + 1) * sizeof(float), cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaMemcpy(d_psd_cmb, cascade->psd_cmb, nf_src * sizeof(float), cudaMemcpyHostToDevice) );
     
     // Allocate and copy telescope arrays
-    float *d_eta_ap;
-    gpuErrchk( cudaMalloc((void**)&d_eta_ap, nf_src * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_eta_ap, telescope->eta_ap, nf_src * sizeof(float), cudaMemcpyHostToDevice) );
+    float *d_eta_illum;
+    gpuErrchk( cudaMalloc((void**)&d_eta_illum, nf_src * sizeof(float)) );
+    gpuErrchk( cudaMemcpy(d_eta_illum, telescope->eta_illum, nf_src * sizeof(float), cudaMemcpyHostToDevice) );
 
     float *d_az_scan, *d_el_scan;
     gpuErrchk( cudaMalloc((void**)&d_az_scan, nttot * sizeof(float)) );
@@ -608,7 +619,6 @@ void run_gateau(Instrument *instrument,
     float *c0 = new float[nf_ch];
     float *c1 = new float[nf_ch];
     
-    // Change this so that it takes a variable
     if(!strcmp(outscale, tb_str))
     {
         float *Psky = new float[nf_ch * NPWV]();
@@ -649,6 +659,7 @@ void run_gateau(Instrument *instrument,
                     nf_ch,
                     cascade->eta_cascade, 
                     cascade->psd_cascade,
+                    cascade->psd_cmb,
                     cascade->num_stage, 
                     psd_atm.data(), 
                     eta_atm,
@@ -907,10 +918,11 @@ void run_gateau(Instrument *instrument,
                                   az_src, 
                                   el_src,
                                   f_src,
-                                  d_eta_ap,
+                                  d_eta_illum,
                                   d_psd_atm,
                                   d_eta_cascade,
                                   d_psd_cascade, 
+                                  d_psd_cmb, 
                                   d_eta_atm,
                                   d_filterbank,
                                   d_sigout,

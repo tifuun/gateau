@@ -75,6 +75,7 @@ __host__ void resp_calibration(int start,
                     int nf_ch,
                     float *eta_cascade,
                     float *psd_cascade,
+                    float *psd_cmb,
                     int num_stage,
                     float *psd_atm,
                     float *eta_atm,
@@ -90,6 +91,8 @@ __host__ void resp_calibration(int start,
     float psd_in_k;         // Local variable for calculating psd per channel
     float eta_kj;           // Filter efficiency for bin j, at channel k.
     float psd_parasitic_use;
+    float psd_cmb_loc;
+    float psd_sky;
     float pwv_loc;
     float psd_atm_loc;
     float temp1, temp2;
@@ -108,9 +111,12 @@ __host__ void resp_calibration(int start,
                         eta_atm, 0, eta_atm_interp);
             
             psd_atm_loc = psd_atm[idy];
+            psd_cmb_loc = psd_cmb[idy];
 
             // Initial pass through atmosphere
-            psd_in = rad_trans(0., eta_atm_interp, psd_atm_loc);
+            psd_sky = rad_trans(psd_cmb_loc, eta_atm_interp, psd_atm_loc);
+            //psd_in = psd_cmb_loc;//psd_sky;
+            psd_in = psd_sky;
 
             // Radiative transfer cascade
             for (int n=0; n<num_stage; n++) 
@@ -118,7 +124,7 @@ __host__ void resp_calibration(int start,
                 psd_parasitic_use = psd_cascade[n*f_src->num + idy];
                 if (psd_parasitic_use < 0) 
                 {
-                    psd_parasitic_use = eta_atm_interp * psd_atm_loc;
+                    psd_parasitic_use = psd_sky;
                 }
 
                 psd_in = rad_trans(psd_in, eta_cascade[n*f_src->num + idy], psd_parasitic_use);
@@ -131,6 +137,7 @@ __host__ void resp_calibration(int start,
                 eta_kj = filterbank[k*f_src->num + idy];
 
                 psd_in_k = rad_trans(psd_in, eta_kj*temp1, temp2);
+                //psd_in_k = psd_in * eta_kj*temp1;
 
                 Psky[k*NPWV + idx] += psd_in_k * f_src->step; 
                 eta_atm_smooth[k] += eta_kj * eta_atm_interp;
