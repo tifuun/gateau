@@ -539,6 +539,8 @@ void run_gateau(Instrument *instrument,
     std::string str_path(atmosphere->path);
     std::string str_outpath(outpath);
 
+    OutputFile test("test.h5");
+
     int *meta;
     readAtmMeta(&meta, str_path);
     

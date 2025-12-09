@@ -37,6 +37,20 @@ void readAtmScreen(T **PWV_screen, U *x_spec, U *y_spec, std::string path, std::
 template <typename T>
 void write1DArray(T *array, int narr, std::string path, std::string name);
 
+class OutputFile {
+    public:
+        hid_t   file_id;
+        herr_t  status;
+
+        OutputFile(const char *filename) {
+            this->file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+        }
+
+        ~OutputFile() {
+            H5Fclose(this->file_id);
+        }
+};
+
 #endif
 
 void readAtmMeta(int **meta, std::string path) {

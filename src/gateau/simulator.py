@@ -257,27 +257,18 @@ class simulator(object):
         
 
         #### INITIALISING TELESCOPE PARAMETERS ####
-<<<<<<< HEAD
         self.telescope["eta_ruze"] = np.ones(self.source["f_src"].size)
         if isinstance(self.telescope.get("eta_taper"), float):
             self.telescope["eta_taper"] *= np.ones(self.source["f_src"].size)
-=======
-        if isinstance(self.telescope.get("eta_ap"), float):
-            self.telescope["eta_ap"] *= np.ones(self.source["f_src"].size)
->>>>>>> origin/maybetree
         
         if self.telescope.get("s_rms") is not None:
             self.telescope["s_rms"] *= 1e-6 # Convert um to m
 
             eta_surf = np.exp(-(4 * np.pi * self.telescope["s_rms"] * self.source["f_src"] / self.c)**2)
 
-<<<<<<< HEAD
             self.telescope["eta_ruze"] *= eta_surf 
 
         self.telescope["eta_illum"] = self.telescope["eta_taper"] * self.telescope["eta_ruze"]
-=======
-            self.telescope["eta_ap"] *= eta_surf 
->>>>>>> origin/maybetree
 
         if return_full:
             eta_illum = copy.deepcopy(self.telescope["eta_illum"])
