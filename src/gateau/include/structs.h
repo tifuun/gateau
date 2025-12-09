@@ -22,6 +22,7 @@ struct ArrSpec {
 struct Cascade {
     float *eta_cascade; /**< Efficiency terms associated with each stage of this cascade.*/
     float *psd_cascade; /**< Power spectral density of each parasitic source of this cascade.*/
+    float *psd_cmb; /**< Power spectral density of each parasitic source of this cascade.*/
     int num_stage; /**< Number of (grouped) stages in cascade.*/
 };
 
@@ -41,7 +42,7 @@ struct Instrument {
 };
 
 struct Telescope {
-    float *eta_ap;      /**< Array of aperture efficiencies.*/
+    float *eta_illum;      /**< Array of aperture efficiencies.*/
     float *az_scan;     /**< Azimuth co-ordinates of scan strategy for simulation.*/
     float *el_scan;     /**< Elevation co-ordinates of scan strategy for simulation.*/
     float *az_scan_center;     /**< Azimuth center co-ordinates of scan strategy for simulation.*/

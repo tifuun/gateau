@@ -157,7 +157,7 @@ class simulator(object):
         self.set_gateau_dict(atmosphere_dict, gcheck.checkAtmosphereDict, "atmosphere")
         self.set_gateau_dict(source_dict, gcheck.checkSourceDict, "source")
 
-        eta_cascade, psd_cascade, eta_ap = gcascade.get_cascade(cascade_list, self.source["f_src"])
+        eta_cascade, psd_cascade, eta_ap, psd_cmb = gcascade.get_cascade(cascade_list, self.source["f_src"])
 
         eta_stage = np.array([x for arr in eta_cascade for x in arr])
         psd_stage = np.array([x for arr in psd_cascade for x in arr])
@@ -165,8 +165,10 @@ class simulator(object):
         self.cascade = {
                 "eta_stage"     : eta_stage,
                 "psd_stage"     : psd_stage,
-                "num_stage"     : len(eta_cascade) - 1
+                "num_stage"     : len(eta_cascade) - 1,
+                "psd_cmb"       : psd_cmb
                 }
+
 
         #### END SETUP INITIALISATION ####
         self.initialisedSetup = True
@@ -216,7 +218,20 @@ class simulator(object):
             idx_ch_arr = np.arange(self.instrument["nf_ch"])
             self.instrument["f_ch_arr"] = f0_ch * (1 + 1 / self.instrument["R"])**idx_ch_arr
                 
-        self.instrument["filterbank"] = gifu.generateFilterbankFromR(self.instrument, self.source)
+        if self.instrument["single_line"]:
+            self.instrument["filterbank"] = gifu.generate_filterbank(self.instrument, self.source)
+        else:
+            self.instrument["filterbank"] = gifu.generate_filterbank_independent(self.instrument, self.source)
+
+        # Now normalize to unit average peak height
+        max_peak_mean = np.nanmean(
+            np.nanmax(
+                self.instrument["filterbank"], 
+                axis=-1
+                )
+            )
+
+        self.instrument["filterbank"] /= max_peak_mean
 
         if self.instrument["use_onef"]:
             if isinstance(self.instrument["onef_level"], float) or isinstance(self.instrument["onef_level"], int):
@@ -242,19 +257,37 @@ class simulator(object):
         
 
         #### INITIALISING TELESCOPE PARAMETERS ####
+<<<<<<< HEAD
+        self.telescope["eta_ruze"] = np.ones(self.source["f_src"].size)
+        if isinstance(self.telescope.get("eta_taper"), float):
+            self.telescope["eta_taper"] *= np.ones(self.source["f_src"].size)
+=======
         if isinstance(self.telescope.get("eta_ap"), float):
             self.telescope["eta_ap"] *= np.ones(self.source["f_src"].size)
+>>>>>>> origin/maybetree
         
         if self.telescope.get("s_rms") is not None:
             self.telescope["s_rms"] *= 1e-6 # Convert um to m
 
             eta_surf = np.exp(-(4 * np.pi * self.telescope["s_rms"] * self.source["f_src"] / self.c)**2)
 
+<<<<<<< HEAD
+            self.telescope["eta_ruze"] *= eta_surf 
+
+        self.telescope["eta_illum"] = self.telescope["eta_taper"] * self.telescope["eta_ruze"]
+=======
             self.telescope["eta_ap"] *= eta_surf 
+>>>>>>> origin/maybetree
 
         if return_full:
-            eta_taper = copy.deepcopy(self.telescope["eta_taper"])
-            eta_ap *= eta_taper
+            eta_illum = copy.deepcopy(self.telescope["eta_illum"])
+            eta_ap *= eta_illum
+
+            for i, eta_cascade_stage in enumerate(eta_cascade):
+                if not i:
+                    eta_tot = eta_cascade_stage
+                else:
+                    eta_tot *= eta_cascade_stage
 
             eta_atm = get_eta_atm(self.source["f_src"],
                                   self.atmosphere["PWV0"],
@@ -268,9 +301,14 @@ class simulator(object):
                                                              self.instrument["filterbank"],
                                                              norm = True)
             
+            eta_tot_chan = goututils.average_over_filterbank(eta_tot, 
+                                                             self.instrument["filterbank"],
+                                                             norm = True)
+            
             out_dict = {
                     "eta_ap"     : eta_ap_chan,
                     "eta_atm"    : eta_atm_chan,
+                    "eta_tot"    : eta_tot_chan,
                     "f_ch_arr"   : copy.deepcopy(self.instrument["f_ch_arr"]),
                     "filterbank" : copy.deepcopy(self.instrument["filterbank"]),
                     "az_scan"    : az_scan,

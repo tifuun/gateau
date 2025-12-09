@@ -10,7 +10,12 @@ option(BUILD_TESTS "Build unit tests with Google Test" OFF)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+<<<<<<< HEAD
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(CFITSIO REQUIRED cfitsio)
+=======
 
+>>>>>>> origin/maybetree
 find_package(GSL REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
@@ -61,6 +66,8 @@ if(NOT BUILD_TESTS)
 
 		set_target_properties(gateau PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 		set_property(TARGET gateau PROPERTY CUDA_ARCHITECTURES OFF)
+        target_include_directories(gateau PRIVATE ${CFITSIO_INCLUDE_DIRS})
+        target_link_libraries(gateau PRIVATE ${CFITSIO_LIBRARIES})
         target_link_libraries(gateau PRIVATE CUDA::cufft)
 		if(TARGET GSL::gsl)
 			target_link_libraries(gateau PRIVATE GSL::gsl)

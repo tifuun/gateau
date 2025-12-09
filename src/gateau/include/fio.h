@@ -11,6 +11,8 @@
 //#include <cxxabi.h> THIS IS NOT PRESENT ON MICROSHIT CPP COMPILER
 #include <filesystem>
 
+#include "hdf5.h"
+
 #include "structs.h"
 
 #ifndef __FILEIO_H
@@ -21,6 +23,8 @@ namespace fs = std::filesystem;
 #define NPWVATM  55
 #define NFREQ   8301
 #define NATMGRID 3
+#define COLBUFF 16
+#define FMTBUFF 4
 
 void readAtmMeta(int **meta, std::string path);
 
