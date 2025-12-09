@@ -1,36 +1,11 @@
-#### Stage find: find CUDA ####
+# Try to locate nvcc
+NVCC := $(shell which nvcc 2>/dev/null)
 
-# Candidate CUDA root directories
-CUDA_CANDIDATES := \
-    /usr/local/cuda \
-    /usr/local/cuda-12.0 \
-    /usr/local/cuda-11.8 \
-    /opt/cuda \
-    /usr \
-    /usr/lib \
-    /lib
+# Infer CUDA_HOME from nvcc's path
+CUDA_HOME ?= $(dir $(NVCC))/..
 
-# Try to detect where libcudart or another CUDA library is
-CUDA_LIB_SEARCH := lib/libcudart.so lib64/libcudart.so
-
-# Find a CUDA root containing a CUDA runtime library
-CUDA_HOME := $(firstword $(foreach dir,$(CUDA_CANDIDATES), \
-                $(foreach lib,$(CUDA_LIB_SEARCH), \
-                    $(if $(wildcard $(dir)/$(lib)),$(dir),) )))
-
-# If nothing was found, fallback or error
-ifeq ($(CUDA_HOME),)
-  $(warning CUDA not found in common locations)
-  CUDA_HOME := /usr/local/cuda  # fallback or remove this and force error
-endif
-
-# Derive include/lib paths
-CUDA_INC := $(CUDA_HOME)/include
-CUDA_LIB := $(CUDA_HOME)/lib64
-# Optionally search for lib as well:
-ifneq ($(wildcard $(CUDA_HOME)/lib),)
-  CUDA_LIB := $(CUDA_HOME)/lib
-endif
+# Fallback in case nvcc isn't in PATH
+CUDA_HOME := $(abspath $(CUDA_HOME))
 
 GATEAU_VERSION := 0.1.6
 PYTHON         := python3
@@ -38,12 +13,13 @@ PYTHON         := python3
 NVCC        := $(CUDA_HOME)/bin/nvcc
 
 INCLUDES    := -Isrc/gateau/include \
-               -Isrc/gateau/cuda
+               -Isrc/gateau/cuda \
+	       -I/usr/include/hdf5/serial
 
 NVCCFLAGS   := -Xcompiler -fPIC -shared
 
-LDFLAGS     := -L$(CUDA_LIB)
-LDLIBS      := -lcfitsio -lgsl -lgslcblas -lcufft_static -lcudart_static -lculibos
+LDFLAGS     := -L$(CUDA_HOME)/lib64
+LDLIBS      := -lgsl -lgslcblas -lcufft_static -lcudart_static -lculibos
 
 CU_SOURCES  := src/gateau/cuda/kernels.cu
 

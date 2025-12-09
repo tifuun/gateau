@@ -1,7 +1,7 @@
 #include "interface.h"
 
 
-#include <fitsio.h>
+//#include <fitsio.h>
 
 /*! \file Kernels.cu
     \brief Definitions of CUDA kernels for gateau.
@@ -484,12 +484,12 @@ void run_gateau(Instrument *instrument,
 {
 	// TESTING CFITSIO
 
-    fitsfile *fptr;
-    int status=0;
-    fits_open_file(&fptr, "tq123x.kjl", READWRITE, &status);
-    printf("  ffopen fptr, status  = %lu %d (expect an error)\n", 
-           (unsigned long) fptr, status);
-    ffclos(fptr, &status);
+    //fitsfile *fptr;
+    //int status=0;
+    //fits_open_file(&fptr, "tq123x.kjl", READWRITE, &status);
+    //printf("  ffopen fptr, status  = %lu %d (expect an error)\n", 
+    //       (unsigned long) fptr, status);
+    //ffclos(fptr, &status);
 
     // DEVICE POINTERS: FLOATS
     float *d_sigout;        // Output power/temperature array
