@@ -18,8 +18,9 @@ INCLUDES    := -Isrc/gateau/include \
 
 NVCCFLAGS   := -Xcompiler -fPIC -shared
 
-LDFLAGS     := -L$(CUDA_HOME)/lib64
-LDLIBS      := -lgsl -lgslcblas -lcufft_static -lcudart_static -lculibos
+LDFLAGS     := -L$(CUDA_HOME)/lib64 \
+	       -L /usr/lib/x86_64-linux-gnu/hdf5/serial
+LDLIBS      := -lgsl -lgslcblas -lcufft_static -lcudart_static -lculibos -lhdf5
 
 CU_SOURCES  := src/gateau/cuda/kernels.cu
 
