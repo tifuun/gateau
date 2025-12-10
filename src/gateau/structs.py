@@ -31,6 +31,7 @@ class Instrument(Structure):
     """
 
     _fields_ = [("nf_ch", c_int),
+                ("f_ch", POINTER(c_float)),
                 ("f_sample", c_float),
                 ("filterbank", POINTER(c_float)),
                 ("delta", c_float),

@@ -169,6 +169,30 @@ __host__ void initCUDA(Instrument *instrument,
     gpuErrchk( cudaMemcpyToSymbol(cpwv0, &(atmosphere->pwv0), sizeof(float)) );
 }
 
+// Kernel to convert column-major flattened array to row-major flattened array
+__global__ void transpose_flat_array(
+        float *out, 
+        const float *in, 
+        int rows, 
+        int cols)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int size = rows * cols;
+
+    if (idx < size) 
+    {
+        // Compute logical row (r) and column (c) of this element in ROW-MAJOR indexing
+        int r = idx / cols;
+        int c = idx % cols;
+
+        // Convert to the corresponding column-major index
+        int colMajorIndex = c * rows + r;
+        int rowMajorIndex = idx;
+
+        out[rowMajorIndex] = in[colMajorIndex];
+    }
+}
+
 /**
   Initialize random number generator state.
 
@@ -412,7 +436,6 @@ __global__ void calc_power(float *az_trace,
         for(int k=0; k<cnf_ch; k++) {
             eta_kj = filterbank[k*f_src.num + idy] * temp1;
             psd_in_k = rad_trans(psd_in, eta_kj, temp2);
-            //psd_in_k = psd_in * eta_kj;
 
             sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
 
@@ -539,8 +562,6 @@ void run_gateau(Instrument *instrument,
     std::string str_path(atmosphere->path);
     std::string str_outpath(outpath);
 
-    OutputFile test("test.h5");
-
     int *meta;
     readAtmMeta(&meta, str_path);
     
@@ -575,6 +596,17 @@ void run_gateau(Instrument *instrument,
 
     nf_src = f_src.num; // Number of spectral points in source
     nf_ch = instrument->nf_ch;
+
+    // Make array of times
+    float *times_arr = new float[nttot];
+    for (int ii=0; ii<nttot; ii++) {
+        times_arr[ii] = ii / instrument->f_sample;
+    }
+
+    // Instantiate and write filter freqs to output file
+    OutputFile outfile(outpath, nttot, nf_ch, instrument->f_ch, times_arr, telescope->az_scan, telescope->el_scan);
+    delete[] times_arr;
+
     
     gpuErrchk( cudaDeviceGetAttribute(&numSMs, cudaDevAttrMultiProcessorCount, 0) );
 
@@ -762,9 +794,12 @@ void run_gateau(Instrument *instrument,
     for(int idx_spax=0; idx_spax<num_spax; idx_spax++) 
     {
         printf("Simulating spaxel %d / %d\n", idx_spax+1, num_spax);
+
         gpuErrchk( cudaMemcpyToSymbol(cnt, &ntscr, sizeof(int)) );
         az_fpa = instrument->az_fpa[idx_spax];
         el_fpa = instrument->el_fpa[idx_spax];
+
+        outfile.open_spaxel(idx_spax, az_fpa, el_fpa);
 
         idx_wrap = 0;
         idx_offset = 0;
@@ -819,8 +854,6 @@ void run_gateau(Instrument *instrument,
                 if (idx_sub == (num_blocks_in_screen - 1)) {
                     nt_sub_scr_job = ntscr_job - nt_sub_scr * idx_sub;
                 }
-
-                if(nt_sub_scr_job % 2){nt_sub_scr_job -= 1;}  // For 1/f calculation, easier if ntscr is odd
                 
                 nf_sub_fnt = nf_ch * nt_sub_scr_job;
                 
@@ -922,6 +955,8 @@ void run_gateau(Instrument *instrument,
                                        d_time_trace, 
                                        idx_offset);
                 gpuErrchk( cudaDeviceSynchronize() );
+                
+                gpuErrchk( cudaFree(d_time_trace) );
 
                 // CALL TO MAIN SIMULATION KERNEL
                 calc_power<<<gridSize2D, 
@@ -946,6 +981,10 @@ void run_gateau(Instrument *instrument,
                                   d_I_nu);
                 
                 gpuErrchk( cudaDeviceSynchronize() );
+                
+                gpuErrchk( cudaFree(d_pwv_trace) );
+                gpuErrchk( cudaFree(d_az_trace) );
+                gpuErrchk( cudaFree(d_el_trace) );
 
                 calc_photon_noise<<<gridSize1D, 
                                     blockSize1D>>>
@@ -959,37 +998,32 @@ void run_gateau(Instrument *instrument,
                 gpuErrchk( cudaDeviceSynchronize() );
                 
                 gpuErrchk( cudaFree(d_nepout) );
-                gpuErrchk( cudaFree(d_pwv_trace) );
                 
-                // ALLOCATE STRINGS FOR WRITING OUTPUT
-                std::string signame = std::to_string(idx_write) + "signal.out";
-                std::string azname = std::to_string(idx_write) + "az.out";
-                std::string elname = std::to_string(idx_write) + "el.out";
+                float *d_sigout_T;
 
-                // Only write time for first spaxel
-                if(idx_spax == 0) 
-                {
-                    std::string timename = std::to_string(idx_write) + "time.out";
-                    std::vector<float> timeout(nt_sub_scr_job);
-                    gpuErrchk( cudaMemcpy(timeout.data(), d_time_trace, nt_sub_scr_job * sizeof(float), cudaMemcpyDeviceToHost) );
-                    write1DArray<float>(timeout, str_outpath, timename);
-                    gpuErrchk( cudaFree(d_time_trace) );
-                }
+                gpuErrchk( cudaMalloc((void**)&d_sigout_T, nf_sub_fnt * sizeof(float)) );
+                
+                nBlocks1D = ceilf((float)nf_sub_fnt / NTHREADS1D / numSMs);
+                blockSize1D = NTHREADS1D;
+                gridSize1D = nBlocks1D*numSMs;
+                
+                transpose_flat_array<<<gridSize1D,   
+                    blockSize1D>>>(
+                            d_sigout_T,
+                            d_sigout,
+                            nt_sub_scr_job,
+                            nf_ch
+                            );
+                
+                float *sigout_T = new float[nf_sub_fnt];
+                gpuErrchk( cudaMemcpy(sigout_T, d_sigout_T, nf_sub_fnt * sizeof(float), cudaMemcpyDeviceToHost) );
 
-                std::vector<float> sigout(nf_sub_fnt);
-                std::vector<float> azout(nt_sub_scr_job);
-                std::vector<float> elout(nt_sub_scr_job);
-
-                gpuErrchk( cudaMemcpy(sigout.data(), d_sigout, nf_sub_fnt * sizeof(float), cudaMemcpyDeviceToHost) );
-                gpuErrchk( cudaMemcpy(azout.data(), d_az_trace, nt_sub_scr_job * sizeof(float), cudaMemcpyDeviceToHost) );
-                gpuErrchk( cudaMemcpy(elout.data(), d_el_trace, nt_sub_scr_job * sizeof(float), cudaMemcpyDeviceToHost) );
-
-                write1DArray<float>(sigout, str_outpath, signame, std::to_string(idx_spax));
-                write1DArray<float>(azout, str_outpath, azname, std::to_string(idx_spax));
-                write1DArray<float>(elout, str_outpath, elname, std::to_string(idx_spax));
                 gpuErrchk( cudaFree(d_sigout) );
-                gpuErrchk( cudaFree(d_az_trace) );
-                gpuErrchk( cudaFree(d_el_trace) );
+                gpuErrchk( cudaFree(d_sigout_T) );
+
+                outfile.write_chunk_to_spaxel(
+                        nt_sub_scr_job,
+                        sigout_T);
                 
                 idx_write++;
                 idx_offset += nt_sub_scr_job;
@@ -1000,6 +1034,8 @@ void run_gateau(Instrument *instrument,
 
             idx_wrap++;
         }
+        if (idx_offset != nttot) {exit(1);}
+        outfile.close_spaxel(idx_spax);
         printf("*** Progress: 100 / 100 ***\r");
     }
     gpuErrchk( cudaDeviceReset() );
