@@ -8,7 +8,6 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-//#include <cxxabi.h> THIS IS NOT PRESENT ON MICROSHIT CPP COMPILER
 #include <filesystem>
 
 #include "hdf5.h"
@@ -47,7 +46,8 @@ template <typename T, typename U>
 void readEtaATM(
         T **eta_array, 
         U *pwv_atm, 
-        U *freq_atm);
+        U *freq_atm
+        );
 
 template <typename T, typename U>
 void readAtmScreen(
@@ -55,16 +55,11 @@ void readAtmScreen(
         U *x_spec, 
         U *y_spec, 
         std::string path, 
-        std::string datp); 
+        std::string datp
+        ); 
 
-template <typename T>
-void write1DArray(
-        T *array, 
-        int narr, 
-        std::string path, 
-        std::string name);
-
-class OutputFile {
+class OutputFile 
+{
     private:
         // Handles for hdf5 file and groups
         hid_t   file_id;
@@ -90,7 +85,8 @@ class OutputFile {
 
         void check_API_call_status(
                 herr_t status, 
-                int loc)
+                int loc
+                )
         {
             if(status < 0)
             {
@@ -106,7 +102,8 @@ class OutputFile {
                 float *freqs, 
                 float *times, 
                 float *az, 
-                float *el) 
+                float *el
+                ) 
         {
             this->ntimes = ntimes;
             this->nfreqs = nfreqs;
@@ -122,14 +119,16 @@ class OutputFile {
                     filename, 
                     H5F_ACC_TRUNC, 
                     H5P_DEFAULT, 
-                    H5P_DEFAULT);
+                    H5P_DEFAULT
+                    );
             
             obsattrs_id = H5Gcreate(
                     file_id, 
                     OBSATTRS_NAME, 
                     H5P_DEFAULT, 
                     H5P_DEFAULT, 
-                    H5P_DEFAULT);   
+                    H5P_DEFAULT
+                    );   
 
             // Write dataspace for frequencies
             dims_1D[0] = nfreqs;
@@ -137,21 +136,23 @@ class OutputFile {
             dspace_id = H5Screate_simple(
                     RANK1D, 
                     dims_1D, 
-                    NULL);
+                    NULL
+                    );
 
             dset_id = H5Dcreate(
                     obsattrs_id, 
                     FREQS_NAME, 
-                    H5T_NATIVE_FLOAT, 
+                    H5T_IEEE_F32LE, 
                     dspace_id, 
                     H5P_DEFAULT, 
                     H5P_DEFAULT, 
-                    H5P_DEFAULT);
+                    H5P_DEFAULT
+                    );
 
             check_API_call_status( 
                     H5Dwrite(
                         dset_id, 
-                        H5T_NATIVE_FLOAT, 
+                        H5T_IEEE_F32LE, 
                         H5S_ALL, 
                         H5S_ALL, 
                         H5P_DEFAULT, 
@@ -166,21 +167,23 @@ class OutputFile {
             dspace_id = H5Screate_simple(
                     RANK1D, 
                     dims_1D, 
-                    NULL);
+                    NULL
+                    );
             
             dset_id = H5Dcreate(
                     obsattrs_id, 
                     TIME_NAME, 
-                    H5T_NATIVE_FLOAT, 
+                    H5T_IEEE_F32LE, 
                     dspace_id, 
                     H5P_DEFAULT, 
                     H5P_DEFAULT, 
-                    H5P_DEFAULT);
+                    H5P_DEFAULT
+                    );
             
             check_API_call_status(
                     H5Dwrite(
                         dset_id, 
-                        H5T_NATIVE_FLOAT, 
+                        H5T_IEEE_F32LE, 
                         H5S_ALL, 
                         H5S_ALL, 
                         H5P_DEFAULT, 
@@ -192,16 +195,17 @@ class OutputFile {
             dset_id = H5Dcreate(
                     obsattrs_id, 
                     AZ_NAME, 
-                    H5T_NATIVE_FLOAT, 
+                    H5T_IEEE_F32LE, 
                     dspace_id, 
                     H5P_DEFAULT, 
                     H5P_DEFAULT, 
-                    H5P_DEFAULT);
+                    H5P_DEFAULT
+                    );
 
             check_API_call_status(
                     H5Dwrite(
                         dset_id, 
-                        H5T_NATIVE_FLOAT, 
+                        H5T_IEEE_F32LE, 
                         H5S_ALL, 
                         H5S_ALL, 
                         H5P_DEFAULT, 
@@ -213,16 +217,17 @@ class OutputFile {
             dset_id = H5Dcreate(
                     obsattrs_id, 
                     EL_NAME, 
-                    H5T_NATIVE_FLOAT, 
+                    H5T_IEEE_F32LE, 
                     dspace_id, 
                     H5P_DEFAULT, 
                     H5P_DEFAULT, 
-                    H5P_DEFAULT);
+                    H5P_DEFAULT
+                    );
             
             check_API_call_status(
                     H5Dwrite(
                         dset_id, 
-                        H5T_NATIVE_FLOAT, 
+                        H5T_IEEE_F32LE, 
                         H5S_ALL, 
                         H5S_ALL, 
                         H5P_DEFAULT, 
@@ -235,8 +240,14 @@ class OutputFile {
                     H5Sclose(dspace_id),
                     __LINE__
                     );
+            
             check_API_call_status(
                     H5Dclose(dset_id),
+                    __LINE__
+                    );
+            
+            check_API_call_status(
+                    H5Gclose(obsattrs_id),
                     __LINE__
                     );
         }
@@ -244,7 +255,8 @@ class OutputFile {
         void open_spaxel(
                 int spax_index,
                 float az_spax, 
-                float el_spax) 
+                float el_spax
+                ) 
         {
             offset_times = 0;
             
@@ -254,34 +266,38 @@ class OutputFile {
             sprintf(
                     buffer, 
                     "%d", 
-                    spax_index);
+                    spax_index
+                    );
             
             strcat(
                     spax_name, 
-                    buffer);
+                    buffer
+                    );
             
             spax_id = H5Gcreate(
                     file_id, 
                     spax_name, 
                     H5P_DEFAULT, 
                     H5P_DEFAULT, 
-                    H5P_DEFAULT);
+                    H5P_DEFAULT
+                    );
 
             dspace_id = H5Screate(H5S_SCALAR);
 
             dset_id = H5Dcreate(
                     spax_id,
                     AZ_SPAX_NAME,
-                    H5T_NATIVE_FLOAT,
+                    H5T_IEEE_F32LE,
                     dspace_id,
                     H5P_DEFAULT,
                     H5P_DEFAULT,
-                    H5P_DEFAULT);
+                    H5P_DEFAULT
+                    );
 
             check_API_call_status(
                     H5Dwrite(
                         dset_id, 
-                        H5T_NATIVE_FLOAT, 
+                        H5T_IEEE_F32LE, 
                         H5S_ALL, 
                         H5S_ALL, 
                         H5P_DEFAULT, 
@@ -293,16 +309,17 @@ class OutputFile {
             dset_id = H5Dcreate(
                     spax_id,
                     EL_SPAX_NAME,
-                    H5T_NATIVE_FLOAT,
+                    H5T_IEEE_F32LE,
                     dspace_id,
                     H5P_DEFAULT,
                     H5P_DEFAULT,
-                    H5P_DEFAULT);
+                    H5P_DEFAULT
+                    );
 
             check_API_call_status(
                     H5Dwrite(
                         dset_id, 
-                        H5T_NATIVE_FLOAT, 
+                        H5T_IEEE_F32LE, 
                         H5S_ALL, 
                         H5S_ALL, 
                         H5P_DEFAULT, 
@@ -315,21 +332,24 @@ class OutputFile {
             dspace_id = H5Screate_simple(
                     RANK2D, 
                     dims_2D, 
-                    NULL);
+                    NULL
+                    );
             
             dset_id = H5Dcreate(
                     spax_id,
                     OUT_NAME,
-                    H5T_NATIVE_FLOAT,
+                    H5T_IEEE_F32LE,
                     dspace_id,
                     H5P_DEFAULT,
                     H5P_DEFAULT,
-                    H5P_DEFAULT);
+                    H5P_DEFAULT
+                    );
         }
 
         void write_chunk_to_spaxel(
                 int ntimes_chunk, 
-                float *data)
+                float *data
+                )
         {
             start[0] = offset_times;
             count[0] = ntimes_chunk;
@@ -351,12 +371,13 @@ class OutputFile {
             dspace_slab_id = H5Screate_simple(
                     RANK1D,
                     dims_1D,
-                    NULL);
+                    NULL
+                    );
             
             check_API_call_status(
                     H5Dwrite(
                         dset_id,
-                        H5T_NATIVE_FLOAT,
+                        H5T_IEEE_F32LE,
                         dspace_slab_id,
                         dspace_id,
                         H5P_DEFAULT,
@@ -379,10 +400,12 @@ class OutputFile {
                     H5Sclose(dspace_id),
                     __LINE__
                     );
+            
             check_API_call_status(
                     H5Dclose(dset_id),
                     __LINE__
                     );
+            
             check_API_call_status(
                     H5Gclose(spax_id),
                     __LINE__
@@ -402,7 +425,8 @@ class OutputFile {
 
 void readAtmMeta(
         int **meta, 
-        std::string path) 
+        std::string path
+        ) 
 {
     fs::path dir(path);
     fs::path file("atm_meta.datp");
@@ -557,16 +581,4 @@ void readAtmScreen(
         }
         myfile.close();
     }
-}
-
-template <typename T>
-void write1DArray(std::vector<T> array, std::string path, std::string name, std::string subpath = "") {
-    fs::path dir(path);
-    fs::path subdir(subpath);
-    fs::path file(name);
-
-    fs::path abs_loc = dir / subdir / file;
-    std::ofstream myfile (abs_loc, std::ios::binary | std::ios::trunc);
-    myfile.write(reinterpret_cast<const char*>(array.data()), array.size() * sizeof(T));
-    myfile.close();
 }

@@ -13,20 +13,23 @@ struct Source;
 struct Cascade;
 struct ArrSpec;
 
-struct ArrSpec {
+struct ArrSpec 
+{
     float start;
     float step;
     int num;
 };
 
-struct Cascade {
+struct Cascade 
+{
     float *eta_cascade; /**< Efficiency terms associated with each stage of this cascade.*/
     float *psd_cascade; /**< Power spectral density of each parasitic source of this cascade.*/
     float *psd_cmb; /**< Power spectral density of each parasitic source of this cascade.*/
     int num_stage; /**< Number of (grouped) stages in cascade.*/
 };
 
-struct Instrument {
+struct Instrument 
+{
     int nf_ch;          /**< Number of elements in freqs.*/
     float *f_ch;        /**< Array with filter frequencies.*/
     float f_sample;     /**< Readout frequency of instrument in Hertz.*/
@@ -42,7 +45,8 @@ struct Instrument {
     float *onef_alpha;
 };
 
-struct Telescope {
+struct Telescope 
+{
     float *eta_illum;      /**< Array of aperture efficiencies.*/
     float *az_scan;     /**< Azimuth co-ordinates of scan strategy for simulation.*/
     float *el_scan;     /**< Elevation co-ordinates of scan strategy for simulation.*/
@@ -51,7 +55,8 @@ struct Telescope {
 };
 
 
-struct Atmosphere {
+struct Atmosphere 
+{
     float T_atm;        /**< floatemperature of atmosphere in Kelvin.*/
     float v_wind;      /**< Max windspeed in meters per second.*/
     float h_column;    /**< Reference column height of atmosphere, in meters.*/
@@ -62,7 +67,8 @@ struct Atmosphere {
 };
 
 
-struct Source {
+struct Source 
+{
     struct ArrSpec az_src_spec;
     struct ArrSpec el_src_spec;
     struct ArrSpec f_spec;

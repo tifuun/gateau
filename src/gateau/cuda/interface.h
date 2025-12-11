@@ -33,16 +33,19 @@
 
 extern "C"
 {
-    GATEAU_DLL void run_gateau(Instrument *instrument, 
-                               Telescope *telescope, 
-                               Atmosphere *atmosphere, 
-                               Source *source,
-                               Cascade *cascade,
-                               int nttot, 
-                               char *outpath,
-                               char *outscale,
-                               unsigned long long int seed,
-                               char *atmpath);
+    GATEAU_DLL 
+    void run_gateau(
+            Instrument *instrument, 
+            Telescope *telescope, 
+            Atmosphere *atmosphere, 
+            Source *source,
+            Cascade *cascade,
+            int nttot, 
+            char *outpath,
+            char *outscale,
+            unsigned long long int seed,
+            char *atmpath
+            );
 }
 
 #endif
