@@ -12,12 +12,54 @@ cc = meson.get_compiler('cpp')
 py = import('python').find_installation()
 
 # ---- CUDA ----
+
 cuda = dependency(
   'cuda',
-  required: true,
+  required: false,
+  #version : '>=13',
   version : '>=11, <=13',
-  modules : ['cufft']
+  modules: ['cufft'],
   )
+
+if cuda.found()
+else
+  warning('Meson could not find cuda dependency,\nRANDOM BULL**** GO!!!')
+
+  cuda = cc.find_library(
+    'cufft',
+    dirs: [
+      # Should be here:
+      '/usr/local/cuda/lib64',
+
+      # Arend's laptop:
+      '/usr/lib/x86_64-linux-gnu/',
+
+      # Unusual paths, but plausible
+      '/lib/x86_64-linux-gnu/',
+      '/usr/lib/cuda/lib64/',
+      '/usr/lib/cuda/lib64/',
+      '/usr/lib/nvidia/',
+      '/usr/lib64/cuda/',
+      '/usr/local/cuda/lib/',
+      '/usr/local/lib/',
+
+      # Probably not here but worth checking
+      '/lib64/',
+      '/opt/NVIDIA/cuda/lib64/',
+      '/opt/cuda/lib64/',
+      '/opt/cudnn/lib64/',
+
+      # what
+      '/var/cache/cuda/lib64/',
+      '/var/spool/cuda/lib64/',
+      '~/.local/lib/',
+      '~/.local/lib64/',
+      '~/cuda/lib64/',
+      ],
+    required: true
+    )
+endif
+
 
 # WILL NOT WORK ON 13.0 IT WILL COMPILE BUT
 # WILL CRASH AT RUNTIME WITH
@@ -29,8 +71,7 @@ cuda = dependency(
 
 # Meson sets up nvcc automatically and uses its own rules.
 
-# Extra CUDA compilation flags
-cuda_args = [
+cpp_args = [
   '-Xcompiler',
   '-shared',
 ]
@@ -46,7 +87,7 @@ gsl        = dependency('gsl', required: true)
 hdf5        = dependency('hdf5', required: true)
 gslcblas   = cc.find_library('gslcblas', required: true)
 
-cuda_libs = [gsl, gslcblas, hdf5]
+libs = [cuda, gsl, gslcblas, hdf5]
 
 # ---- Sources ----
 cu_sources = files(
@@ -58,10 +99,10 @@ libgateau = library(
   'gateau',
   cu_sources,
   include_directories: inc_dirs,
-  dependencies: [cuda] + cuda_libs,
+  dependencies: libs,
   name_suffix: 'so',
   pic: true, # no clue, something to do with static linking?
-  cpp_args: cuda_args,
+  cpp_args: cpp_args,
 
   # Install the .so into the gateau python module
   # directory alongside the .py files
