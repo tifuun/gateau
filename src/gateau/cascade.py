@@ -311,3 +311,16 @@ def get_cascade(cascade_list: list[dict[str, any]],
                 all_psd.extend(psds)
     
     return all_eta, all_psd, eta_ap, psd_cmb
+
+def average_over_filterbank(array_to_average: np.ndarray, 
+                            filterbank: np.ndarray,
+                            norm: bool = False) -> np.ndarray:
+    if norm:
+        div = np.nansum(filterbank, axis=1)
+    else:
+        div = 1
+    sh_f = filterbank.shape
+    assert array_to_average.size == sh_f[1]
+
+    array_tiled = np.squeeze(array_to_average)[None,:] * filterbank
+    return np.nansum(array_tiled, axis=1) / div

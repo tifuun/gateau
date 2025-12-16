@@ -3,7 +3,6 @@ import tempfile
 from pathlib import Path
 
 from gateau.simulator import simulator
-from gateau.output_utils import yield_output
 from gateau.scan_patterns import stare
 
 AXSIZE = 3
@@ -89,8 +88,6 @@ def selftest():
 
         outpath = tmpdir / 'output'
         interface.run(outname=outpath)
-
-        res = yield_output(outpath)
 
         # TODO verify results against a known-good output
 

@@ -5,7 +5,7 @@
 For questions about these guidelines, code style, conventions,
 and Python please pester maybetree.
 
-For quesitons about the backend, science, and C++,
+For questions about the backend, science, and C++,
 please pester arendMoerman.
 
 ## Guidelines
@@ -20,3 +20,5 @@ please pester arendMoerman.
     (`ruff check` from the root of the repo)
     to make sure you don't have any style guide violations.
 
+- The style convention of the C/C++/CUDA backend adheres to the [Allman style](https://en.wikipedia.org/wiki/Indentation_style#Allman_style).
+    When developing code for the backend, please adhere as much as possible.

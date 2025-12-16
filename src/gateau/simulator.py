@@ -9,7 +9,6 @@ import gateau.ifu as gifu
 import gateau.input_checker as gcheck
 import gateau.bindings as gbind
 import gateau.cascade as gcascade
-import gateau.output_utils as goututils
 
 import shutil
 import logging
@@ -284,15 +283,15 @@ class simulator(object):
                                   self.atmosphere["PWV0"],
                                   np.mean(el_scan))
 
-            eta_ap_chan = goututils.average_over_filterbank(eta_ap, 
+            eta_ap_chan = gcascade.average_over_filterbank(eta_ap, 
                                                             self.instrument["filterbank"],
                                                             norm = True)
             
-            eta_atm_chan = goututils.average_over_filterbank(eta_atm, 
+            eta_atm_chan = gcascade.average_over_filterbank(eta_atm, 
                                                              self.instrument["filterbank"],
                                                              norm = True)
             
-            eta_tot_chan = goututils.average_over_filterbank(eta_tot, 
+            eta_tot_chan = gcascade.average_over_filterbank(eta_tot, 
                                                              self.instrument["filterbank"],
                                                              norm = True)
             
@@ -300,10 +299,7 @@ class simulator(object):
                     "eta_ap"     : eta_ap_chan,
                     "eta_atm"    : eta_atm_chan,
                     "eta_tot"    : eta_tot_chan,
-                    "f_ch_arr"   : copy.deepcopy(self.instrument["f_ch_arr"]),
                     "filterbank" : copy.deepcopy(self.instrument["filterbank"]),
-                    "az_scan"    : az_scan,
-                    "el_scan"    : el_scan
                     }
 
             return out_dict 
@@ -334,30 +330,12 @@ class simulator(object):
             raise InitialError
             sys.exit()
 
-        outpath = os.path.join(self.outPath, outname)
-
-        outpath_succes = False
-        while not outpath_succes:
-            if not os.path.exists(outpath):
-                os.makedirs(outpath)
-                outpath_succes = True
-
-            elif overwrite:
-                shutil.rmtree(outpath)
-                os.makedirs(outpath)
-                outpath_succes = True
-
-            elif not overwrite:
-                self.clog.warning(f"Output path {outpath} exists! Overwrite or change path?")
-                choice = input("\033[93mOverwrite (y/n)? > ").lower()
-                if choice == "y" or choice == "":
-                    shutil.rmtree(outpath)
-                else:
-                    outpath = input("\033[93mSpecify new output path: > ")
+        if not outname.endswith(".h5"):
+            outname += ".h5"
         
         # Check if enough HDD is available in outpath for this simulation
         n_bytes_required = ((self.instrument["nf_ch"] + 2)*self.instrument["n_spax"] + 1) * self.nTimes * 4
-        if (n_bytes_free := int(MEMFRAC * shutil.disk_usage(outpath).free)) < n_bytes_required:
+        if (n_bytes_free := int(MEMFRAC * shutil.disk_usage(self.outPath).free)) < n_bytes_required:
             self.clog.warning(f"Required disk space of {n_bytes_required} bytes exceeds available buffer of {n_bytes_free}")
             choice = input("\033[93mProceed (y/n)? > ").lower()
             if choice == "y" or choice == "":
@@ -365,9 +343,6 @@ class simulator(object):
             else:
                 exit()
 
-        # Create folders for each spaxel
-        for idx_spax in range(self.instrument.get("n_spax")):
-            os.makedirs(os.path.join(outpath, str(idx_spax)))
         self.clog.info("\033[1;32m*** STARTING gateau SIMULATION ***")
         
         gbind.run_gateau(self.instrument, 
@@ -376,8 +351,10 @@ class simulator(object):
                          self.source,
                          self.cascade,
                          self.nTimes, 
-                         outpath,
+                         outname,
                          outscale)
+
         
+
         self.clog.info("\033[1;32m*** FINISHED gateau SIMULATION ***")
 

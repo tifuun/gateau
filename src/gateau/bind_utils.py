@@ -38,6 +38,7 @@ def allfillInstrument(InstDict: dict[str, any],
     @param ct_t Type of data. Use ctypes.c_double for CPU, ctypes.c_float for GPU.
     """
 
+    arr_f_ch = ar.array('f', InstDict["f_ch_arr"].ravel())
     arr_filterbank = ar.array('f', InstDict["filterbank"].ravel())
     arr_az_fpa = ar.array('f', InstDict["pointings"][0].ravel())
     arr_el_fpa = ar.array('f', InstDict["pointings"][1].ravel())
@@ -46,6 +47,7 @@ def allfillInstrument(InstDict: dict[str, any],
     arr_onef_alpha = ar.array('f', InstDict["onef_alpha"].ravel())
 
     InstStruct.nf_ch = c_int(InstDict["nf_ch"])
+    InstStruct.f_ch = (c_float * InstDict["nf_ch"]).from_buffer(arr_f_ch)
     InstStruct.f_sample = c_float(InstDict["f_sample"])
     InstStruct.filterbank = (c_float * InstDict["filterbank"].size).from_buffer(arr_filterbank)
     InstStruct.delta = c_float(InstDict["delta"])

@@ -33,10 +33,17 @@
   
   @returns val_interp Interpolated value of function on x0 and y0.
  */
-__host__ __device__ void interpValue(float x, float y, 
-            ArrSpec *arrx, ArrSpec *arry,
-            float *vals, int offset, float &out) {
-    
+__host__ __device__ 
+void interpValue(
+        float x, 
+        float y, 
+        ArrSpec *arrx, 
+        ArrSpec *arry,
+        float *vals, 
+        int offset, 
+        float &out
+        ) 
+{    
     int idx_x = floorf((x - arrx->start) / arrx->step);
     int idx_y = floorf((y - arry->start) / arry->step);
 
@@ -59,30 +66,36 @@ __host__ __device__ void interpValue(float x, float y,
 
   @returns Cascade output PSD.
  */
-__host__ __device__ float rad_trans(float psd_in, 
-                                      float eta, 
-                                      float psd_parasitic)
+__host__ __device__ 
+float rad_trans(
+        float psd_in, 
+        float eta, 
+        float psd_parasitic
+        )
 {
     return eta * psd_in + (1 - eta) * psd_parasitic;
 }
 
-__host__ void resp_calibration(int start, 
-                    int stop,
-                    ArrSpec *f_atm, 
-                    ArrSpec *pwv_atm, 
-                    ArrSpec *f_src,
-                    float Tp_atm,
-                    int nf_ch,
-                    float *eta_cascade,
-                    float *psd_cascade,
-                    float *psd_cmb,
-                    int num_stage,
-                    float *psd_atm,
-                    float *eta_atm,
-                    float *filterbank,
-                    float *eta_kj_sum,
-                    float *Psky, 
-                    float *Tsky)
+__host__ 
+void resp_calibration(
+        int start, 
+        int stop,
+        ArrSpec *f_atm, 
+        ArrSpec *pwv_atm, 
+        ArrSpec *f_src,
+        float Tp_atm,
+        int nf_ch,
+        float *eta_cascade,
+        float *psd_cascade,
+        float *psd_cmb,
+        int num_stage,
+        float *psd_atm,
+        float *eta_atm,
+        float *filterbank,
+        float *eta_kj_sum,
+        float *Psky, 
+        float *Tsky
+        )
 {
     // FLOATS
     float eta_atm_interp;   // Interpolated eta_atm, over frequency and PWV
@@ -106,16 +119,26 @@ __host__ void resp_calibration(int start,
         {
             freq = f_src->start + f_src->step * idy;
 
-            interpValue(pwv_loc, freq,
-                        pwv_atm, f_atm,
-                        eta_atm, 0, eta_atm_interp);
+            interpValue(
+                    pwv_loc, 
+                    freq,
+                    pwv_atm, 
+                    f_atm,
+                    eta_atm, 
+                    0, 
+                    eta_atm_interp
+                    );
             
             psd_atm_loc = psd_atm[idy];
             psd_cmb_loc = psd_cmb[idy];
 
             // Initial pass through atmosphere
-            psd_sky = rad_trans(psd_cmb_loc, eta_atm_interp, psd_atm_loc);
-            //psd_in = psd_cmb_loc;//psd_sky;
+            psd_sky = rad_trans(
+                    psd_cmb_loc, 
+                    eta_atm_interp, 
+                    psd_atm_loc
+                    );
+
             psd_in = psd_sky;
 
             // Radiative transfer cascade
@@ -127,23 +150,33 @@ __host__ void resp_calibration(int start,
                     psd_parasitic_use = psd_sky;
                 }
 
-                psd_in = rad_trans(psd_in, eta_cascade[n*f_src->num + idy], psd_parasitic_use);
+                psd_in = rad_trans(
+                        psd_in, 
+                        eta_cascade[n*f_src->num + idy], 
+                        psd_parasitic_use
+                        );
             }
 
             temp1 = eta_cascade[num_stage*f_src->num + idy];
             temp2 = psd_cascade[num_stage*f_src->num + idy];
 
-            for(int k=0; k<nf_ch; k++) {
+            for(int k=0; k<nf_ch; k++) 
+            {
                 eta_kj = filterbank[k*f_src->num + idy];
 
-                psd_in_k = rad_trans(psd_in, eta_kj*temp1, temp2);
-                //psd_in_k = psd_in * eta_kj*temp1;
+                psd_in_k = rad_trans(
+                        psd_in, 
+                        eta_kj*temp1, 
+                        temp2
+                        );
 
                 Psky[k*NPWV + idx] += psd_in_k * f_src->step; 
                 eta_atm_smooth[k] += eta_kj * eta_atm_interp;
             }
         }
-        for(int k=0; k<nf_ch; k++) {
+
+        for(int k=0; k<nf_ch; k++) 
+        {
             Tsky[k*NPWV + idx] += (1 - eta_atm_smooth[k] / eta_kj_sum[k]) * Tp_atm; 
             eta_atm_smooth[k] = 0.;
         }
@@ -151,11 +184,14 @@ __host__ void resp_calibration(int start,
     delete[] eta_atm_smooth;
 }
 
-__host__ void fit_calibration(float *Psky,
+__host__ 
+void fit_calibration(
+        float *Psky,
         float *Tsky,
         int nf_ch,
         float *c0,
-        float *c1)
+        float *c1
+        )
 {
     double c0_loc, c1_loc, cov00, cov01, cov11, sumsq;
 
@@ -169,7 +205,20 @@ __host__ void fit_calibration(float *Psky,
             Psky_k[j] = static_cast<double>(Psky[k*NPWV + j]);
             Tsky_k[j] = static_cast<double>(Tsky[k*NPWV + j]);
         }
-        gsl_fit_linear(Psky_k, 1, Tsky_k, 1, NPWV, &c0_loc, &c1_loc, &cov00, &cov01, &cov11, &sumsq);
+        gsl_fit_linear(
+                Psky_k, 
+                1, 
+                Tsky_k, 
+                1, 
+                NPWV, 
+                &c0_loc, 
+                &c1_loc, 
+                &cov00, 
+                &cov01, 
+                &cov11, 
+                &sumsq
+                );
+
         c0[k] = static_cast<float>(c0_loc);
         c1[k] = static_cast<float>(c1_loc);
     }
