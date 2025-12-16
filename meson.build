@@ -1,6 +1,6 @@
 project(
   'gateau',
-  'cpp', 'cuda',
+  'cpp', 'cuda', 'c',
   version: '0.1.6',
   default_options: [
     'buildtype=release',
@@ -33,21 +33,20 @@ cuda = dependency(
 cuda_args = [
   '-Xcompiler',
   '-shared',
-  '-lcufft'
 ]
 
 # ---- Include directories ----
 inc_dirs = include_directories(
   'src/gateau/include',
   'src/gateau/cuda',
-  '/usr/include/hdf5/serial',
 )
 
 # ---- External libraries ----
 gsl        = dependency('gsl', required: true)
+hdf5        = dependency('hdf5', required: true)
 gslcblas   = cc.find_library('gslcblas', required: true)
 
-cuda_libs = [gsl, gslcblas]
+cuda_libs = [gsl, gslcblas, hdf5]
 
 # ---- Sources ----
 cu_sources = files(
