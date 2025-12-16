@@ -23,7 +23,7 @@ cuda = dependency(
 
 if cuda.found()
 else
-  warning('Meson could not find cuda dependency,\nRANDOM BULL**** GO!!!')
+  warning('Meson could not find cuda dependency, trying random stuff until it works!!!!!!')
 
   cuda = cc.find_library(
     'cufft',
