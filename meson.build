@@ -8,16 +8,13 @@ project(
   ]
 )
 
-cc = meson.get_compiler('cpp')
+cpp = meson.get_compiler('cpp')
 py = import('python').find_installation()
-
-# ---- CUDA ----
 
 cuda = dependency(
   'cuda',
   required: false,
   #version : '>=13',
-  version : '>=11, <=13',
   modules: ['cufft'],
   )
 
@@ -25,7 +22,7 @@ if cuda.found()
 else
   warning('Meson could not find cuda dependency, trying random stuff until it works!!!!!!')
 
-  cuda = cc.find_library(
+  cuda = cpp.find_library(
     'cufft',
     dirs: [
       # Should be here:
@@ -60,17 +57,6 @@ else
     )
 endif
 
-
-# WILL NOT WORK ON 13.0 IT WILL COMPILE BUT
-# WILL CRASH AT RUNTIME WITH
-# OSError: /play/gateau/build/cp313/libgateau.so: undefined symbol: cufftExecC2R
-# BECAUSE OF THIS LINE IN kernels.cu:
-# CUFFT_CALL( cufftExecC2R(plan, d_onef_out, d_sigout) );
-# have not tested on which exact sub-versions of 11 and 12 work
-# tho TODO
-
-# Meson sets up nvcc automatically and uses its own rules.
-
 cpp_args = [
   '-Xcompiler',
   '-shared',
@@ -83,9 +69,9 @@ inc_dirs = include_directories(
 )
 
 # ---- External libraries ----
-gsl        = dependency('gsl', required: true)
-hdf5        = dependency('hdf5', required: true)
-gslcblas   = cc.find_library('gslcblas', required: true)
+gsl = dependency('gsl', required: true)
+hdf5 = dependency('hdf5', required: true)
+gslcblas = cpp.find_library('gslcblas', required: true)
 
 libs = [cuda, gsl, gslcblas, hdf5]
 
