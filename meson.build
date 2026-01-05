@@ -78,9 +78,9 @@ inc_dirs = include_directories(
 )
 
 # ---- External libraries ----
-gsl = dependency('gsl', required: true)
-hdf5 = dependency('hdf5', required: true)
-gslcblas = cpp.find_library('gslcblas', required: true)
+gsl = dependency('gsl', required: true, static: true)
+hdf5 = dependency('hdf5', required: true, static: true)
+gslcblas = cpp.find_library('gslcblas', required: true, static: true)
 
 libs = [cuda_libs, gsl, gslcblas, hdf5]
 

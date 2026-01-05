@@ -91,10 +91,7 @@ When using meson-python (as gateau does),
 `build` will compile the latest *committed* version
 of the project.
 So, before running `build`,
-either commit your changes,
-or use `build` with a persistent builddir as detailed
-in the
-[meson-python docs](https://mesonbuild.com/meson-python/how-to-guides/config-settings.html).
+commit your changes.
 
 #### Wheel names
 
