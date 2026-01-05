@@ -122,5 +122,8 @@ win/tmp
 
 !win/pipcache
 *.deb
+pipcache
+
+build.docker
 
 

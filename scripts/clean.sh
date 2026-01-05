@@ -7,6 +7,7 @@ rm -rf \
 	CMakeFiles \
 	CMakeInit.txt \
 	dist \
+	build \
 	*.cmake \
 	.cmake \
 	testfile \

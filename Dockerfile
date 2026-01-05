@@ -2,9 +2,11 @@ FROM debian:bookworm
 
 ARG CUDA_KEYRING_URL=https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
 ARG GSL_SIG_URL=https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz.sig
-ARG GSL_URL=wget https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz
+ARG GSL_URL=https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz
 
 WORKDIR /setup
+
+COPY ./pyproject.toml /setup/pyproject.toml
 
 RUN \
 	apt update && \
@@ -30,10 +32,17 @@ RUN \
 		wget \
 		zlib1g-dev \
 		&& \
+		:
+
+RUN \
 	wget "${CUDA_KEYRING_URL}" && \
 	dpkg -i cuda-keyring_1.1-1_all.deb && \
 	apt-get update && \
 	apt-get -y install cuda-toolkit-12-3 && \
+	export PATH=/usr/local/cuda/bin:$PATH && \
+	:
+
+RUN \
 	echo "-----BEGIN PGP PUBLIC KEY BLOCK-----" > gsl_key.txt && \
 	echo "Version: GnuPG v2.0.22 (GNU/Linux)" >> gsl_key.txt && \
 	echo "" >> gsl_key.txt && \
@@ -68,9 +77,10 @@ RUN \
 	wget "${GSL_URL}" -O gsl-2.5.tar.gz && \
 	wget "${GSL_SIG_URL}" -O gsl-2.5.tar.gz.sig && \
 	gpg --verify gsl-2.5.tar.gz.sig && \
-	tar xf ../vendor/gsl-2.5.tar.gz && \
+	tar xf gsl-2.5.tar.gz && \
 	cd gsl-2.5 && \
 	./autogen.sh && \
+	`# configure script expects /bin/sh = bash ; change that.` && \
 	sed -i -e '1i #!/bin/bash' ./configure && \
 	./configure \
 		--prefix=/usr \
@@ -80,11 +90,32 @@ RUN \
 		&& \
 	make -j$(nproc) && \
 	make install && \
-	python3.11 -m venv /venv && \
-	. /venv/bin/activate && \
-	pip install -r requirements.txt && \
-	pip install build && \
+	cd .. && \
 	:
 
+RUN \
+	python3.11 -m venv /venv && \
+	. /venv/bin/activate && \
+	pip install pip-tools && \
+	:
+
+# TODO remove unnecessary copies and move
+# pyproject.toml copy from above to here.
+COPY ./README.md /setup/README.md
+COPY ./meson.build /setup/meson.build
+COPY ./src /setup/src
+
+# TODO remove the export above
+ENV PATH=/usr/local/cuda/bin:${PATH}
+
+RUN \
+	. /venv/bin/activate && \
+	pip-compile --verbose --all-build-deps pyproject.toml && \
+	pip download -r requirements.txt -d pipcache --only-binary=:all: && \
+	pip install -r requirements.txt && \
+	pip install build twine && \
+	:
+
+WORKDIR /app
 
 

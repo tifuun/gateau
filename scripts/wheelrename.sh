@@ -9,13 +9,13 @@ then
 fi
 
 echo "found glibc $glibc_ver"
-ldd --version
-for f in dist/*
+
+for f in dist/gateau-*-none-any.whl
 do
 	renamed="$(echo "$f" | sed -e "s|any|manylinux_${glibc_ver}_x86_64|" -e "s|py3|cp39.cp310.cp311.cp312.cp313-none|")"
 	if [ "$renamed" != "$f" ]
 	then
-		cp --reflink=auto "$f" "$renamed"
+		cp --verbose --reflink=auto "$f" "$renamed"
 	fi
 done
 
