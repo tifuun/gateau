@@ -1,6 +1,6 @@
 project(
   'gateau',
-  'cpp', 'c',
+  'cpp', 'cuda', 'c',
   version: '0.1.6',
   default_options: [
     'buildtype=release',
@@ -8,79 +8,7 @@ project(
   ]
 )
 
-# ------------------------------------------------------------
-# Step One: Try to find NVCC cuda compiler
-# ------------------------------------------------------------
- 
-# First, try to find it using meson's builtin logic
-
-meson_could_find_cuda = add_languages('cuda', required: false, native: true)
-
-# `native` flag means we want to use it to compile stuff
-# for THIS machine. We don't support cross-compilation,
-# but still set the flag to silence meson warning.
-
-if meson_could_find_cuda
-  message('Meson could find nvcc compiler normally, yay!')
-  add_languages('cuda', native: true, required: true)
-else
-  error('Meson could not find nvcc. Make sure it is in your path.')
-  #warning('Meson could not find NVCC compiler!!')
-  #warning('Is `nvcc` in your $PATH?')
-  #warning('Trying random paths until something works...')
-
-  ## If meson's nvcc detection logic fails, try some common paths
-
-  #cuda_search_paths = [
-  #  '/usr/local/cuda/bin',
-  #  '/opt/cuda/bin',
-  #  '/usr/local/cuda-12.0/bin',
-  #  '/usr/local/cuda-11.8/bin',
-  #]
-
-  #nvcc = find_program(
-  #  'nvcc',
-  #  dirs: cuda_search_paths,
-  #  required: false
-  #)
-
-  #if not nvcc.found()
-  #  error('Could not find NVCC, giving up.')
-  #endif
-
-  #message('Found nvcc at: ' + nvcc.path())
-
-  #run_command(
-  #  [
-  #    'ln',
-  #    '-sf',
-  #    nvcc.path(),
-  #    './nvcc',
-  #    ]
-  #  )
-  #run_command(
-  #  ['sh', '-c', 'env > /tmp/foo'],
-  #  )
-  #nvcc_path = nvcc.full_path()
-  #run_command(
-  #  ['sh', '-c', 'ln -sf "' + nvcc_path + '" "$VIRTUAL_ENV/bin/nvcc"']
-  #  )
-
-  # ----------------------------------------------------------
-  # 3. Override Meson’s nvcc lookup and retry CUDA
-  # ----------------------------------------------------------
-  #meson.override_find_program('cuda', nvcc)
-  #
-  #env = environment()
-  #env.set('PATH', '/usr/local/cuda/bin')
-  #meson.add_env(env)
-
-  add_languages('cuda', native: true, required: true)
-endif
-
-# ------------------------------------------------------------
-# Step Two: Try to find Cuda libraries
-# ------------------------------------------------------------
+add_languages('cuda', required: true, native: true)
 
 cuda_libs = dependency(
   'cuda',
@@ -137,7 +65,6 @@ endif
 
 cpp = meson.get_compiler('cpp')
 py = import('python').find_installation()
-cuda = meson.get_compiler('cuda')
 
 cpp_args = [
   '-Xcompiler',
