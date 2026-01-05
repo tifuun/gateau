@@ -119,6 +119,7 @@ win/vim/old*
 win/tmp
 
 !archive/wheel/*.tar.gz
+!archive/docker/*.tar*
 
 !win/pipcache
 *.deb

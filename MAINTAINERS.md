@@ -19,8 +19,9 @@ These can likely be installed from your package manager.
 
 ## Prepare CUDA toolchain
 
-CUDA is required to build Gateau.
-This can be installed from [NVIDIA's website](https://developer.nvidia.com/cuda-downloads).
+CUDA is required to build and run Gateau.
+This can be installed from
+[NVIDIA's website](https://developer.nvidia.com/cuda-downloads).
 **IMPORTANT**: Once installed, make sure `nvcc` is in your `$PATH`.
 
 ## Build 
@@ -41,7 +42,7 @@ recompilation will be triggered automatically every time `import gateau`
 is invoked.
 
 If you would still like to manually trigger recompilation,
-this can be done as follows:
+it can be done as follows:
 
 ```
 meson compile -C build
@@ -124,13 +125,18 @@ to do this automatically.
 We provide a dockerfile that can be used to create a container image
 with all of the relevant dependencies that are needed to build gateau.
 Docker, rootless docker, and podman should all work with it.
+
+Before proceeding, keep in mind that building the image
+will take around half an hour and ~10GB of storage.
+
+
 To build the image:
 
 ```
 docker build . --tag gateau-builder
 ```
 
-Then, to build gateau inside the container:
+Then, to build gateau using the image:
 ```
 docker run \
     --rm \
@@ -155,11 +161,23 @@ or simply rebuild the image.
 
 The `-Cbuild-dir=build.docker` flag tells meson to use the directory
 named `build.docker` in the root of the repo as a cache for build files.
-This allows for faster builds across container runs.
+This allows for faster builds across container runs
+without conflicting with the default `build` directory
+that you may have created by building gateau on the host.
 
 Note that we run the `wheelrename.sh` script inside the container as well
 in order to capture the glibc version inside the container,
 not on your host.
+
+## Prebuilt container images
+
+We have made a `docker save` archive of the gateau builder image
+so that Gateau can still be built in case any of its dependencies
+disappear from the internet.
+However, we cannot share the container image publicly due
+to the conflicting licenses of GSL and CUDA software
+contained therein.
+We can share it privately with other Gateau developers.
 
 
 
