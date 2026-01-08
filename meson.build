@@ -69,6 +69,7 @@ py = import('python').find_installation()
 cpp_args = [
   '-Xcompiler',
   '-shared',
+  '-fPIC',
 ]
 
 # ---- Include directories ----
@@ -78,9 +79,23 @@ inc_dirs = include_directories(
 )
 
 # ---- External libraries ----
-gsl = dependency('gsl', required: true, static: true)
-hdf5 = dependency('hdf5', required: true, static: true)
-gslcblas = cpp.find_library('gslcblas', required: true, static: true)
+gsl = dependency(
+  'gsl',
+  required: true,
+  static: !get_option(allow_dynamic)
+  )
+hdf5 = dependency(
+  'hdf5',
+  required: true,
+  static: true,
+  static: !get_option(allow_dynamic)
+  )
+gslcblas = cpp.find_library(
+  'gslcblas',
+  required: true,
+  static: true,
+  static: !get_option(allow_dynamic)
+  )
 
 libs = [cuda_libs, gsl, gslcblas, hdf5]
 

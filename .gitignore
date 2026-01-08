@@ -119,6 +119,9 @@ win/vim/old*
 win/tmp
 
 !archive/wheel/*.tar.gz
+!archive/wheel/*/*.tar.gz
+!archive/wheel/*.whl
+!archive/wheel/*/*.whl
 !archive/docker/*.tar*
 
 !win/pipcache
