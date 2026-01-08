@@ -15,7 +15,7 @@ do
 	renamed="$(echo "$f" | sed -e "s|any|manylinux_${glibc_ver}_x86_64|" -e "s|py3|cp39.cp310.cp311.cp312.cp313-none|")"
 	if [ "$renamed" != "$f" ]
 	then
-		cp --verbose --reflink=auto "$f" "$renamed"
+		mv --verbose "$f" "$renamed"
 	fi
 done
 
