@@ -1,0 +1,45 @@
+name: Build Wheel and Create Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # create release + upload assets
+  packages: read    # pull image from GHCR
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/${{ github.repository }}:main
+      options: --user root
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build wheel
+        run: |
+          set -e
+          rm -rf dist
+          /venv/bin/python -m build -Cbuild-dir=build.docker
+          ./scripts/wheelrename.sh
+
+      - name: List built wheels (debug)
+        run: ls -lah dist
+
+      - name: Create GitHub Release and upload .deb files
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/*_amd64.whl
+            dist/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

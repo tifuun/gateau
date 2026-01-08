@@ -82,19 +82,19 @@ inc_dirs = include_directories(
 gsl = dependency(
   'gsl',
   required: true,
-  static: !get_option(allow_dynamic)
-  )
-hdf5 = dependency(
-  'hdf5',
-  required: true,
-  static: true,
-  static: !get_option(allow_dynamic)
+  static: not get_option('allow_dynamic')
   )
 gslcblas = cpp.find_library(
   'gslcblas',
   required: true,
   static: true,
-  static: !get_option(allow_dynamic)
+  static: not get_option('allow_dynamic')
+  )
+hdf5 = dependency(
+  'hdf5',
+  required: true,
+  static: true,
+  static: not get_option('allow_dynamic')
   )
 
 libs = [cuda_libs, gsl, gslcblas, hdf5]
