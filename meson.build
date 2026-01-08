@@ -4,7 +4,8 @@ project(
   version: '0.1.6',
   default_options: [
     'buildtype=release',
-    'cpp_std=c++17'
+    'cpp_std=c++17',
+    'c_std=c17',
   ]
 )
 

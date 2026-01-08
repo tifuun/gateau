@@ -3,8 +3,8 @@ FROM debian:bookworm
 ARG CUDA_KEYRING_URL=https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
 ARG GSL_SIG_URL=https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz.sig
 ARG GSL_URL=https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz
-ARG LIBGSL_DEB_URL=https://github.com/stratal-systems/debian-packages/releases/download/v1-0/libgsl-static-pic_2.5.0_amd64.deb
-ARG LIBHDF5_DEB_URL=https://github.com/stratal-systems/debian-packages/releases/download/v1-0/libhdf5-static-pic_2.0.0_amd64.deb
+ARG LIBGSL_DEB_URL=https://github.com/stratal-systems/debian-packages/releases/download/v2/libgsl-static-pic_2.5.0_amd64.deb
+ARG LIBHDF5_DEB_URL=https://github.com/stratal-systems/debian-packages/releases/download/v2/libhdf5-static-pic_2.0.0_amd64.deb
 WORKDIR /setup
 
 RUN \
@@ -64,5 +64,4 @@ RUN \
 	:
 
 WORKDIR /app
-
 
