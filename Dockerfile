@@ -53,6 +53,7 @@ RUN \
 
 COPY ./pyproject.toml /setup/pyproject.toml
 COPY ./meson.build /setup/meson.build
+COPY ./meson.options /setup/meson.options
 COPY ./src /setup/src
 
 RUN \
