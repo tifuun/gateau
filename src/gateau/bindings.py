@@ -75,10 +75,10 @@ def run_gateau(instrument: dict[str, any],
                atmosphere: dict[str, any], 
                source: dict[str, any], 
                cascade: dict[str, any], 
-               nTimes: int, 
+               n_times: int, 
                outpath: str,
                outscale: str,
-               seed: int = 0,
+               seed: int,
                resourcepath: Union[str, None] = None, 
                ) -> None:
     """!
@@ -89,7 +89,7 @@ def run_gateau(instrument: dict[str, any],
     @param telescope Dictionary containing telescope parameters.
     @param atmosphere Dictionary containing atmosphere parameters.
     @param source Dictionary containing astronomical source parameters.
-    @param nTimes Number of time evaluations.
+    @param n_times Number of time evaluations.
     @param outpath Path to directory where gateau output is stored.
     @param outscale Scale of stored output (brightness temperature or power).
     @param seed Seed to use for noise calculations.
@@ -111,7 +111,7 @@ def run_gateau(instrument: dict[str, any],
     gutils.allfillSource(source, _source)
     gutils.allfillCascade(cascade, _cascade)
 
-    cnTimes = c_int(nTimes)
+    cn_times = c_int(n_times)
     coutpath = c_char_p(outpath.encode())
     coutscale = c_char_p(outscale.encode())
     # FIXME bare encode
@@ -131,7 +131,7 @@ def run_gateau(instrument: dict[str, any],
             _atmosphere,
             _source,
             _cascade,
-            cnTimes,
+            cn_times,
             coutpath,
             coutscale,
             cseed,

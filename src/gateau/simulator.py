@@ -174,13 +174,13 @@ class simulator(object):
         
         #### INITIALISING OBSERVATION PARAMETERS ####
         # Calculate number of time evaluations
-        # Note that, in order to simplify TLS noise calculations, we make nTimes even
-        self.nTimes = math.ceil(t_obs * self.instrument["f_sample"])
+        # Note that, in order to simplify TLS noise calculations, we make n_times even
+        self.n_times = math.ceil(t_obs * self.instrument["f_sample"])
 
-        if self.nTimes % 2 == 1:
-            self.nTimes -= 1
+        if self.n_times % 2 == 1:
+            self.n_times -= 1
 
-        times_array = np.arange(0, self.nTimes / self.instrument["f_sample"], 1 / self.instrument["f_sample"])
+        times_array = np.arange(0, self.n_times / self.instrument["f_sample"], 1 / self.instrument["f_sample"])
 
         if isinstance(scan_func, list):
             az_scan, el_scan = scan_func[0](times_array, az0, el0)
@@ -308,7 +308,8 @@ class simulator(object):
             verbosity: int = 1, 
             outname: str = "out", 
             overwrite: bool = False,
-            outscale: str = "Tb") -> None:
+            outscale: str = "Tb",
+            seed: int = 0) -> None:
         """!
         Run a gateau simulation.
 
@@ -323,6 +324,8 @@ class simulator(object):
             If False (default), a prompt will appear to either overwrite or specify new directory.
         @param outscale Store output in brightness temperature [K] or power [W].
             Accepts "Tb" or "P". Defaults to "Tb".
+        @param seed Seed for photon and 1/f noise generation. 
+            Defaults to 0, which will internally be converted to a random seed using the current time.
         """
 
         if not self.initialisedSetup:
@@ -334,7 +337,7 @@ class simulator(object):
             outname += ".h5"
         
         # Check if enough HDD is available in outpath for this simulation
-        n_bytes_required = ((self.instrument["nf_ch"] + 2)*self.instrument["n_spax"] + 1) * self.nTimes * 4
+        n_bytes_required = ((self.instrument["nf_ch"] + 2)*self.instrument["n_spax"] + 1) * self.n_times * 4
         if (n_bytes_free := int(MEMFRAC * shutil.disk_usage(self.outPath).free)) < n_bytes_required:
             self.clog.warning(f"Required disk space of {n_bytes_required} bytes exceeds available buffer of {n_bytes_free}")
             choice = input("\033[93mProceed (y/n)? > ").lower()
@@ -350,9 +353,10 @@ class simulator(object):
                          self.atmosphere, 
                          self.source,
                          self.cascade,
-                         self.nTimes, 
+                         self.n_times, 
                          outname,
-                         outscale)
+                         outscale,
+                         seed)
 
         
 
