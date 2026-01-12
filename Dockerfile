@@ -10,23 +10,16 @@ WORKDIR /setup
 RUN \
 	apt update && \
 	apt install -y \
-		autoconf \
-		cmake \
+		g++ \
 		gcc \
-		git \
-		git-annex \
-		gpg \
-		libtool \
-		lintian \
-		make \
-		make \
+		git  `# Needed by mesonpy??` \
+		git-annex  `# all git cmds will fail in annex repo w/o annex` \
 		meson \
 		pkg-config \
 		python3.11 \
 		python3.11-dev \
 		python3.11-venv \
 		wget \
-		zlib1g-dev \
 		&& \
 		:
 
@@ -34,7 +27,15 @@ RUN \
 	wget "${CUDA_KEYRING_URL}" && \
 	dpkg -i cuda-keyring_1.1-1_all.deb && \
 	apt-get update && \
-	apt-get -y install cuda-toolkit-12-3 && \
+	`# DO NOT INSTALL FULL TOOLCHAIN! ` && \
+	`# It takes like 10gb of space and like 30min ` && \
+	`# apt-get -y install cuda-toolkit-12-3 ` && \
+	`# Install only the parts we need: ` && \
+	apt-get -y install \
+		cuda-nvcc-12-3 \
+		libcufft-dev-12-3 \
+		libcurand-dev-12-3 \
+		&& \
 	:
 
 ENV PATH=/usr/local/cuda/bin:${PATH}
@@ -71,7 +72,7 @@ COPY ./src /setup/src
 RUN \
 	. /venv/bin/activate && \
 	pip-compile --verbose --all-build-deps --all-extras pyproject.toml && \
-	pip download -r requirements.txt -d pipcache --only-binary=:all: && \
+	`#pip download -r requirements.txt -d pipcache --only-binary=:all: && ` \
 	pip install -r requirements.txt && \
 	pip install build twine && \
 	:
