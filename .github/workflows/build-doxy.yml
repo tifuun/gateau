@@ -1,0 +1,35 @@
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/${{ github.repository }}:maybetree
+      options: --user root
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Mark repo as safe for git
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Generate and Deploy Doxygen Docs
+        run: |
+          set -e
+          rm -rf docs
+          . /venv/bin/activate
+          ./scripts/GenerateDocs.py
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
+

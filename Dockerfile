@@ -12,6 +12,7 @@ RUN \
 	apt install -y \
 		autoconf \
 		cmake \
+		doxygen  `# For doxy` \
 		gcc \
 		git \
 		git-annex \

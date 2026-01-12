@@ -36,6 +36,7 @@ requires-python = '>=3.9'
 
 [project.optional-dependencies]
 dev = ["pip-tools", "wheel-filename"]
+doxy = ["jupyter"]  # doxy also needs doxygen package from system package manager
 
 #[tool.meson-python]
 ## TODO is needed?
