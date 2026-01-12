@@ -200,10 +200,10 @@ It is even less likely thet you will find static position-independent
 builds in your package manager.
 Therefore, you will either need to compile
 them yourself,
-or use the prebuilt Debian packages that we provide
-[here](https://github.com/stratal-systems/debian-packages/releases/tag/vtest2).
+or use the prebuilt Debian packages provided
+[here](https://github.com/stratal-systems/debian-packages/releases/tag/v2-2).
 If you decide to compile them yourself,
-you are welcome to use our makefiles
+you are welcome to use the makefiles
 (
 [gsl](https://github.com/stratal-systems/debian-packages/blob/main/pkg/libgsl-static-pic/debian/rules);
 [hdf5](https://github.com/stratal-systems/debian-packages/blob/main/pkg/libhdf5-static-pic/debian/rules)
