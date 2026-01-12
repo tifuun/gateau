@@ -15,7 +15,10 @@ from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RectBivariateSpline
 from tqdm import tqdm
 
-from gateau.custom_logger import parallel_iterator
+import logging
+
+logging.getLogger(__name__)
+from gateau.custom_logger import CustomLogger, parallel_iterator
 from gateau import resources
 
 NCPU = multiprocessing.cpu_count()
@@ -71,8 +74,10 @@ def prep_atm_ARIS(path_to_aris, diameter_tel, num_threads = NCPU):
     @param atmosphereDict Dictionary containing atmosphere parameters.
     @param telescopeDict Dictionary containing telescope parameters.
     """
+    clog_mgr = CustomLogger(os.path.basename(__file__))
+    clog = clog_mgr.getCustomLogger()
 
-    print("\033[1;32m*** PREPARING ARIS SCREENS ***")
+    clog.info("\033[1;32m*** PREPARING ARIS SCREENS ***")
 
     prepd_path = os.path.join(path_to_aris, "prepd")
     if not os.path.isdir(prepd_path):

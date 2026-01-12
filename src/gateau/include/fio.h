@@ -160,7 +160,17 @@ class OutputFile
                         ),
                     __LINE__
                     );
-
+            
+            check_API_call_status(
+                    H5Dclose(dset_id),
+                    __LINE__
+                    );
+            
+            check_API_call_status(
+                    H5Sclose(dspace_id),
+                    __LINE__
+                    );
+            
             // Initialise time and az-el arrays
             dims_1D[0] = ntimes;
 
@@ -191,6 +201,12 @@ class OutputFile
                         ),
                     __LINE__
                     );
+            
+            check_API_call_status(
+                    H5Dclose(dset_id),
+                    __LINE__
+                    );
+            
 
             dset_id = H5Dcreate(
                     obsattrs_id, 
@@ -213,7 +229,12 @@ class OutputFile
                         ),
                     __LINE__
                     );
-
+            
+            check_API_call_status(
+                    H5Dclose(dset_id),
+                    __LINE__
+                    );
+            
             dset_id = H5Dcreate(
                     obsattrs_id, 
                     EL_NAME, 
@@ -235,14 +256,14 @@ class OutputFile
                         ),
                     __LINE__
                     );
-
+            
             check_API_call_status(
-                    H5Sclose(dspace_id),
+                    H5Dclose(dset_id),
                     __LINE__
                     );
             
             check_API_call_status(
-                    H5Dclose(dset_id),
+                    H5Sclose(dspace_id),
                     __LINE__
                     );
             
@@ -305,6 +326,10 @@ class OutputFile
                         ),
                     __LINE__
                     );
+            check_API_call_status(
+                    H5Dclose(dset_id),
+                    __LINE__
+                    );
             
             dset_id = H5Dcreate(
                     spax_id,
@@ -325,6 +350,16 @@ class OutputFile
                         H5P_DEFAULT, 
                         &el_spax
                         ),
+                    __LINE__
+                    );
+            
+            check_API_call_status(
+                    H5Dclose(dset_id),
+                    __LINE__
+                    );
+            
+            check_API_call_status(
+                    H5Sclose(dspace_id),
                     __LINE__
                     );
 
@@ -386,7 +421,6 @@ class OutputFile
                     __LINE__
                     );
             
-
             offset_times += ntimes_chunk;
             check_API_call_status(
                     H5Sclose(dspace_slab_id),
@@ -397,12 +431,12 @@ class OutputFile
         void close_spaxel(int spax_index) 
         {
             check_API_call_status(
-                    H5Sclose(dspace_id),
+                    H5Dclose(dset_id),
                     __LINE__
                     );
             
             check_API_call_status(
-                    H5Dclose(dset_id),
+                    H5Sclose(dspace_id),
                     __LINE__
                     );
             
