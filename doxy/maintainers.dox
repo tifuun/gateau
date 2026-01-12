@@ -37,11 +37,38 @@ the following dependencies are required:
 
 These can likely be installed from your package manager.
 
-### Prepare CUDA toolchain
+### Prepare CUDA
 
 CUDA is required to build and run Gateau.
 This can be installed from
 [NVIDIA's website](https://developer.nvidia.com/cuda-downloads).
+All minor versions of CUDA 11 and CUDA 12 *should* work,
+but if you don't know which to choose, go with 12.3
+(because that's what we use to build Gateau).
+
+The entire CUDA toolchain is quite large (~7GB).
+If you only want to build gateau without running it,
+you do not need the entire toolchain.
+You only need `nvcc`, `cufft`, and `curand`.
+So, if you want to save space and time, you can install only those
+components instead of the full toolchain.
+To do this, follow the `deb (network)` (or equivalent for your distro)
+steps on the CUDA website, but, instead of running
+
+```
+sudo apt-get -y install cuda-toolkit-12-3
+```
+
+run
+
+```
+apt-get -y install \
+	cuda-nvcc-12-3 \
+	libcufft-dev-12-3 \
+	libcurand-dev-12-3
+```
+
+
 **IMPORTANT**: Once installed, make sure `nvcc` is in your `$PATH`.
 
 ### Build 
@@ -226,6 +253,8 @@ pip install build
 
 ### non-PIC libhdf5
 
+So, if you want to save space and time, you can install only those
+components instead of the full toolchain.
 When trying to compile gateau wheel:
 
 ```
