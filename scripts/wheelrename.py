@@ -51,9 +51,11 @@ def main():
             print("no rename needed.")
             continue
 
-        print(f'rename {file} -> {new_name}')
+        new_file = file.parent / new_name
+
+        print(f'{file} -> {new_file}')
         if not args.dry_run:
-            file.rename(new_name)
+            file.rename(new_file)
 
 if __name__ == '__main__':
     main()
