@@ -34,7 +34,7 @@ jobs:
           # our image is so massive there is not enough space
           # in the ramdisk mounted at /tmp
           # so use regular non-ram directory instead
-          sudo mkdir ~/nottmp
+          sudo mkdir /nottmp
           sudo chown "$(whoami)" /nottmp
 
 
