@@ -29,7 +29,8 @@ jobs:
         run: |
           set -e
           rm -rf dist
-          /venv/bin/python -m build -Cbuild-dir=build.docker
+          . /venv/bin/activate  # <-- wheelrename needs pkg from the venv
+          python -m build -Cbuild-dir=build.docker
           ./scripts/wheelrename.py dist/*.whl
 
       - name: List built wheels (debug)
