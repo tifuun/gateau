@@ -23,6 +23,7 @@ dependencies = [
 	"psutil",
 	]
 
+
 classifiers = [
 	"Programming Language :: Python :: 3",
 	"Programming Language :: C",
@@ -33,6 +34,20 @@ classifiers = [
 
 requires-python = '>=3.9'
 
+[project.optional-dependencies]
+dev = ["pip-tools", "wheel-filename"]
 
+#[tool.meson-python]
+## TODO is needed?
+#wheel.exclude = [
+#	"archive",
+#	"win",
+#	"podman",
+#	"tests",
+#	"venv",
+#	"wheel",
+#	"RELICENSING",
+#	"doxy",
+#]
 
 

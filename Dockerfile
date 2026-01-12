@@ -59,7 +59,7 @@ COPY ./src /setup/src
 
 RUN \
 	. /venv/bin/activate && \
-	pip-compile --verbose --all-build-deps pyproject.toml && \
+	pip-compile --verbose --all-build-deps --all-extras pyproject.toml && \
 	pip download -r requirements.txt -d pipcache --only-binary=:all: && \
 	pip install -r requirements.txt && \
 	pip install build twine && \

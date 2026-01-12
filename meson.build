@@ -79,23 +79,66 @@ inc_dirs = include_directories(
   'src/gateau/cuda',
 )
 
+# ---- figure out static/dynamic gsl+hdf5 ----
+
+# are we building a wheel or are we `pip install`ing?
+is_building_wheel = run_command(
+  'sh', '-c', 'test -n "$PEP517_BUILD_BACKEND" && echo yes || echo no',
+  check : false
+).stdout().strip() == 'no'
+
+if get_option('gsl_static').enabled()
+  message('Option set to use STATIC gsl')
+  gsl_static = true
+elif get_option('gsl_static').disabled()
+  message('Option set to use DYNAMIC gsl')
+  gsl_static = false
+else
+  message('Option set to autochoose static/dynamic gsl...')
+
+  if is_building_wheel
+    message('we are building wheel, therefore choosing STATIC gsl')
+    gsl_static = true
+  else
+    message('we are building to install, therefore choosing DYNAMIC gsl')
+    gsl_static = false
+  endif
+endif
+
+
+if get_option('hdf5_static').enabled()
+  message('Option set to use STATIC hdf5')
+  hdf5_static = true
+elif get_option('hdf5_static').disabled()
+  message('Option set to use DYNAMIC hdf5')
+  hdf5_static = false
+else
+  message('Option set to autochoose static/dynamic hdf5...')
+
+  if is_building_wheel
+    message('we are building wheel, therefore choosing STATIC hdf5')
+    hdf5_static = true
+  else
+    message('we are building to install, therefore choosing DYNAMIC hdf5')
+    hdf5_static = false
+  endif
+endif
+
 # ---- External libraries ----
 gsl = dependency(
   'gsl',
   required: true,
-  static: not get_option('allow_dynamic')
+  static: gsl_static
   )
 gslcblas = cpp.find_library(
   'gslcblas',
   required: true,
-  static: true,
-  static: not get_option('allow_dynamic')
+  static: gsl_static
   )
 hdf5 = dependency(
   'hdf5',
   required: true,
-  static: true,
-  static: not get_option('allow_dynamic')
+  static: hdf5_static
   )
 
 libs = [cuda_libs, gsl, gslcblas, hdf5]

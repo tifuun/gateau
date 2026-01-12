@@ -30,7 +30,7 @@ jobs:
           set -e
           rm -rf dist
           /venv/bin/python -m build -Cbuild-dir=build.docker
-          ./scripts/wheelrename.sh
+          ./scripts/wheelrename.py dist/*.whl
 
       - name: List built wheels (debug)
         run: ls -lah dist

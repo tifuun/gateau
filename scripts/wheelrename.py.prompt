@@ -1,0 +1,44 @@
+translate pseudocode to python. Only use stdlib modules.
+
+program name: wheelrename.py
+description: helper script that fixes python wheel file names according to PEP
+author: maybetree
+begin CLI flags
+- dry run. In this mode, the program only prints the files
+	it would move or rename.
+- copy mode: instead of moving files, copy them.
+<pick appropriate short and long flag names that adhere to unix conventions>
+end CLI flags
+begin code
+
+determine system glibc major and minor process by parsing output
+of ldd command spawned as subprocess
+
+if ldd command fails or glibc major and minor version could not be determined,
+abort with error.
+
+for file in dist/*.whl do
+
+parse $file using expression: `{distribution}-{version}(-{build tag})?-{python tag}-{abi tag}-{platform tag}.whl.`
+
+if parsing failed print error message and continue
+
+print all parsed fields
+
+set platform tag to "x86_64"
+set version to "cp39.cp310.cp311.cp312.cp313"
+
+concatenate all fields back into complete wheel name according to expression `{distribution}-{version}(-{build tag})?-{python tag}-{abi tag}-{platform tag}.whl.` and store into $new_file
+
+if not dry_run flag:
+
+perform move / copy from $file to $new_file according to `copy_mode` flag
+
+endif
+
+print a string describing the move/copy operation from $file to $new_file
+
+endfor
+
+end code
+

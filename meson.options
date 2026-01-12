@@ -1,1 +1,14 @@
-option('allow_dynamic', type : 'boolean', value : false)
+option(
+  'gsl_static',
+  type : 'feature',
+  value : 'auto',
+  description : 'use static version of gsl. If auto, use static for wheel and dynamic for pip install'
+)
+
+option(
+  'hdf5_static',
+  type : 'feature',
+  value : 'auto',
+  description : 'use static version of hdf5. If auto, use static for wheel and dynamic for pip install'
+)
+

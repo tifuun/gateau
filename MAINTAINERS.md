@@ -177,4 +177,85 @@ contained therein.
 We can share it privately with other Gateau developers.
 
 
+## Troubleshooting
+
+### NVCC Not in Path
+
+```
+../meson.build:1:0: ERROR: Could not find suitable CUDA compiler: "nvcc"
+
+A full log can be found at /play/gateau/.mesonpy-fxjbc6lj/meson-logs/meson-log.txt
+```
+
+```
+(venv) root@gateau-dev:/play/gateau# export PATH=/usr/local/cuda/bin:$PATH
+```
+
+### Build not installedd
+
+```
+
+(venv) root@gateau-dev:/play/gateau# python -m build
+/venv/bin/python: No module named build.__main__; 'build' is a package and cannot be directly executed
+```
+
+```
+pip install build
+```
+
+### GSL Not installed
+
+```
+../meson.build:83:6: ERROR: Dependency "gsl" not found, tried pkgconfig
+
+A full log can be found at /play/gateau/.mesonpy-zem1ydc2/meson-logs/meson-log.txt
+```
+
+install gsl deb
+
+### Dynamic libhdf5
+
+```
+FAILED: libgateau.so 
+nvcc  -o libgateau.so libgateau.so.p/src_gateau_cuda_kernels.cu.o '-Xcompiler=-Wl\,-O1' -shared 
+-Xcompiler=-fPIC '-Xcompiler=-Wl\,-soname\,libgateau.so' -cudart static -Xlinker=/usr/local/cuda
+/targets/x86_64-linux/lib/libcufft.so /usr/lib/libgsl.a /usr/lib/libgslcblas.a -lm /usr/lib/x86_
+64-linux-gnu/hdf5/serial/libhdf5_hl.a /usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.a
+/usr/bin/ld: /usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.a(H5HFsection.o): warning: relocation
+ against `H5E_CANTREVIVE_g' in read-only section `.text'
+/usr/bin/ld: /usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.a(H5CX.o): relocation R_X86_64_PC32 a
+gainst symbol `H5CX_init_g' can not be used when making a shared object; recompile with -fPIC
+/usr/bin/ld: final link failed: bad value
+collect2: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.
+
+ERROR Backend subprocess exited when trying to invoke build_wheel
+(venv) root@gateau-dev:/play/gateau# 
+```
+
+solution
+
+```
+
+(venv) root@gateau-dev:/play/gateau# apt purge hdf5-tools libhdf5-dev  hdf5-helpers
+dpkg -i ../libhdf5-static-pic_2.0.0_amd64.deb 
+```
+
+### System hdf5 installed while trying to install gsl
+
+```
+(venv) root@gateau-dev:/play/gateau# dpkg -i ../libhdf5-static-pic_2.0.0_amd64.deb 
+Selecting previously unselected package libhdf5-static-pic.
+(Reading database ... 49515 files and directories currently installed.)
+Preparing to unpack .../libhdf5-static-pic_2.0.0_amd64.deb ...
+Unpacking libhdf5-static-pic (2.0.0) ...
+dpkg: error processing archive ../libhdf5-static-pic_2.0.0_amd64.deb (--install):
+ trying to overwrite '/usr/bin/h5c++', which is also in package hdf5-helpers 1.10.8+repack1-1
+dpkg-deb: error: paste subprocess was killed by signal (Broken pipe)
+Errors were encountered while processing:
+ ../libhdf5-static-pic_2.0.0_amd64.deb
+```
+
+
+
 
