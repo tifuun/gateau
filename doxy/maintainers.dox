@@ -139,9 +139,34 @@ gateau. You can find these by running `ldd --version`.
 You can rename the file by hand or use the provided
 `./scripts/wheelrename.py` script which does this automatically.
 
-## Manually controlling 
+## Manually controlling static vs dynamic linking
 
-TODO
+Gateau's `meson.build` file is written such that
+when running `pip install` (i.e. for development purposes),
+meson looks for dynamic versions of gsl and hdf5;
+and when running `python -m build` (i.e. to build wheel
+for distribution), meson looks for static versions.
+
+This is what you want most of the time, but not always.
+In order to force either static or dynamic
+versions of each dependency,
+you can use the `gsl_static` and `gsl_dyanmic`
+features defined in `meson.options`.
+
+You can pass custom values to these options through either `pip` or `build`.
+So for example to build a wheel that explicitly links hdf5 dynamically:
+
+```
+python -m build --config-setting=setup-args=-Dhdf5_static=disabled
+```
+
+And if you want to install in editable mode while compiling `libgateau.so`
+to link gsl statically:
+
+```
+python -m pip install -e . --config-setting=setup-args=-Dgsl_static=enabled
+```
+
 
 ## Troubleshooting
 
