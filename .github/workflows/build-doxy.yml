@@ -1,4 +1,4 @@
-name: Build and publich Pages
+name: Build and publish Pages
 
 on:
   push:
