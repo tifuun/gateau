@@ -1,5 +1,6 @@
 """!
-@file Utilities that can be called by users. 
+@file atmosphere_utils.py
+@brief Utilities that can be called by users. 
 """
 
 from importlib import resources as impresources

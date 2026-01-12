@@ -12,7 +12,6 @@ RUN \
 	apt install -y \
 		autoconf \
 		cmake \
-		doxygen  `# For doxy` \
 		gcc \
 		git \
 		git-annex \
@@ -44,6 +43,17 @@ RUN \
 	wget "${LIBGSL_DEB_URL}" && \
 	wget "${LIBHDF5_DEB_URL}" && \
 	dpkg -i *.deb && \
+	:
+
+# These are all needed to build doxygen docs
+# plus jupyter but that's handled by pip 
+# (it's marked as an extra dep in pyproject.toml)
+RUN \
+	apt install -y \
+		doxygen \
+		texlive-bibtex-extra \
+		texlive-latex-base \
+		&& \
 	:
 
 RUN \

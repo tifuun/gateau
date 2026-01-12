@@ -1,505 +1,247 @@
-/** \page maintainers Info for maintainers
+/**
+@page maintainers For Maintainers
 
-This file contains all the hairy details that ideally should be
-of no concern for users and casual contributors,
-but are important for maybetree, Arend, and whatever poor souls
-who will have to carry the burden of maintaining Gateau in the future.
+## Development Lifecycle
 
-## Manual Compiling
+TODO
 
-The general procedure for compiling Gateau
-from this repo is like so:
+## Architecture: ctypes wrapper module
 
-1. Install Python, gcc, cmake, `gsl-devel` using your system package manager.
-    - `gsl-devel` is usually called `libgsl-dev`
-        on Debian-like distros.
-1. (optional) create and activate venv
-1. `pip install -e .`
+Most Python modules that have a backend written in a compiled language
+like C++ are
+[Python Extension Modules](https://docs.python.org/3/extending/extending.html),
+also known as Python Extensions.
+Python Exntension Modules facilitate the interaction between the compiled
+code and Python by linking against Python's C ABI.
 
-Pip should automatically compile `libgateau.so`
-(which is placed under `src/gateau/libgateau.so`
-when installing in pip's Editable mode)
-using cmake.
-After compilation is done,
-you can verify that things work using `unittest`.
-Note that some tests will always fail if you don't
-have a GPU that gateau can use:
+Gateau is not a Python Extension Module because it does not link
+against the Python ABI.
+Instead, the compiled part is bundled as a shared object
+(`libgateau.so`),
+which interacts with the pure Python part of Gateau
+using the `ctypes` module.
 
-1. `python -m unittest`
+There is no conventional name for this type of Python module
+because almost nobody does it this way.
+In the absence of a standardized terminology,
+we have decided to call this type of python module a
+"ctypes wrapper module".
 
+## Building Gateau: Editable install for development
 
-## For developers: using the `test-all.sh` script
+In order to build Gateau,
+the following dependencies are required:
 
-Building, testing, and packaging Gateau requires a very hairy toolchain
-and some rather counterintuitive command line incantations.
-To make our lives easier, we have written a script which automates
-all of this using Podman.
+- [hdf5](https://github.com/HDFGroup/hdf5)
+- [gsl](https://www.gnu.org/software/gsl/)
 
-If you've never used podman before,
-consider reading the section
-[A Brief Introduction to Podman](#a-brief-introduction-to-podman)
-at the bottom of this document.
+These can likely be installed from your package manager.
 
-Here's how to use it:
+### Prepare CUDA toolchain
 
-1. Install and set up `podman` using your system's package manager
-1. Set up `podman` for use with CUDA.
-    Read [NVIDIA's docs](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html)
-    or the [STRATAL SYSTEMS Wiki page](https://github.com/stratal-systems/wiki/blob/main/wiki/void-linux-cuda.md)
-    for instructions on how to do this.
-    - If you do not have a GPU,
-        you can skip this step and
-        instead run the script with
-        `GATEAU_DISABLE_GPU=1`.
-        Things that require a GPU will of course fail,
-        but things like compiling and packaging
-        will still work.
-1. Run `./podman/test-all.sh pull` to download all of the containers
-    needed for testing, building, and packaging Gateau.
-    - Alternatively, you can use `./podman/test-all.sh build`
-        to build the containers locally
+CUDA is required to build and run Gateau.
+This can be installed from
+[NVIDIA's website](https://developer.nvidia.com/cuda-downloads).
+**IMPORTANT**: Once installed, make sure `nvcc` is in your `$PATH`.
 
-What follows below is a brief cookbook of things you can do
-with the `test-all.sh` script.
-If you want a complete documentation of what
-it does and how,
-read the
-[comment block at the start of the script itself](./podman/test-all.sh)
+### Build 
 
-### Run the test suite
+Gateau uses [meson](https://mesonbuild.com/) as its build system,
+You can likely install meson from your package manager.
+
+Once the dependencies, meson, and CUDA have been installed,
+you can install Gateau in development mode like this:
 
 ```
-./podman/test-all.sh test11
-```
-Will run the full test suite under a cuda11 container
-with multiple versions of Python.
-The detailed output will be placed in `/podman/output` directory.
-
-If you do not have a GPU, you can still run the tests like this:
-
-```
-GATEAU_DISABLE_GPU=1 ./podman/test-all.sh test11
-```
-
-Mosts tests will fail if there is no GPU.
-
-Run tests in only one specific version of Python:
-
-```
-GATEAU_TEST_VENVS="/venv3.9" ./podman/test-all.sh test11
-```
-
-### Build a wheel
-
-```
-./podman/test-all.sh staticwheel
-```
-
-This will build wheel and place it into the `dist` subdirectory.
-
-If you are paranoid, you can run `./podman/test-all.sh checkstatic`
-to verify that the wheel has libgsl linked statically
-(more info in the [Libgsl](#libgsl) section).
-
-### Upload to pypi
-
-This will upload all of the wheels and source archives under `dist`
-onto PyPI.
-You will need to pass your PyPI token using the `TWINE_PASSWORD`
-environment variable.
-You can make a token in the pypi webui.
-
-```
-TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx ./podman/test-all.sh pypi
-```
-
-### Test the PyPI package
-
-This will download the latest Gateau from PyPI,
-install it, and run the test suite.
-As with the `test11` subcommand,
-the detailed output will be available under `podman/output`.
-
-```
-./podman/test-all.sh test-pypi
-```
-
-### Upload/test on TestPyPI
-
-There exists a "playground" version of PyPI
-at <https://test.pypi.org/>.
-You can use it to play around with the Gateau packaging process.
-Instead of using the `pypi` and `test-pypi`
-subcommands,
-use the `tpypi` and `test-tpypi` subcommands
-to target TestPyPI instead.
-
-### Re-build image
-
-If you would like to re-build a specific image,
-simply `untag` or `rm` it,
-then run the `build` subcommand again.
-For example, to re-build the `gateau-cuda11bare` image:
-
-```
-podman untag gateau-cuda11
-./podman/test-all.sh build
-```
-
-It's worth noting that the `pull` subcommand
-ALWAYS overrides the local images with the remote images,
-regardless of which on is newer.
-
-## For developers: building and publishing wheels
-
-The wheel building and publishing process is automated using the
-`test-all.sh` script,
-please read
-[the section on using it](#for-developers-using-the-test-allsh-script).
-Otherwise, you can follow the manual instructions below:
-
-To build wheels for gateau and upload to pypi
-you will need all of the requirements for compiling
-Gateau
-(see the [Compiling section](#manual-compiling)),
-plus the `twine` and `build` Python packages.
-
-1. Make sure the package version specified in `pyproject.toml`
-    is the version number that you want to publish.
-1. Build wheel: run `python -m build` from the root of the repo.
-    The results (`.whl` wheel and `.tag.gz` source archive)
-    are placed into the `dist` subdirectory.
-1. Fix name of wheel:
-    ~~For some godforsaken reason~~ `build` generates wheel files
-    that are named like `gateau-0.1.0-cp313-cp313-linux_x86_64.whl`,
-    which PyPI WILL NOT ACCEPT.
-    You need to change the part that says `linux_x86_64`
-    into `manylinux_<majver>_<minver>`, where
-    `<majver>` and `<minver>` are the version numbers of GNU libc.
-    So for example if `build` generates a file named
-    `gateau-0.1.0-cp313-cp313-linux_x86_64.whl`,
-    and `ldd --version` tells you that you have
-    `ldd (Ubuntu GLIBC 2.31-0ubuntu9.12) 2.31`,
-    then you need to rename the file to
-    `gateau-0.1.0-cp313-cp313-manylinux_2_31_x86_64.whl`.
-    Read [this PEP](https://peps.python.org/pep-0427/#file-name-convention)
-    for more info.
-1. Upload to pypi:
-    There are many ways to authenticate to pypi, but the easiest is to
-    create an access token in the webui
-    and pass it to `twine` via the `TWINE_PASSWORD` environment variable:
-    `TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx twine upload --verbose --skip-existing --non-interactive dist/*`
-
-## Libgsl
-
-In Python Land, it is customary to statically
-link dependencies into the wheel.
-Our only dependency (besides C and C++ stdlibs,
-which are halal to link dynamically afaik)
-is the
-[GNU Scientific Library](https://www.gnu.org/software/gsl/).
-We link it statically into `libgateau.so`.
-In order to accomplish this,
-a static version of libgsl
-itself is needed -- i.e. `libgsl.a` instead of `libgsl.so`.
-Some distros provide a package for this,
-but not Ubuntu (which is the base for the `gateau-cicd` container).
-So we compile static libgsl manually.
-This is done using the `scripts/build-gsl.sh` script,
-which runs during the `staticwheel`
-subcommand of the `test-all.sh` script.
-That script has a little
-non-trivial hackery to actually get libgsl to compile,
-go take a look yourself,
-I promise it's not that scary.
-
-cmake is duumb. I have spent like an hour trying to figure out
-how to tell it to link libgsl statically
-and the best I have come up with is to just make
-sure the container ONLY has the static libgsl (`libgsl.a`).
-If the container has both static and dynamic (`libgsl.so`),
-cmake defaults to the dynamic one no matter what I do.
-This is the reason why the `build-gsl.sh` script
-configures libgsl with `--distable-shared`,
-and why the `staticwheel` subcommand has
-that cheeky `rm -rf /usr/local/bin/libgsl.so*`,
-and why there is the paranoid `checkstatic` subcommand as well.
-
-Libgsl is licensed under GPLv3 which is the reason
-we must use a GPL-compatible license for Gateau itself
-if we want to distribute static wheels of it.
-
-## CICD
-
-We have somewhat of a CICD pipeline.
-See the
-[stratal systems wiki page](https://github.com/stratal-systems/wiki/blob/main/wiki/gateau-cicd.md)
-for full info.
-
-### Publishing pages
-
-The documentation is published to the
-[pages site](https://tifuun.github.io/gateau/)
-automatically.
-To trigger it you should:
-
-1. Tag the commit you want to publish
-1. Push the tag to github
-1. Push the commit to either `main` or `cicdtest` branches.
-
-> [!WARNING]
-> You must FIRST push the TAG and THEN push the COMMIT.
-> Otherwise minicycle will pull the commit
-> before it has the tag
-> and skip building pages.
-> So roughly:
-> ```
-> git commit -m "Updated the docs"
-> git tag 'v4.2.0'
-> git push --tags
-> git push
-> ```
-
-### Running tests (CI)
-
-The automatic tests pipeline
-runs on ANY commit to `master` or `cicdtest`.
-Read the 
-[stratal systems wiki page](https://github.com/stratal-systems/wiki/blob/main/wiki/gateau-cicd.md)
-for full info.
-
-### Publishing to pypi (CD)
-
-There is no automated way to publish to pypi yet.
-
-### Internals
-
-All pipelines start at `./.minicycle/entrypoint`
-which then launches `./.minicycle/tests`,
-and, if a tag is present,
-`./.minicycle/pages`.
-They both make use of the `./podman/test-all.sh` script
-to run tests / build the docs.
-The docs are ultimately built by `./scripts/GenerateDocs.py`.
-
-The docs are published to github pages by having
-the pipeline push the built docs to the `gh-pages`
-branch in this repo through a read-write deploy key.
-Do not push to `gh-pages` branch manually.
-
-## Misc. notes for various linux distros
-
-### Void Linux
-
-- no clue about getting cuda to work, but that
-    is not needed to just compile
-- `xbps-install -Syu gcc cmake gsl-devel`
-
-### Oracle Linux 9
-
-- Available pythons: 3.9, 3.11, 3.12
-- Extra repos need to be added for googletest:
-
-```
-dnf install -y oracle-epel-release-el9
-dnf config-manager --set-enabled ol9_developer_EPEL
-dnf install -y gtest gtest-devel gsl-devel python3.11
-
-python3.11 -m venv /venv
-source /venv/bin/activate
-
 pip install -e .
-python -m unittest
-TODO gtest
 ```
 
-### Ubuntu 20.04
+Meson integrates tightly with the python packaging system.
+You do not need to manually recompile Gateau every time you make changes;
+recompilation will be triggered automatically every time `import gateau`
+is invoked.
 
-- `deadsnakes` repo needed for non-ancient Pythons
-    - contains almost all releases of python that you might
-        ever want (3.9, 3.10, 3.11, 3.12, 3.13)
-    - `venv` shipped separately,
-        so you need to install both
-        `pythonX.XX` and `pythonX.XX-venv`
-- `gsl-devel` is called `libgsl-dev`
-- TODO gtest
+If you would still like to manually trigger recompilation,
+you can do so by running `pip install -e .` again.
+Build caches is stored in the `build` directory
+in the project root.
+It is safe to delete.
+
+## Building Gateau: Wheels for Publishing
+
+Python wheels should link their dependencies statically.
+Moreover, in order to link static dependencies into the shared
+`libgateau.so` object, they need to have position-independent code.
+Thus, before building the Gateau wheel, you need
+to first have static position-independent
+versions of the two dependencies:
+
+- [hdf5](https://github.com/HDFGroup/hdf5)
+- [gsl](https://www.gnu.org/software/gsl/)
+
+It is unlikely that you will find static builds in your package manager.
+It is even less likely thet you will find static position-independent
+builds in your package manager.
+TODO appendix
+Therefore, you will either need to compile
+them yourself,
+or use the prebuilt Debian packages that we provide
+[here](https://github.com/stratal-systems/debian-packages/releases/tag/vtest2).
+If you decide to compile them yourself,
+you are welcome to use our makefiles
+(
+[gsl](https://github.com/stratal-systems/debian-packages/blob/main/pkg/libgsl-static-pic/debian/rules);
+[hdf5](https://github.com/stratal-systems/debian-packages/blob/main/pkg/libhdf5-static-pic/debian/rules)
+)
+as inspiration.
+
+### Building the wheel
+
+Once you have obtained static position-independent builds of the
+dependencies,
+you can build the wheel with the python `build` module:
 
 ```
-apt install -y libgsl-dev software-properties-common
-add-apt-repository ppa:deadsnakes/ppa
-apt update -y
-apt install python3.11 python3.11-venv
-
-python3.11 -m venv /venv
-source /venv/bin/activate
-
-pip install -e .
-python -m unittest
-TODO gtest
+python -m build
 ```
 
-## Other misc notes for developers
+The built wheel and source archive will be in the `dist` directory.
+Our `meson.build` file will detect that you are
+building a wheel and automatically switch to looking
+for static versions of the dependencies.
 
-### Changing the signature of `run_gateau`
+Keep in mind that meson will discard all uncommitted changes
+when building wheels.
+Therefore, `git commit` your changes before building the wheel.
 
-If you want to add/remove arguments of `run_gateau` there's
-four places you need to change it:
+### Renaming the wheel
 
-- `InterfaceCUDA.h`
-- `SimKernels.cu`
-- `bindings.py` -- the Python function itself
-- `bindings.py` -- the call to the C++ code
+Python wheels need to have
+[very spoecific filenames](https://packaging.python.org/en/latest/specifications/binary-distribution-format/#file-name-convention).
+`build` does not make the correct filename.
+Therefore, before uploading to PyPI,
+you need to rename the wheel.
+
+The wheel filename produced by `build` looks like this:
+
+```
+gateau-0.1.6-py3-none-any.whl
+```
+
+The correct filename should look like this:
+
+```
+gateau-0.1.6-cp39.cp310.cp311.cp312.cp313-none-manylinux_2_31_x86_64.whl
+```
+
+Here, `2_31` are the major and minor version of GLIBC used to build
+gateau. You can find these by running `ldd --version`.
+You can rename the file by hand or use the provided
+`./scripts/wheelrename.py` script which does this automatically.
+
+## Manually controlling 
+
+TODO
+
+## Troubleshooting
+
+Below are some common issues and solutions.
+
+### NVCC Not in Path
+
+#### Symptom
+
+When trying to compile gateau:
+
+```
+../meson.build:1:0: ERROR: Could not find suitable CUDA compiler: "nvcc"
+
+A full log can be found at /play/gateau/.mesonpy-fxjbc6lj/meson-logs/meson-log.txt
+```
+
+#### Cause
+
+Either Cuda is not installed,
+or it is installed, but not in $PATH.
+
+#### Solution
+
+If cuda is not installed, then install it.
+If it is installed, but you cannot run `nvcc` from a shell,
+you need to update the $PATH variable to
+include cuda's `bin` directory. For example:
+
+```
+export PATH=/usr/local/cuda/bin:$PATH
+```
+
+### Build not installedd
+
+```
+
+(venv) root@gateau-dev:/play/gateau# python -m build
+/venv/bin/python: No module named build.__main__; 'build' is a package and cannot be directly executed
+```
+
+```
+pip install build
+```
+
+### GSL Not installed
+
+```
+../meson.build:83:6: ERROR: Dependency "gsl" not found, tried pkgconfig
+
+A full log can be found at /play/gateau/.mesonpy-zem1ydc2/meson-logs/meson-log.txt
+```
+
+install gsl deb
+
+### Dynamic libhdf5
+
+```
+FAILED: libgateau.so 
+nvcc  -o libgateau.so libgateau.so.p/src_gateau_cuda_kernels.cu.o '-Xcompiler=-Wl\,-O1' -shared 
+-Xcompiler=-fPIC '-Xcompiler=-Wl\,-soname\,libgateau.so' -cudart static -Xlinker=/usr/local/cuda
+/targets/x86_64-linux/lib/libcufft.so /usr/lib/libgsl.a /usr/lib/libgslcblas.a -lm /usr/lib/x86_
+64-linux-gnu/hdf5/serial/libhdf5_hl.a /usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.a
+/usr/bin/ld: /usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.a(H5HFsection.o): warning: relocation
+ against `H5E_CANTREVIVE_g' in read-only section `.text'
+/usr/bin/ld: /usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.a(H5CX.o): relocation R_X86_64_PC32 a
+gainst symbol `H5CX_init_g' can not be used when making a shared object; recompile with -fPIC
+/usr/bin/ld: final link failed: bad value
+collect2: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.
+
+ERROR Backend subprocess exited when trying to invoke build_wheel
+(venv) root@gateau-dev:/play/gateau# 
+```
+
+solution
+
+```
+
+(venv) root@gateau-dev:/play/gateau# apt purge hdf5-tools libhdf5-dev  hdf5-helpers
+dpkg -i ../libhdf5-static-pic_2.0.0_amd64.deb 
+```
+
+### System hdf5 installed while trying to install gsl
+
+```
+(venv) root@gateau-dev:/play/gateau# dpkg -i ../libhdf5-static-pic_2.0.0_amd64.deb 
+Selecting previously unselected package libhdf5-static-pic.
+(Reading database ... 49515 files and directories currently installed.)
+Preparing to unpack .../libhdf5-static-pic_2.0.0_amd64.deb ...
+Unpacking libhdf5-static-pic (2.0.0) ...
+dpkg: error processing archive ../libhdf5-static-pic_2.0.0_amd64.deb (--install):
+ trying to overwrite '/usr/bin/h5c++', which is also in package hdf5-helpers 1.10.8+repack1-1
+dpkg-deb: error: paste subprocess was killed by signal (Broken pipe)
+Errors were encountered while processing:
+ ../libhdf5-static-pic_2.0.0_amd64.deb
+```
+
+
+
+
 
 */
-
-## A Brief Introduction to Podman
-
-Podman is a container engine.
-It allows setting up isolated environments with their own set
-of programs and dependencies.
-Think `venv` but for everything, not just Python.
-Think virtual machine,
-but running on the same kernel.
-Think Linux-in-a-Box.
-
-Podman works based on layers.
-For example, you can use a pre-made image,
-such as
-[Alpine Linux 3.22.1](https://hub.docker.com/layers/library/alpine/3.22/),
-and install the things you want on top of it.
-
-When you use `podman run`, Podman takes a specified image
-and spawns a container based on that image.
-"Container" just means "running image".
-The changes in the container won't affect its image,
-because they are also on a separate layer.
-
-- Installation: typically through your system package manager
-	- Debain 12 also requires the `containers-storage` package,
-		because of
-		[this](https://github.com/stratal-systems/wiki/blob/main/wiki/podman-storage-driver.md).
-- List running containers: `podman ps`
-- List running and stopped containers: `podman ps -a`
-- List tagged images: `podman image ls`
-- List all images: `podman image ls -a`
-- Stop container: `podman stop <ID-OR-NAME>`
-- Kill container: `podman kill <ID-OR-NAME>`
-- Reset all podman data: `podman system reset`
-- Show podman system information: `podman info`
-- Remove stopped container: `podman container rm <ID-OR-NAME>`
-- Remove image: `podman image rm <ID-OR-TAG>`
-- Remove all stopped containers: `podman container prune`
-- Remove all images not in use by a container:
-	`podman image prune`
-- Run interactive shell inside container:
-	`podman exec -ti <ID-OR-NAME> sh`
-- Start a new container from an image with an interactive shell,
-	removing the container once the shell exits.
-	`podman run --rm -ti <IMAGE-ID-OR-TAG> sh`
-- Start a new container from an image with an interactive shell
-	and a custom name, removing any stopped container
-	that already has the same name:
-	`podman run --name foobar --replace -ti <IMAGE-ID-OR-TAG> sh`
-
-## Windows
-
-Unfortunately, Gateau supports Windows.
-You can make a windows build of Gateau using
-the `./win/scripts/build-in-vm.sh` script,
-which launches a windows virtual machine and builds Gateau inside it.
-The prerequisites for using the `build-in-vm.sh` script are detailed below.
-The script also contains checks for all of these,
-so it should be fine to just run
-and it will tell you what you need to do.
-
-1. *Acquire the VM image.*
-	We have made a pre-built windows 10 image with
-	everything needed to build Gateau inside of it.
-	The image is located in `win/vm/5.final.qcow2`
-	and managed using [git-annex](https://git-annex.branchable.com/).
-	You can download it in the following steps:
-
-	1. Install `git-annex` from your system's package manager
-	1. Initialize your repo for use with annex: `git annex init`
-	1. Sync annex metadata: `git annex sync origin`
-	1. Enable the remote containing the image:
-		`WEBDAV_USERNAME=tifuun WEBDAV_PASSWORD="xxx" git annex enableremote dav`
-		- Ask maybetree for the password.
-			Due to licensing issues, we cannot distribute
-			our windows 10 image publicly.
-	1. Download the image: `git annex get win/vm/5.final.qcow2`
-		- The image weighs 40GB and the server is slow,
-			so it will take some time
-		- In case git-annex complains about a "stalled transfer",
-			just let it finish its job don't CTRL+C it.
-1. *Acquire python deps.*
-	We freeze all of the python dependendencies for the windows
-	version of gateau.
-	Once you've set up git-annex as detailed above,
-	run `git annex get win/pipcache`
-	to download them.
-	- If you would like to bump the python depenencies to their latest
-		versions available on pypi, simply clear out the
-		`win/pipcache` directory, run
-		`win/scripts/compile_requirements.sh` script
-		followed by `win/scripts/download_wheels.sh` script.
-		
-		When you make a new commit, make sure to track the
-		bumped versions with git-annex instead of checking
-		them directly into git:
-		run `git annex add win/pipcache` to put them in the annex,
-		then make the git commit as usual,
-		then `git annex copy --to dav win/pipcache` to upload them
-		to our annex remote,
-		and finally `git annex sync origin` to update
-		metadata about the new files' presence.
-
-1. *Install systemwide deps.*
-	In order to run the emulator,
-	you need to install `qemu-system-x86_64`,
-	`virtiofsd`, `jq`, and `socat`.
-	These are very standard programs likely available thru
-	your system's package manager.
-	- Alpine Linux users are also encouraged to install
-		`gnu-libiconv` package
-		so that the script can descramble Russian error messages
-		coming from the VM.
-
-1. *Run the script.*
-	Once everything is in order,
-	brace yourself for the windows bootloader jumpscare and
-	run `./win/scripts/build-in-vm.sh`.
-	Although the VM runs with a virtual display, it will
-	just show the login prompt.
-	Keep and eye on the console output for information.
-	If all goes well, the built wheels
-	should end up in `dist`.
-
-### Technical details on the windows build script
-
-- If error or unexpected condition is required,
-	script will shut down vm gracefully.
-	Pass `GATEAU_DEBUG` to add a pause before
-	the shutdown, it can be useful for debugging.
-
-- Script creates a read-write overlay of the vm image
-	in `win/tmp/overlay.qcow2`, so changes across vm
-	runs persist. Simply delete the overlay file,
-	and the next run of the vm will be fresh from the original
-	`win/vm/5.final.qcow2` image.
-
-- Username and password for the VM: `maybetree` and `abundance`.
-	- Make sure to switch keyboard to english
-		by pressing CTRL+SHIFT at the login prompt.
-
-- Although Windows contains a networking stack and networking hardware drivers,
-	it is essentially an offline-only operating system,
-	because any connection to the internet will cause it to download
-	and autoinstall updates which will likely if not certainly
-	brick it.
-	Therefore, do not connect the VM to the internet.
-	You can use virtiofs to share files between the guest and host,
-	or, import the image into `virt-manager`
-	where you can set up an isolated network that lets guest see the host
-	but not the outside internet.
-

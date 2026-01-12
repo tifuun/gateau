@@ -1,4 +1,4 @@
-/*! \file FileIO.h
+/*! \file fio.h
  * \brief File input/output operations.
  **/
 

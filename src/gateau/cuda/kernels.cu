@@ -1,6 +1,6 @@
 #include "interface.h"
 
-/*! \file Kernels.cu
+/*! \file kernels.cu
     \brief Definitions of CUDA kernels for gateau.
 
     author: Arend Moerman

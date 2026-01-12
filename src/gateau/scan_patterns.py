@@ -1,5 +1,6 @@
 """!
-@file File containing some commonly encountered scanning patterns.
+@file scan_patterns.py
+@brief File containing some commonly encountered scanning patterns.
 """
 
 from typing import Union

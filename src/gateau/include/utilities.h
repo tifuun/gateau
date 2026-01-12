@@ -1,4 +1,4 @@
-/*! \file CuInterpUtils.h
+/*! \file utilities.h
  * \brief Utilities for linear interpolation for CUDA.
  **/
 #include <stdexcept>

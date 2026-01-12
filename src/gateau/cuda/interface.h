@@ -1,4 +1,4 @@
-/*! \file InterfaceCUDA.h
+/*! \file interface.h
     \brief Declarations of TiEMPO2 library for GPU.
 
     Provides single precision interface for NVIDIA GPUs running CUDA. 
