@@ -167,6 +167,10 @@ to link gsl statically:
 python -m pip install -e . --config-setting=setup-args=-Dgsl_static=enabled
 ```
 
+If you think that setting a single option by passing a command line
+flag that somehow contains three separate equals signs is absolutely
+insane syntax: we agree.
+
 
 ## Troubleshooting
 
