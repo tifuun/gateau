@@ -6,7 +6,8 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: write   # publish pages
+  packages: read    # pull image from GHCR
 
 jobs:
   deploy:
