@@ -175,29 +175,29 @@ include cuda's `bin` directory. For example:
 export PATH=/usr/local/cuda/bin:$PATH
 ```
 
-### Build not installedd
+### Build not installed
 
+#### Symptom
+
+When trying to compile gateau:
 ```
-
-(venv) root@gateau-dev:/play/gateau# python -m build
 /venv/bin/python: No module named build.__main__; 'build' is a package and cannot be directly executed
 ```
+or
+
+```
+/usr/bin/python: No module named build
+```
+
+#### Soltuion
 
 ```
 pip install build
 ```
 
-### GSL Not installed
+### non-PIC libhdf5
 
-```
-../meson.build:83:6: ERROR: Dependency "gsl" not found, tried pkgconfig
-
-A full log can be found at /play/gateau/.mesonpy-zem1ydc2/meson-logs/meson-log.txt
-```
-
-install gsl deb
-
-### Dynamic libhdf5
+When trying to compile gateau wheel:
 
 ```
 FAILED: libgateau.so 
@@ -216,6 +216,11 @@ ninja: build stopped: subcommand failed.
 ERROR Backend subprocess exited when trying to invoke build_wheel
 (venv) root@gateau-dev:/play/gateau# 
 ```
+
+#### Cause
+
+This happens when you have a static but not position-independent
+build of libhdf5 TODO FINISH WRITING THIS
 
 solution
 
@@ -239,7 +244,6 @@ dpkg-deb: error: paste subprocess was killed by signal (Broken pipe)
 Errors were encountered while processing:
  ../libhdf5-static-pic_2.0.0_amd64.deb
 ```
-
 
 
 
