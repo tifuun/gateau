@@ -26,6 +26,12 @@ jobs:
 
       - name: Free up disk space
         run: |
+          # The docker image is so massive (due to cuda) that there is not
+          # enough space available in the runner VM to store the cache.
+          # We free up some space by deleting files that are not needed.
+          # Thanks to
+          # <https://carlosbecker.com/posts/github-actions-disk-space/>
+          # for this hack!
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           sudo docker image prune --all --force
           sudo docker builder prune -a
@@ -41,9 +47,11 @@ jobs:
 
       - name: Create cache directory
         run: |
-          # our image is so massive there is not enough space
-          # in the ramdisk mounted at /tmp
-          # so use regular non-ram directory instead
+          # At the time of writing /tmp is the same disk
+          # as / in the runner VM
+          # but this may change in the future
+          # so we deliberately store the cache in NOT /tmp
+          # in order to avoid running out of ramdisk space
           sudo mkdir /nottmp
           sudo chown "$(whoami)" /nottmp
 
