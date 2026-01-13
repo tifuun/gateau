@@ -7,7 +7,6 @@ PYTHON_TAGS = [
         'cp312',
         'cp313',
         ]
-PLATFORM_TAGS = ['x86_64']
 
 from pathlib import Path
 import argparse
@@ -44,7 +43,8 @@ def main():
         name = WheelFilename.parse(file.name)
         new_name = copy(name)
         new_name.python_tags = PYTHON_TAGS
-        new_name.platform_tags = PLATFORM_TAGS
+        # TODO actually ask `ldd` for glibc version
+        new_name.platform_tags = [f'manylinux_2_31_x86_64']
         new_name = str(new_name)
 
         if new_name == file.name:
