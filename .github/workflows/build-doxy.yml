@@ -6,9 +6,10 @@ on:
       - "v*"
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write   # needed to publish pages
+  packages: read    # needed to pull image from GHCR
+  pages: write      # apparently needed??
+  id-token: write   # ??? what???
 
 jobs:
   build:
