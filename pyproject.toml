@@ -21,6 +21,7 @@ dependencies = [
 	"tqdm",
 	"astropy",
 	"psutil",
+	"h5py",
 	]
 
 
