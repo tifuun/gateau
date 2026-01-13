@@ -9,6 +9,9 @@ project(
   ]
 )
 
+cpp = meson.get_compiler('cpp')
+py = import('python').find_installation()
+
 add_languages('cuda', required: true, native: true)
 
 cuda_libs = dependency(
@@ -63,9 +66,6 @@ else
     error('Could not find CUDA libraries, giving up.')
   endif
 endif
-
-cpp = meson.get_compiler('cpp')
-py = import('python').find_installation()
 
 cpp_args = [
   '-Xcompiler',
