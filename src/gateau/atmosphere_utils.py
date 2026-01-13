@@ -14,7 +14,6 @@ from typing import Tuple
 
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RectBivariateSpline
-from tqdm import tqdm
 
 import logging
 
