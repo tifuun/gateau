@@ -1,7 +1,7 @@
 project(
   'gateau',
   'cpp', 'cuda', 'c',
-  version: '0.1.6',
+  version: '0.2.0',
   default_options: [
     'buildtype=release',
     'cpp_std=c++17',
