@@ -112,7 +112,7 @@ def run_gateau(instrument: dict[str, any],
     gutils.allfillCascade(cascade, _cascade)
 
     cn_times = c_int(n_times)
-    coutpath = c_char_p(outpath.encode())
+    coutpath = c_char_p(str(outpath).encode())
     coutscale = c_char_p(outscale.encode())
     # FIXME bare encode
     cseed = c_ulonglong(seed)

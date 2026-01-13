@@ -4,6 +4,7 @@ import shutil
 import copy 
 import sys
 import numpy as np
+from pathlib import Path
 
 import gateau.ifu as gifu
 import gateau.input_checker as gcheck
@@ -333,9 +334,15 @@ class simulator(object):
             raise InitialError
             sys.exit()
 
-        if not outname.endswith(".h5"):
-            outname += ".h5"
-        
+        if isinstance(outname, str):
+            outname = Path(outname)
+
+        outname = outname.with_suffix(".h5")
+
+        path = outname.parent
+
+        path.mkdir(parents=True, exist_ok=True)
+
         # Check if enough HDD is available in outpath for this simulation
         n_bytes_required = ((self.instrument["nf_ch"] + 2)*self.instrument["n_spax"] + 1) * self.n_times * 4
         if (n_bytes_free := int(MEMFRAC * shutil.disk_usage(self.outPath).free)) < n_bytes_required:
@@ -349,16 +356,13 @@ class simulator(object):
         self.clog.info("\033[1;32m*** STARTING gateau SIMULATION ***")
         
         gbind.run_gateau(self.instrument, 
-                         self.telescope, 
-                         self.atmosphere, 
-                         self.source,
-                         self.cascade,
-                         self.n_times, 
-                         outname,
-                         outscale,
-                         seed)
-
-        
+                            self.telescope, 
+                        self.atmosphere, 
+                             self.source,
+                        self.cascade,
+                             self.n_times, 
+                     outname,
+                                       outscale,
+                  seed)
 
         self.clog.info("\033[1;32m*** FINISHED gateau SIMULATION ***")
-
