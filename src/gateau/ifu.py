@@ -4,7 +4,6 @@ Generate or read filterbank matrix.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def lorentzian(f, f0, Ql):

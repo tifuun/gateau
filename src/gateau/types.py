@@ -1,5 +1,5 @@
 from numpy import ndarray as arr
-from typing import Protocol, Sequence, Any, runtime_checkable, Tuple, Callable
+from typing import Sequence, Callable
 
 
 ScanFuncFirst = Callable[[arr], arr]

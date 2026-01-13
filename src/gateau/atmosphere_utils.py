@@ -17,10 +17,10 @@ from scipy.interpolate import RectBivariateSpline
 
 import logging
 
-logging.getLogger(__name__)
 from gateau.custom_logger import CustomLogger, parallel_iterator
 from gateau import resources
 
+logging.getLogger(__name__)
 NCPU = multiprocessing.cpu_count()
 
 def prep_atm_ARIS_pool(args: Tuple[np.ndarray,

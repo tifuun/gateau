@@ -11,7 +11,6 @@ import gateau.input_checker as gcheck
 import gateau.bindings as gbind
 import gateau.cascade as gcascade
 
-import shutil
 import logging
 from gateau.custom_logger import CustomLogger
 from gateau.atmosphere_utils import get_eta_atm
