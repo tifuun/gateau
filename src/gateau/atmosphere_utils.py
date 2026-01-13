@@ -1,5 +1,6 @@
 """!
-@file Utilities that can be called by users. 
+@file atmosphere_utils.py
+@brief Utilities that can be called by users. 
 """
 
 from importlib import resources as impresources
@@ -13,11 +14,13 @@ from typing import Tuple
 
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RectBivariateSpline
-from tqdm import tqdm
 
-from gateau.custom_logger import parallel_iterator
+import logging
+
+from gateau.custom_logger import CustomLogger, parallel_iterator
 from gateau import resources
 
+logging.getLogger(__name__)
 NCPU = multiprocessing.cpu_count()
 
 def prep_atm_ARIS_pool(args: Tuple[np.ndarray,
@@ -71,8 +74,10 @@ def prep_atm_ARIS(path_to_aris, diameter_tel, num_threads = NCPU):
     @param atmosphereDict Dictionary containing atmosphere parameters.
     @param telescopeDict Dictionary containing telescope parameters.
     """
+    clog_mgr = CustomLogger(os.path.basename(__file__))
+    clog = clog_mgr.getCustomLogger()
 
-    print("\033[1;32m*** PREPARING ARIS SCREENS ***")
+    clog.info("\033[1;32m*** PREPARING ARIS SCREENS ***")
 
     prepd_path = os.path.join(path_to_aris, "prepd")
     if not os.path.isdir(prepd_path):

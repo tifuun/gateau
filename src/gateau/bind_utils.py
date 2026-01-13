@@ -21,9 +21,11 @@ def allfillCascade(CascadeDict: dict[str, any],
     """
     arr_eta = ar.array('f', CascadeDict["eta_stage"].ravel())
     arr_psd = ar.array('f', CascadeDict["psd_stage"].ravel())
+    arr_psd_cmb = ar.array('f', CascadeDict["psd_cmb"].ravel())
     
     CascadeStruct.eta_stage = (c_float * CascadeDict["eta_stage"].size).from_buffer(arr_eta)
     CascadeStruct.psd_stage = (c_float * CascadeDict["psd_stage"].size).from_buffer(arr_psd)
+    CascadeStruct.psd_cmb = (c_float * CascadeDict["psd_cmb"].size).from_buffer(arr_psd_cmb)
     CascadeStruct.num_stage = c_int(CascadeDict["num_stage"])
 
 def allfillInstrument(InstDict: dict[str, any], 
@@ -36,6 +38,7 @@ def allfillInstrument(InstDict: dict[str, any],
     @param ct_t Type of data. Use ctypes.c_double for CPU, ctypes.c_float for GPU.
     """
 
+    arr_f_ch = ar.array('f', InstDict["f_ch_arr"].ravel())
     arr_filterbank = ar.array('f', InstDict["filterbank"].ravel())
     arr_az_fpa = ar.array('f', InstDict["pointings"][0].ravel())
     arr_el_fpa = ar.array('f', InstDict["pointings"][1].ravel())
@@ -44,6 +47,7 @@ def allfillInstrument(InstDict: dict[str, any],
     arr_onef_alpha = ar.array('f', InstDict["onef_alpha"].ravel())
 
     InstStruct.nf_ch = c_int(InstDict["nf_ch"])
+    InstStruct.f_ch = (c_float * InstDict["nf_ch"]).from_buffer(arr_f_ch)
     InstStruct.f_sample = c_float(InstDict["f_sample"])
     InstStruct.filterbank = (c_float * InstDict["filterbank"].size).from_buffer(arr_filterbank)
     InstStruct.delta = c_float(InstDict["delta"])
@@ -65,13 +69,13 @@ def allfillTelescope(TelDict: dict[str, any],
     @param TelStruct Struct to be filled and passed to ctypes.
     @param ct_t Type of data. Use ctypes.c_double for CPU, ctypes.c_float for GPU.
     """
-    arr_eta_ap = ar.array('f', TelDict["eta_taper"].ravel())
+    arr_eta_illum = ar.array('f', TelDict["eta_illum"].ravel())
     arr_az_scan = ar.array('f', TelDict["az_scan"].ravel())
     arr_el_scan = ar.array('f', TelDict["el_scan"].ravel())
     arr_az_scan_center = ar.array('f', TelDict["az_scan_center"].ravel())
     arr_el_scan_center = ar.array('f', TelDict["el_scan_center"].ravel())
     
-    TelStruct.eta_ap = (c_float * TelDict["eta_taper"].size).from_buffer(arr_eta_ap)
+    TelStruct.eta_illum = (c_float * TelDict["eta_illum"].size).from_buffer(arr_eta_illum)
     TelStruct.az_scan = (c_float * TelDict["az_scan"].size).from_buffer(arr_az_scan)
     TelStruct.el_scan = (c_float * TelDict["el_scan"].size).from_buffer(arr_el_scan)
     TelStruct.az_scan_center = (c_float * TelDict["az_scan_center"].size).from_buffer(arr_az_scan_center)

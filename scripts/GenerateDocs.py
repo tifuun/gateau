@@ -11,13 +11,19 @@ from pathlib import Path
 import shutil
 import subprocess
 import traceback
+from os import environ
 
 # Paths/names of command-line tools
 DOXYGEN = "doxygen"
 JUPYTER = "jupyter"
+BIBTEX = "bibtex"  # not called directly by this script; called by doxygen
 
 def check_deps():
-    for call in ((DOXYGEN, "--version"), (JUPYTER, "--version")):
+    for call in (
+            (DOXYGEN, "--version"),
+            (JUPYTER, "--version"),
+            (BIBTEX, "--version"),
+            ):
         try:
             subprocess.run(
                 call,
@@ -51,21 +57,24 @@ def generate_docs():
         html_path = demo_path / f"{file.stem}.html"
         html_dest_path = dest_path / html_path.name
 
-        subprocess.run(
-            [
-                JUPYTER,
-                "nbconvert",
-                "--to",
-                "html",
-                "--template",
-                "lab",
-                "--theme",
-                "dark",
-                str(file),
-                ],
-            shell=False,
-            check=True
-        )
+        if environ.get('GATEAU_DOCS_SKIP_JUPYTER'):
+            print('Skipping jupyter because GATEAU_DOCS_SKIP_JUPYTER is set.')
+        else:
+            subprocess.run(
+                [
+                    JUPYTER,
+                    "nbconvert",
+                    "--to",
+                    "html",
+                    "--template",
+                    "lab",
+                    "--theme",
+                    "dark",
+                    str(file),
+                    ],
+                shell=False,
+                check=True
+            )
 
         html_path.rename(html_dest_path)
 

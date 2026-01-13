@@ -11,6 +11,8 @@ k = 1.38064852 * 10**-23  # Boltzmann constant
 e = 1.60217662 * 10**-19  # electron charge
 c = 299792458.0  # velocity of light
 
+TCMB = 2.725
+
 
 def johnson_nyquist_psd(f_src: np.ndarray, 
                         T: float) -> np.ndarray:
@@ -63,7 +65,7 @@ def window_trans(
         * 2
         * np.pi
         * neff
-        * (tandelta * f_src / c + (tandelta * f_src / c) ** 2)
+        * tandelta * f_src / c
     )
 
     eta.append(refr)
@@ -255,6 +257,8 @@ def get_cascade(cascade_list: list[dict[str, any]],
     all_psd = []
     eta_ap = np.ones(f_src.size)
 
+    psd_cmb = johnson_nyquist_psd(f_src, TCMB)
+
     for casc_t, idx_group in zip(cascade_type_list_uniq, idx_group_list_uniq):
         eta_ap_flag = 0
         
@@ -306,4 +310,17 @@ def get_cascade(cascade_list: list[dict[str, any]],
                 all_eta.extend(etas)
                 all_psd.extend(psds)
     
-    return all_eta, all_psd, eta_ap
+    return all_eta, all_psd, eta_ap, psd_cmb
+
+def average_over_filterbank(array_to_average: np.ndarray, 
+                            filterbank: np.ndarray,
+                            norm: bool = False) -> np.ndarray:
+    if norm:
+        div = np.nansum(filterbank, axis=1)
+    else:
+        div = 1
+    sh_f = filterbank.shape
+    assert array_to_average.size == sh_f[1]
+
+    array_tiled = np.squeeze(array_to_average)[None,:] * filterbank
+    return np.nansum(array_tiled, axis=1) / div

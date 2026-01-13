@@ -13,6 +13,7 @@ from ctypes import (
     )
 from typing import Union
 from contextlib import ExitStack
+import platform
 
 import gateau.threadmgr as gmanager
 import gateau.structs as gstructs
@@ -26,16 +27,28 @@ def load_gateaulib() -> CDLL:
 
     @returns The ctypes library containing the C/C++ functions.
     """
+
+    if platform.system() == "Windows":
+        lib_filename = "gateau.dll"
+    elif platform.system() == "Darwin":
+        raise NotImplementedError(
+            "Mac OS is not supported by Glateau and never will be. Sorry."
+            )
+    else:
+        lib_filename = "libgateau.so"
+
     try:
-        with impresources.path(gateau, "libgateau.so") as sopath:
+
+        with impresources.path(gateau, lib_filename) as sopath:
             lib = CDLL(sopath)
+
 
     except OSError as err:
         raise OSError(
-            "Could not load libgateau.so!! Did it fail to compile? "
+            f"Could not load `{lib_filename}`!! Did it fail to compile? "
             "Is it compiled for the wrong architecture? Is the file "
             "missing? It should be under the root of the `gateau` "
-            "package, `src/gateau/libgateau.so` if you ran pip with "
+            f"package, `src/gateau/{lib_filename}` if you ran pip with "
             "`-e`. "
             ) from err
 
@@ -62,10 +75,10 @@ def run_gateau(instrument: dict[str, any],
                atmosphere: dict[str, any], 
                source: dict[str, any], 
                cascade: dict[str, any], 
-               nTimes: int, 
+               n_times: int, 
                outpath: str,
                outscale: str,
-               seed: int = 0,
+               seed: int,
                resourcepath: Union[str, None] = None, 
                ) -> None:
     """!
@@ -76,7 +89,7 @@ def run_gateau(instrument: dict[str, any],
     @param telescope Dictionary containing telescope parameters.
     @param atmosphere Dictionary containing atmosphere parameters.
     @param source Dictionary containing astronomical source parameters.
-    @param nTimes Number of time evaluations.
+    @param n_times Number of time evaluations.
     @param outpath Path to directory where gateau output is stored.
     @param outscale Scale of stored output (brightness temperature or power).
     @param seed Seed to use for noise calculations.
@@ -98,8 +111,8 @@ def run_gateau(instrument: dict[str, any],
     gutils.allfillSource(source, _source)
     gutils.allfillCascade(cascade, _cascade)
 
-    cnTimes = c_int(nTimes)
-    coutpath = c_char_p(outpath.encode())
+    cn_times = c_int(n_times)
+    coutpath = c_char_p(str(outpath).encode())
     coutscale = c_char_p(outscale.encode())
     # FIXME bare encode
     cseed = c_ulonglong(seed)
@@ -118,7 +131,7 @@ def run_gateau(instrument: dict[str, any],
             _atmosphere,
             _source,
             _cascade,
-            cnTimes,
+            cn_times,
             coutpath,
             coutscale,
             cseed,

@@ -1,13 +1,15 @@
 [build-system]
-requires = ["scikit-build-core"]
-build-backend = "scikit_build_core.build"
+build-backend = "mesonpy"
+requires = [
+    "meson-python>=0.18.0",
+    ]
 
 [project]
 license = "AGPL-3.0-only"
 name = "gateau"
 description = """GPU-Accelerated Time-dEpendent observAtion simUlator"""
 readme = "README.md"
-version = "0.1.6"
+version = "0.2.0"
 authors = [
 	{name = "Arend Moerman"},
 	{name = "maybetree", email = "maybetree48@proton.me"}
@@ -19,7 +21,9 @@ dependencies = [
 	"tqdm",
 	"astropy",
 	"psutil",
+	"h5py",
 	]
+
 
 classifiers = [
 	"Programming Language :: Python :: 3",
@@ -31,13 +35,21 @@ classifiers = [
 
 requires-python = '>=3.9'
 
-[tool.scikit-build]
-build.verbose = true
-logging.level = "DEBUG"
-#editable.mode = "inplace"
-#wheel.packages = ["gateau"]
+[project.optional-dependencies]
+dev = ["pip-tools", "wheel-filename"]
+doxy = ["jupyter"]  # doxy also needs doxygen package from system package manager
 
-#[tool.scikit-build.cmake.define]
-#CMAKE_LIBRARY_OUTPUT_DIRECTORY = "src/gateau"
+#[tool.meson-python]
+## TODO is needed?
+#wheel.exclude = [
+#	"archive",
+#	"win",
+#	"podman",
+#	"tests",
+#	"venv",
+#	"wheel",
+#	"RELICENSING",
+#	"doxy",
+#]
 
 

@@ -1,15 +1,13 @@
 #include "interface.h"
 
-/*! \file Kernels.cu
+/*! \file kernels.cu
     \brief Definitions of CUDA kernels for gateau.
 
     author: Arend Moerman
 */
 
-
 // DEFINITIONS OF PHYSICAL AND MATHEMATICAL CONSTANTS
 #define KB              1.380649E-23f
-#define CL              2.9979246E8f
 #define HP              6.62607015E-34f
 #define PI              3.14159265
 
@@ -72,12 +70,28 @@ __constant__ float cpwv0;
   @param line The line in file in which error occured.
   @param abort Exit code upon error.
  */
-__host__ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
+__host__ 
+inline void gpuAssert(
+        cudaError_t code, 
+        const char *file, 
+        int line, 
+        bool abort = true
+        )
 {
    if (code != cudaSuccess)
    {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
+      fprintf(
+              stderr,
+              "GPUassert: %s %s %d\n", 
+              cudaGetErrorString(code), 
+              file, 
+              line
+              );
+      
+      if (abort)
+      {
+          exit(code);
+      }
    }
 }
 
@@ -89,26 +103,47 @@ __host__ inline void gpuAssert(cudaError_t code, const char *file, int line, boo
   @param s_array Size of array.
   @param name_txt Name of file to write array to. Name is appended with '.txt' by the function itself.
  */
-template <typename T>
-__host__ void writeArray(T *array, int s_array, std::string name_txt) {
-    
+template <typename T> __host__ 
+void writeArray(
+        T *array, 
+        int s_array, 
+        std::string name_txt
+        ) 
+{    
     T *h_array = new T[s_array];
-    gpuErrchk( cudaMemcpy(h_array, array, s_array * sizeof(T), cudaMemcpyDeviceToHost) );
+    gpuErrchk( 
+            cudaMemcpy(
+                h_array, 
+                array, 
+                s_array * sizeof(T), 
+                cudaMemcpyDeviceToHost
+                ) 
+            );
     
     std::ofstream myfile (name_txt + ".txt");
     if (myfile.is_open())
     {
-        for(int count = 0; count < s_array; count ++){
-            myfile << h_array[count] << "\n" ;
+        for(int count = 0; count < s_array; count ++)
+        {
+            myfile 
+                << h_array[count] 
+                << "\n" ;
         }
-
         myfile.close();
     }
-    else std::cout << "Unable to open file";
+    else 
+    {
+        std::cout 
+        << "Unable to open file";
+    }
     delete[] h_array;
 }
 
-__host__ inline float get_jn_noise(float T, float nu) 
+__host__ inline 
+float get_jn_noise(
+        float T, 
+        float nu
+        ) 
 {
     return HP * nu / (expf(HP * nu / (KB * T)) - 1);
 }
@@ -117,13 +152,20 @@ __host__ inline float get_jn_noise(float T, float nu)
 /////// DEVICE FUNCTIONS ////////
 /////////////////////////////////
 
-__device__ __inline__ void time_wrt_to(int thread_index, 
-                                                int thread_index_select=0,
-                                                long long int time_offset=0)
+__device__ __inline__ 
+void time_wrt_to(
+        int thread_index, 
+        int thread_index_select = 0,
+        long long int time_offset = 0
+        )
 {
     if(thread_index == thread_index_select) 
     {
-        printf("Thread %d at time %llu w.r.t. offset\n", thread_index, clock64() - time_offset);
+        printf(
+                "Thread %d at time %llu w.r.t. offset\n", 
+                thread_index, 
+                clock64() - time_offset
+                );
     }
 }
 
@@ -140,38 +182,137 @@ __device__ __inline__ void time_wrt_to(int thread_index,
 
   @return BT Array of two dim3 objects, containing number of blocks per grid and number of threads per block.
  */
-__host__ void initCUDA(Instrument *instrument, 
+__host__ 
+void initCUDA(
+        Instrument *instrument, 
         Telescope *telescope, 
         Source *source, 
         Atmosphere *atmosphere, 
         int nTimes,
-        int num_stage) 
+        int num_stage
+        ) 
 {
     float dt = 1. / instrument->f_sample;
     float GR_factor = 2 * instrument->delta / instrument->eta_pb;
     float sqrt_samp = sqrtf(0.5 / dt); // Constant term needed for noise calculation
 
     // OBSERVATION-INSTRUMENT PARAMETERS
-    gpuErrchk( cudaMemcpyToSymbol(cdt, &dt, sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cf_sample, &(instrument->f_sample), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(csqrt_samp, &sqrt_samp, sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cGR_factor, &GR_factor, sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cnt, &nTimes, sizeof(int)) );
-    gpuErrchk( cudaMemcpyToSymbol(cnf_ch, &(instrument->nf_ch), sizeof(int)) );
-    gpuErrchk( cudaMemcpyToSymbol(cnum_stage, &num_stage, sizeof(int)) );
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                cdt, 
+                &dt, 
+                sizeof(float)
+                ) 
+            );
+    
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                cf_sample, 
+                &(instrument->f_sample), 
+                sizeof(float)
+                ) 
+            );
+
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                csqrt_samp, 
+                &sqrt_samp, 
+                sizeof(float)
+                ) 
+            );
+
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                cGR_factor, 
+                &GR_factor, 
+                sizeof(float)
+                ) 
+            );
+
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                cnt, 
+                &nTimes, 
+                sizeof(int)
+                ) 
+            );
+
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                cnf_ch, 
+                &(instrument->nf_ch), 
+                sizeof(int)
+                ) 
+            );
+
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                cnum_stage, 
+                &num_stage, 
+                sizeof(int)
+                ) 
+            );
 
     // ATMOSPHERE PARAMETERS
-    gpuErrchk( cudaMemcpyToSymbol(ch_column, &(atmosphere->h_column), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cv_wind, &(atmosphere->v_wind), sizeof(float)) );
-    gpuErrchk( cudaMemcpyToSymbol(cpwv0, &(atmosphere->pwv0), sizeof(float)) );
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                ch_column, 
+                &(atmosphere->h_column), 
+                sizeof(float)
+                ) 
+            );
+
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                cv_wind, 
+                &(atmosphere->v_wind), 
+                sizeof(float)
+                ) 
+            );
+
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                cpwv0, 
+                &(atmosphere->pwv0), 
+                sizeof(float)
+                ) 
+            );
+}
+
+// Kernel to convert column-major flattened array to row-major flattened array
+__global__ 
+void transpose_flat_array(
+        float *out, 
+        const float *in, 
+        int rows, 
+        int cols)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int size = rows * cols;
+
+    if (idx < size) 
+    {
+        // Compute logical row (r) and column (c) of this element in ROW-MAJOR indexing
+        int r = idx / cols;
+        int c = idx % cols;
+
+        // Convert to the corresponding column-major index
+        int colMajorIndex = c * rows + r;
+        int rowMajorIndex = idx;
+
+        out[rowMajorIndex] = in[colMajorIndex];
+    }
 }
 
 /**
   Initialize random number generator state.
 
  */
-__global__ void init_random_states(curandState *state,
-                                   unsigned long long int seed)
+__global__ 
+void init_random_states(
+        curandState *state,
+        unsigned long long int seed
+        )
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;                                 
                                                                                      
@@ -181,15 +322,23 @@ __global__ void init_random_states(curandState *state,
         {
             seed = clock64();
         }
-        curand_init(seed, idx, 0, &state[idx]);                                      
+        curand_init(
+                seed, 
+                idx, 
+                0, 
+                &state[idx]
+                );                                      
     }
 }
 
-__global__ void calc_onef_psd(cufftComplex *output,
-                              float *onef_level,
-                              float *onef_conv,
-                              float *onef_alpha,
-                              curandState *state)
+__global__ 
+void calc_onef_psd(
+        cufftComplex *output,
+        float *onef_level,
+        float *onef_conv,
+        float *onef_alpha,
+        curandState *state
+        )
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;                                 
                                                                                      
@@ -198,17 +347,19 @@ __global__ void calc_onef_psd(cufftComplex *output,
         cufftComplex local;
         curandState localState = state[idx];
         
-        if (!idx) {
+        if (!idx) 
+        {
             local.x = 0.;
             local.y = 0.;
         }
 
-        else {
-            //float factor = 1 / (4 * PI * idx * cf_sample / 2 / (cnt / 2 + 1));
+        else 
+        {
             float factor = 1 / (idx * cf_sample / 2 / (cnt / 2 + 1));
             float factor_loc;
 
-            for(int k=0; k<cnf_ch; k++) {
+            for(int k=0; k<cnf_ch; k++) 
+            {
                 factor_loc = sqrtf(onef_level[k] / cnt) * onef_conv[k] * powf(factor, onef_alpha[k]/2);
                 local.x = factor_loc * curand_normal(&localState);
                 local.y = factor_loc * curand_normal(&localState);
@@ -219,20 +370,23 @@ __global__ void calc_onef_psd(cufftComplex *output,
     }
 }
 
-__global__ void calc_traces_rng(float *az_scan, 
-                                float *el_scan,
-                                float *az_scan_center, 
-                                float *el_scan_center,
-                                float az_fpa,
-                                float el_fpa,
-                                ArrSpec x_atm,
-                                ArrSpec y_atm,
-                                float *pwv_screen,
-                                float *az_trace,
-                                float *el_trace,
-                                float *pwv_trace,
-                                float *time_trace,
-                                unsigned int idx_offset)
+__global__ 
+void calc_traces_rng(
+        float *az_scan, 
+        float *el_scan,
+        float *az_scan_center, 
+        float *el_scan_center,
+        float az_fpa,
+        float el_fpa,
+        ArrSpec x_atm,
+        ArrSpec y_atm,
+        float *pwv_screen,
+        float *az_trace,
+        float *el_trace,
+        float *pwv_trace,
+        float *time_trace,
+        unsigned int idx_offset
+        )
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;                                 
                                                                                      
@@ -252,8 +406,15 @@ __global__ void calc_traces_rng(float *az_scan,
         x_point = __tanf(DEG2RAD * (az_point - az_scan_center[idx + idx_offset])) * ch_column + cv_wind * time_point;
         y_point = __tanf(DEG2RAD * (el_point - el_scan_center[idx + idx_offset])) * ch_column;
 
-        interpValue(x_point, y_point,
-                    &x_atm, &y_atm, pwv_screen, 0, pwv_point);            
+        interpValue(
+                x_point, 
+                y_point,
+                &x_atm, 
+                &y_atm, 
+                pwv_screen, 
+                0, 
+                pwv_point
+                );            
                                                                                      
         az_trace[idx] = az_point;                                                    
         el_trace[idx] = el_point;
@@ -277,23 +438,27 @@ __global__ void calc_traces_rng(float *az_scan,
   @param eta_atm Array with transmission parameters as function of freqs_atm and PWV_atm.
   @param source Array containing source intensity, as function of azsrc, elsrc and freqs_src, in SI units.
  */
-__global__ void calc_power(float *az_trace, 
-                            float *el_trace, 
-                            float *pwv_trace,
-                            ArrSpec f_atm, 
-                            ArrSpec pwv_atm, 
-                            ArrSpec az_src, 
-                            ArrSpec el_src,
-                            ArrSpec f_src,
-                            float *eta_ap,
-                            float *psd_atm,
-                            float *eta_cascade,
-                            float *psd_cascade,
-                            float *eta_atm,
-                            float *filterbank,
-                            float *sigout, 
-                            float *nepout, 
-                            float *source)
+__global__ 
+void calc_power(
+        float *az_trace, 
+        float *el_trace, 
+        float *pwv_trace,
+        ArrSpec f_atm, 
+        ArrSpec pwv_atm, 
+        ArrSpec az_src, 
+        ArrSpec el_src,
+        ArrSpec f_src,
+        float *eta_illum,
+        float *psd_atm,
+        float *eta_cascade,
+        float *psd_cascade,
+        float *psd_cmb,
+        float *eta_atm,
+        float *filterbank,
+        float *sigout, 
+        float *nepout, 
+        float *source
+        )
 {
     
 
@@ -302,7 +467,8 @@ __global__ void calc_power(float *az_trace,
 
     __shared__ float csc_el_shared[NTHREADS2DX];
 
-    if (idx < cnt && idy < f_src.num) {
+    if (idx < cnt && idy < f_src.num) 
+    {
         ///////////////////////////////////////
         // DEFINITIONS OF REGISTER VARIABLES //
         ///////////////////////////////////////
@@ -314,9 +480,11 @@ __global__ void calc_power(float *az_trace,
         float psd_in;           // Local variable for storing PSD.
         float psd_in_k;         // Local variable for calculating psd per channel
         float eta_kj;           // Filter efficiency for bin j, at channel k.
-        float eta_ap_loc;       // Local variable for storing aperture efficiency
+        float eta_illum_loc;       // Local variable for storing aperture efficiency
         float sigfactor;        // Factor for calculating power. Perform outside of channel loop for speed.
         float psd_parasitic_use;
+        float psd_cmb_loc;
+        float psd_sky;
         float temp1, temp2, temp3;
         float psd_atm_loc;
 
@@ -340,8 +508,10 @@ __global__ void calc_power(float *az_trace,
         float az_src_max = az_src.start + az_src.step * (az_src.num - 1);
         float el_src_max = el_src.start + el_src.step * (el_src.num - 1);
 
-        bool offsource = ((temp1 < az_src.start) or (temp1 > az_src_max)) or 
-                         ((temp2 < el_src.start) or (temp2 > el_src_max));
+	    // THis line used to have `or` instead of `||` but apparently
+	    // Bill Gates says this is a no-no
+        bool offsource = ((temp1 < az_src.start) || (temp1 > az_src_max)) || 
+                         ((temp2 < el_src.start) || (temp2 > el_src_max));
 
         // This can be improved quite alot...
         if(offsource) 
@@ -365,19 +535,42 @@ __global__ void calc_power(float *az_trace,
 
         freq = f_src.start + f_src.step * idy;
 
-        interpValue(temp3, freq,
-                    &pwv_atm, &f_atm,
-                    eta_atm, 0, eta_atm_interp);
+        interpValue(
+                temp3, 
+                freq,
+                &pwv_atm, 
+                &f_atm,
+                eta_atm, 
+                0, 
+                eta_atm_interp
+                );
 
-        eta_ap_loc = eta_ap[idy]; 
+        eta_illum_loc = eta_illum[idy]; 
 
-        eta_atm_interp = __powf(eta_atm_interp, csc_el_shared[threadIdx.x]);
-        psd_atm_loc = psd_atm[idy];
-
-        // Initial pass through atmosphere
-        psd_in = eta_ap_loc * psd_nu * 0.5; 
+        eta_atm_interp = __powf(
+                eta_atm_interp, 
+                csc_el_shared[threadIdx.x]
+                );
         
-        psd_in = rad_trans(psd_in, eta_atm_interp, psd_atm_loc);
+        psd_atm_loc = psd_atm[idy];
+        psd_cmb_loc = psd_cmb[idy];
+        
+        // Coupling to source
+        psd_in = eta_illum_loc * psd_nu * 0.5 + psd_cmb_loc;
+
+        // Calculate blank sky psd for stages involving spillover to sky
+        psd_sky = rad_trans(
+                psd_cmb_loc, 
+                eta_atm_interp, 
+                psd_atm_loc
+                );
+        
+        // Initial pass through atmosphere
+        psd_in = rad_trans(
+                psd_in, 
+                eta_atm_interp, 
+                psd_atm_loc
+                );
 
         // Radiative transfer cascade
         #pragma unroll 
@@ -386,24 +579,39 @@ __global__ void calc_power(float *az_trace,
             psd_parasitic_use = psd_cascade[n*f_src.num + idy];
             if (psd_parasitic_use < 0) 
             {
-                psd_parasitic_use = eta_atm_interp * psd_atm_loc;
+                psd_parasitic_use = psd_sky;
             }
 
-            psd_in = rad_trans(psd_in, eta_cascade[n*f_src.num + idy], psd_parasitic_use);
+            psd_in = rad_trans(
+                    psd_in, 
+                    eta_cascade[n*f_src.num + idy], 
+                    psd_parasitic_use
+                    );
         }
 
         temp1 = eta_cascade[cnum_stage*f_src.num + idy];
         temp2 = psd_cascade[cnum_stage*f_src.num + idy];
 
         #pragma unroll 
-        for(int k=0; k<cnf_ch; k++) {
+        for(int k=0; k<cnf_ch; k++) 
+        {
             eta_kj = filterbank[k*f_src.num + idy] * temp1;
-            psd_in_k = rad_trans(psd_in, eta_kj, temp2);
+            psd_in_k = rad_trans(
+                    psd_in, 
+                    eta_kj, 
+                    temp2
+                    );
 
             sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
 
-            atomicAdd(&sigout[k*cnt + idx], sigfactor); 
-            atomicAdd(&nepout[k*cnt + idx], sigfactor * (HP * freq + eta_kj * psd_in_k + cGR_factor)); 
+            atomicAdd(
+                    &sigout[k*cnt + idx], 
+                    sigfactor
+                    ); 
+            atomicAdd(
+                    &nepout[k*cnt + idx], 
+                    sigfactor * (HP * freq + psd_in_k + cGR_factor)
+                    ); 
         }
     }
 }
@@ -419,21 +627,26 @@ __global__ void calc_power(float *az_trace,
   @param nepout Array for storing output NEP, for each channel, for each time, in SI units.
   @param state Array with states for drawing random Gaussian values for noise calculations.
  */
-__global__ void calc_photon_noise(float *sigout, 
-                                 float *nepout, 
-                                 float *c0,
-                                 float *c1,
-                                 curandState *state,
-                                 unsigned int idx_in_screen) 
+__global__ 
+void calc_photon_noise(
+        float *sigout, 
+        float *nepout, 
+        float *c0,
+        float *c1,
+        curandState *state,
+        unsigned int idx_in_screen
+        ) 
 {    
     int idx = blockIdx.x * blockDim.x + threadIdx.x; 
     
-    if (idx < cnt) {
+    if (idx < cnt) 
+    {
         curandState localState = state[idx + idx_in_screen];
         float P_k, sigma_k;
         float c0_loc, c1_loc;
 
-        for(int k=0; k<cnf_ch; k++) {
+        for(int k=0; k<cnf_ch; k++) 
+        {
             c0_loc = c0[k];
             c1_loc = c1[k];
             sigma_k = sqrtf(2 * nepout[k*cnt + idx]) * csqrt_samp;
@@ -456,17 +669,18 @@ __global__ void calc_photon_noise(float *sigout,
   @param source CuSource object containing source definitions.
   @param nTimes Number of time evaluations in simulation.
  */
-void run_gateau(Instrument *instrument, 
-                 Telescope *telescope, 
-                 Atmosphere *atmosphere, 
-                 Source *source, 
-                 Cascade *cascade,
-                 int nttot, 
-                 char *outpath,
-                 char *outscale,
-                 unsigned long long int seed,
-                 char *atmpath
-		 ) 
+void run_gateau(
+        Instrument *instrument, 
+        Telescope *telescope, 
+        Atmosphere *atmosphere, 
+        Source *source, 
+        Cascade *cascade,
+        int nttot, 
+        char *outpath,
+        char *outscale,
+        unsigned long long int seed,
+        char *atmpath
+        ) 
 {
     // DEVICE POINTERS: FLOATS
     float *d_sigout;        // Output power/temperature array
@@ -508,16 +722,23 @@ void run_gateau(Instrument *instrument,
 
     const auto processor_count = std::thread::hardware_concurrency();
 
-    char *power_str = "P";
-    char *tb_str = "Tb";
+    const char *power_str = "P";
+    const char *tb_str = "Tb";
 
-    readEtaATM<float, ArrSpec>(&eta_atm, &pwv_atm, &f_atm, atmpath);
+    readEtaATM<float, ArrSpec>(
+            &eta_atm, 
+            &pwv_atm, 
+            &f_atm, 
+            atmpath
+            );
     
     std::string str_path(atmosphere->path);
-    std::string str_outpath(outpath);
 
     int *meta;
-    readAtmMeta(&meta, str_path);
+    readAtmMeta(
+            &meta, 
+            str_path
+            );
     
     float ttot = nttot / instrument->f_sample;       // Total time required for simulation
 
@@ -527,7 +748,10 @@ void run_gateau(Instrument *instrument,
     float lx_av = lx - ly;                          // Available length along x, taking into account center of screen
     float t_obs_av = lx_av / atmosphere->v_wind;    // Max available time per screen
 
-    if(isinf(t_obs_av) || isnan(t_obs_av)) {t_obs_av = ttot;}
+    if(isinf(t_obs_av) || isnan(t_obs_av)) 
+    {
+        t_obs_av = ttot;
+    }
 
     int nJobs = ceil(ttot / t_obs_av);                     // Total number of times kernel needs to be run
 
@@ -546,15 +770,51 @@ void run_gateau(Instrument *instrument,
     y_atm.num = meta[2];
 
     // Initialize constant memory
-    initCUDA(instrument, telescope, source, atmosphere, ntscr, cascade->num_stage); 
+    initCUDA(
+            instrument, 
+            telescope, 
+            source, 
+            atmosphere, 
+            ntscr, 
+            cascade->num_stage
+            ); 
 
     nf_src = f_src.num; // Number of spectral points in source
     nf_ch = instrument->nf_ch;
-    
-    gpuErrchk( cudaDeviceGetAttribute(&numSMs, cudaDevAttrMultiProcessorCount, 0) );
+
+    // Make array of times
+    float *times_arr = new float[nttot];
+    for (int ii=0; ii<nttot; ii++) 
+    {
+        times_arr[ii] = ii / instrument->f_sample;
+    }
+
+    // Instantiate and write filter freqs to output file
+    OutputFile outfile(
+            outpath, 
+            nttot, 
+            nf_ch, 
+            instrument->f_ch, 
+            times_arr, 
+            telescope->az_scan, 
+            telescope->el_scan
+            );
+    delete[] times_arr;
+
+    gpuErrchk( 
+            cudaDeviceGetAttribute(
+                &numSMs, 
+                cudaDevAttrMultiProcessorCount, 
+                0
+                ) 
+            );
 
     // TiEMPO2 prefers larger L1 cache over shared memory.
-    gpuErrchk( cudaDeviceSetCacheConfig(cudaFuncCachePreferL1) );
+    gpuErrchk( 
+            cudaDeviceSetCacheConfig(
+                cudaFuncCachePreferL1
+                ) 
+            );
     
     float freq;    // Frequency, used for initialising background sources.
 
@@ -565,50 +825,184 @@ void run_gateau(Instrument *instrument,
     {
         freq = f_src.start + f_src.step * j;
         
-        psd_atm[j] = get_jn_noise(atmosphere->T_atm, freq); 
+        psd_atm[j] = get_jn_noise(
+                atmosphere->T_atm, 
+                freq
+                ); 
     }
     
     float *d_psd_atm;
 
-    gpuErrchk( cudaMalloc((void**)&d_psd_atm, nf_src * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_psd_atm, psd_atm.data(), nf_src * sizeof(float), cudaMemcpyHostToDevice) );
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_psd_atm, 
+                nf_src * sizeof(float)
+                ) 
+            );
+    
+    gpuErrchk( 
+            cudaMemcpy(
+                d_psd_atm, 
+                psd_atm.data(), 
+                nf_src * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
     
     // Allocate cascade arrays
-    float *d_eta_cascade, *d_psd_cascade;
-    gpuErrchk( cudaMalloc((void**)&d_eta_cascade, nf_src * (cascade->num_stage + 1) * sizeof(float)) );
-    gpuErrchk( cudaMalloc((void**)&d_psd_cascade, nf_src * (cascade->num_stage + 1) * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_eta_cascade, cascade->eta_cascade, nf_src * (cascade->num_stage + 1) * sizeof(float), cudaMemcpyHostToDevice) );
-    gpuErrchk( cudaMemcpy(d_psd_cascade, cascade->psd_cascade, nf_src * (cascade->num_stage + 1) * sizeof(float), cudaMemcpyHostToDevice) );
+    float *d_eta_cascade, *d_psd_cascade, *d_psd_cmb;
+    
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_eta_cascade, 
+                nf_src * (cascade->num_stage + 1) * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_eta_cascade, 
+                cascade->eta_cascade, 
+                nf_src * (cascade->num_stage + 1) * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
+    
+    
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_psd_cascade, 
+                nf_src * (cascade->num_stage + 1) * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_psd_cascade, 
+                cascade->psd_cascade, 
+                nf_src * (cascade->num_stage + 1) * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
+    
+    
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_psd_cmb, 
+                nf_src * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_psd_cmb, 
+                cascade->psd_cmb, 
+                nf_src * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
     
     // Allocate and copy telescope arrays
-    float *d_eta_ap;
-    gpuErrchk( cudaMalloc((void**)&d_eta_ap, nf_src * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_eta_ap, telescope->eta_ap, nf_src * sizeof(float), cudaMemcpyHostToDevice) );
+    float *d_eta_illum;
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_eta_illum, 
+                nf_src * sizeof(float)
+                ) 
+            );
+    
+    gpuErrchk( 
+            cudaMemcpy(
+                d_eta_illum, 
+                telescope->eta_illum, 
+                nf_src * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
 
     float *d_az_scan, *d_el_scan;
-    gpuErrchk( cudaMalloc((void**)&d_az_scan, nttot * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_az_scan, telescope->az_scan, nttot * sizeof(float), cudaMemcpyHostToDevice) );
-    gpuErrchk( cudaMalloc((void**)&d_el_scan, nttot * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_el_scan, telescope->el_scan, nttot * sizeof(float), cudaMemcpyHostToDevice) );
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_az_scan, 
+                nttot * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_az_scan, 
+                telescope->az_scan, 
+                nttot * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
+
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_el_scan, 
+                nttot * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_el_scan, 
+                telescope->el_scan, 
+                nttot * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
 
     float *d_az_scan_center, *d_el_scan_center;
-    gpuErrchk( cudaMalloc((void**)&d_az_scan_center, nttot * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_az_scan_center, telescope->az_scan_center, nttot * sizeof(float), cudaMemcpyHostToDevice) );
-    gpuErrchk( cudaMalloc((void**)&d_el_scan_center, nttot * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_el_scan_center, telescope->el_scan_center, nttot * sizeof(float), cudaMemcpyHostToDevice) );
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_az_scan_center, 
+                nttot * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_az_scan_center, 
+                telescope->az_scan_center, 
+                nttot * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
+
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_el_scan_center, 
+                nttot * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_el_scan_center, 
+                telescope->el_scan_center, 
+                nttot * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
+
     // Allocate and copy atmosphere arrays
-    float *d_eta_atm;
     int neta_atm = f_atm.num * pwv_atm.num;
     
-    gpuErrchk( cudaMalloc((void**)&d_eta_atm, neta_atm * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_eta_atm, eta_atm, neta_atm * sizeof(float), cudaMemcpyHostToDevice) );
+    float *d_eta_atm;
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_eta_atm, 
+                neta_atm * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_eta_atm, 
+                eta_atm, 
+                neta_atm * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
 
     // Perform responsivity calibration, if desired. 
     // Do now before we delete eta_atm!
     float *c0 = new float[nf_ch];
     float *c1 = new float[nf_ch];
     
-    // Change this so that it takes a variable
     if(!strcmp(outscale, tb_str))
     {
         float *Psky = new float[nf_ch * NPWV]();
@@ -633,13 +1027,18 @@ void run_gateau(Instrument *instrument,
         {
             int final_step; // Final step for
 
-            if(n == (processor_count - 1)) {
+            if(n == (processor_count - 1)) 
+            {
                 final_step = NPWV;
-            } else {
+            } 
+
+            else 
+            {
                 final_step = (n+1) * step;
             }
 
-            threadPool[n] = std::thread(&resp_calibration, 
+            threadPool[n] = std::thread(
+                    &resp_calibration, 
                     n * step,
                     final_step,
                     &f_atm, 
@@ -649,33 +1048,43 @@ void run_gateau(Instrument *instrument,
                     nf_ch,
                     cascade->eta_cascade, 
                     cascade->psd_cascade,
+                    cascade->psd_cmb,
                     cascade->num_stage, 
                     psd_atm.data(), 
                     eta_atm,
                     instrument->filterbank, 
                     eta_kj_sum,
                     Psky, 
-                    Tsky);
+                    Tsky
+                    );
         }
 
         // Wait with execution until all threads are done
-        for (std::thread &t : threadPool) {
-            if (t.joinable()) {
+        for (std::thread &t : threadPool) 
+        {
+            if (t.joinable()) 
+            {
                 t.join();
             }
         }
         delete[] eta_kj_sum;
 
-        fit_calibration(Psky,
+        fit_calibration(
+                Psky,
                 Tsky,
                 nf_ch,
                 c0,
-                c1);
+                c1
+                );
         delete[] Psky;   
         delete[] Tsky;   
     }
 
-    if(!strcmp(outscale, power_str))
+    if(!strcmp(
+                outscale, 
+                power_str
+                )
+            )
     {
         for(int i=0; i<nf_ch; i++)
         {
@@ -685,27 +1094,77 @@ void run_gateau(Instrument *instrument,
     }
 
     float *d_c0, *d_c1;
-    gpuErrchk( cudaMalloc((void**)&d_c0, nf_ch * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_c0, c0, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
-    gpuErrchk( cudaMalloc((void**)&d_c1, nf_ch * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_c1, c1, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_c0, 
+                nf_ch * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_c0, 
+                c0, 
+                nf_ch * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
+
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_c1, 
+                nf_ch * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_c1, 
+                c1, 
+                nf_ch * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
     
     delete[] eta_atm;
     delete[] c0;
     delete[] c1;
 
     // Allocate and copy instrument arrays
-    float *d_filterbank;
     int nfilterbank = nf_src * nf_ch;
-    gpuErrchk( cudaMalloc((void**)&d_filterbank, nfilterbank * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_filterbank, instrument->filterbank, nfilterbank * sizeof(float), cudaMemcpyHostToDevice) );
+    
+    float *d_filterbank;
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_filterbank, 
+                nfilterbank * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_filterbank, 
+                instrument->filterbank, 
+                nfilterbank * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
 
-    gpuErrchk( cudaMalloc((void**)&d_I_nu, source->nI_nu * sizeof(float)) );
-    gpuErrchk( cudaMemcpy(d_I_nu, source->I_nu, source->nI_nu * sizeof(float), cudaMemcpyHostToDevice) );
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&d_I_nu, 
+                source->nI_nu * sizeof(float)
+                ) 
+            );
+    gpuErrchk( 
+            cudaMemcpy(
+                d_I_nu, 
+                source->I_nu, 
+                source->nI_nu * sizeof(float), 
+                cudaMemcpyHostToDevice
+                ) 
+            );
 
     std::string datp;
 
-    // Loop starts here
+    // Initialise memory checker
     printf("\033[92m");
     int idx_wrap;
     unsigned int idx_offset;        // Index of time inside the total time
@@ -713,7 +1172,6 @@ void run_gateau(Instrument *instrument,
     int idx_write; // Counter for serializing output chunks
 
     size_t free_mem, total_mem, required_mem;
-    float free_required_frac;
     int num_blocks_in_screen;                   // Number of blocks within a single screen for memory requirements.
 
     int num_spax = instrument->num_spax;
@@ -722,39 +1180,63 @@ void run_gateau(Instrument *instrument,
     float ftime_counter;
     
     curandState *devstates;
-    gpuErrchk( cudaMalloc((void**)&devstates, ntscr * sizeof(curandState)) );
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&devstates, 
+                ntscr * sizeof(curandState)
+                ) 
+            );
     
     nBlocks1D = ceilf((float)ntscr / NTHREADS1D / numSMs);
     blockSize1D = NTHREADS1D;
     gridSize1D = nBlocks1D*numSMs;
   
-    init_random_states<<<gridSize1D, blockSize1D>>>(devstates, seed);
+    init_random_states<<<gridSize1D, blockSize1D>>>(
+            devstates, 
+            seed
+            );
 
     int ntscr_job;
     int nt_sub_scr_job;
     for(int idx_spax=0; idx_spax<num_spax; idx_spax++) 
     {
         printf("Simulating spaxel %d / %d\n", idx_spax+1, num_spax);
-        gpuErrchk( cudaMemcpyToSymbol(cnt, &ntscr, sizeof(int)) );
+
+        gpuErrchk( 
+                cudaMemcpyToSymbol(
+                    cnt, 
+                    &ntscr, 
+                    sizeof(int)
+                    ) 
+                );
+
         az_fpa = instrument->az_fpa[idx_spax];
         el_fpa = instrument->el_fpa[idx_spax];
+
+        outfile.
+            open_spaxel(
+                    idx_spax, 
+                    az_fpa, 
+                    el_fpa
+                    );
 
         idx_wrap = 0;
         idx_offset = 0;
         idx_write = 0;
         ftime_counter = 0.;
 
-        // Current 1/f implementation could cause memory issues!
-
-        for(int idx=0; idx<nJobs; idx++) {
+        for(int idx=0; idx<nJobs; idx++) 
+        {
             idx_in_screen = 0;
             ntscr_job = ntscr;
 
-            if (idx_wrap == meta[0]) {
+            if (idx_wrap == meta[0]) 
+            {
                 idx_wrap = 0;
             }
 
-            if (idx == (nJobs - 1)) {
+            if (idx == (nJobs - 1)) 
+            {
                 ntscr_job = nttot - ntscr * idx;
             }
 
@@ -765,17 +1247,40 @@ void run_gateau(Instrument *instrument,
             float *d_pwv_screen;
             
             datp = std::to_string(idx_wrap) + ".datp";
-            readAtmScreen<float, ArrSpec>(&pwv_screen, &x_atm, &y_atm, str_path, datp);
+            readAtmScreen<float, ArrSpec>(
+                    &pwv_screen, 
+                    &x_atm, 
+                    &y_atm, 
+                    str_path, 
+                    datp
+                    );
             
             npwvscr = x_atm.num * y_atm.num;
 
             // Currently, reads the entire screen even if only part of it will be processed in the next loop.
-            gpuErrchk( cudaMalloc((void**)&d_pwv_screen, npwvscr * sizeof(float)) );
-            gpuErrchk( cudaMemcpy(d_pwv_screen, pwv_screen, npwvscr * sizeof(float), cudaMemcpyHostToDevice) );
+            gpuErrchk( 
+                    cudaMalloc(
+                        (void**)&d_pwv_screen, 
+                        npwvscr * sizeof(float)
+                        ) 
+                    );
+            gpuErrchk( 
+                    cudaMemcpy(
+                        d_pwv_screen, 
+                        pwv_screen, 
+                        npwvscr * sizeof(float), 
+                        cudaMemcpyHostToDevice
+                        ) 
+                    );
 
             // Allocate output arrays
             // Check how much free memory - if insufficient, loop again here
-            gpuErrchk( cudaMemGetInfo(&free_mem, &total_mem) );
+            gpuErrchk( 
+                    cudaMemGetInfo(
+                        &free_mem, 
+                        &total_mem
+                        ) 
+                    );
 
             free_mem *= MEMBUFF;
 
@@ -789,44 +1294,113 @@ void run_gateau(Instrument *instrument,
             {
                 // nt_sub_scr is really the amount of time evaluations per kernel launch here
                 nt_sub_scr_job = nt_sub_scr;
-                if (idx_sub == (num_blocks_in_screen - 1)) {
+                if (idx_sub == (num_blocks_in_screen - 1)) 
+                {
                     nt_sub_scr_job = ntscr_job - nt_sub_scr * idx_sub;
                 }
-
-                if(nt_sub_scr_job % 2){nt_sub_scr_job -= 1;}  // For 1/f calculation, easier if ntscr is odd
                 
                 nf_sub_fnt = nf_ch * nt_sub_scr_job;
                 
-                gpuErrchk( cudaMalloc((void**)&d_sigout, nf_sub_fnt * sizeof(float)) );
-                gpuErrchk( cudaMemcpyToSymbol(cnt, &nt_sub_scr_job, sizeof(int)) );
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_sigout, 
+                            nf_sub_fnt * sizeof(float)
+                            ) 
+                        );
+                gpuErrchk( 
+                        cudaMemcpyToSymbol(
+                            cnt, 
+                            &nt_sub_scr_job, 
+                            sizeof(int)
+                            ) 
+                        );
                 
-                if(instrument->use_onef) {
+                if(instrument->use_onef) 
+                {
                     int ntscr_h = nt_sub_scr_job / 2 + 1;
                     nBlocks1D = ceilf((float)(ntscr_h) / NTHREADS1D / numSMs);
                     blockSize1D = NTHREADS1D;
                     gridSize1D = nBlocks1D*numSMs;
 
                     float *d_onef_level, *d_onef_conv, *d_onef_alpha;
-                    gpuErrchk( cudaMalloc((void**)&d_onef_level, nf_ch * sizeof(float)) );
-                    gpuErrchk( cudaMalloc((void**)&d_onef_conv, nf_ch * sizeof(float)) );
-                    gpuErrchk( cudaMalloc((void**)&d_onef_alpha, nf_ch * sizeof(float)) );
-                    gpuErrchk( cudaMemcpy(d_onef_level, instrument->onef_level, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
-                    gpuErrchk( cudaMemcpy(d_onef_conv, instrument->onef_conv, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
-                    gpuErrchk( cudaMemcpy(d_onef_alpha, instrument->onef_alpha, nf_ch * sizeof(float), cudaMemcpyHostToDevice) );
+                    gpuErrchk( 
+                            cudaMalloc(
+                                (void**)&d_onef_level, 
+                                nf_ch * sizeof(float)
+                                ) 
+                            );
+                    gpuErrchk( 
+                            cudaMemcpy(
+                                d_onef_level, 
+                                instrument->onef_level, 
+                                nf_ch * sizeof(float), 
+                                cudaMemcpyHostToDevice
+                                ) 
+                            );
+
+                    gpuErrchk( 
+                            cudaMalloc(
+                                (void**)&d_onef_conv, 
+                                nf_ch * sizeof(float)
+                                ) 
+                            );
+                    gpuErrchk( 
+                            cudaMemcpy(
+                                d_onef_conv, 
+                                instrument->onef_conv, 
+                                nf_ch * sizeof(float), 
+                                cudaMemcpyHostToDevice
+                                ) 
+                            );
+
+                    gpuErrchk( 
+                            cudaMalloc(
+                                (void**)&d_onef_alpha, 
+                                nf_ch * sizeof(float)
+                                ) 
+                            );
+                    gpuErrchk( 
+                            cudaMemcpy(
+                                d_onef_alpha, 
+                                instrument->onef_alpha, 
+                                nf_ch * sizeof(float), 
+                                cudaMemcpyHostToDevice
+                                ) 
+                            );
 
                     cufftComplex *d_onef_out;
-                    gpuErrchk( cudaMalloc((void**)&d_onef_out, ntscr_h*nf_ch * sizeof(cufftComplex)) );
+                    gpuErrchk( 
+                            cudaMalloc(
+                                (void**)&d_onef_out, 
+                                ntscr_h*nf_ch * sizeof(cufftComplex)
+                                ) 
+                            );
 
-                    calc_onef_psd<<<gridSize1D, blockSize1D>>>(d_onef_out, 
+                    calc_onef_psd<<<gridSize1D, blockSize1D>>>(
+                            d_onef_out, 
                             d_onef_level, 
                             d_onef_conv, 
                             d_onef_alpha,
-                            devstates);
+                            devstates
+                            );
+
                     gpuErrchk( cudaDeviceSynchronize() );
                     
-                    gpuErrchk( cudaFree(d_onef_level) );
-                    gpuErrchk( cudaFree(d_onef_conv) );
-                    gpuErrchk( cudaFree(d_onef_alpha) );
+                    gpuErrchk( 
+                            cudaFree(
+                                d_onef_level
+                                ) 
+                            );
+                    gpuErrchk( 
+                            cudaFree(
+                                d_onef_conv
+                                ) 
+                            );
+                    gpuErrchk( 
+                            cudaFree(
+                                d_onef_alpha
+                                ) 
+                            );
 
                     cufftHandle plan;
                     int rank = 1;
@@ -836,28 +1410,81 @@ void run_gateau(Instrument *instrument,
                     int inembed[] = { 0 };
                     int onembed[] = { 0 };
 
-                    CUFFT_CALL( cufftPlanMany(&plan, rank, n, 
-                            inembed, istride, idist,
-                            onembed, ostride, odist, CUFFT_C2R, nf_ch) );
+                    CUFFT_CALL( 
+                            cufftPlanMany(
+                                &plan, 
+                                rank, 
+                                n, 
+                                inembed, 
+                                istride, 
+                                idist,
+                                onembed, 
+                                ostride, 
+                                odist, 
+                                CUFFT_C2R, 
+                                nf_ch
+                                ) 
+                            );
 
-                    CUFFT_CALL( cufftExecC2R(plan, d_onef_out, d_sigout) );
+                    CUFFT_CALL( 
+                            cufftExecC2R(
+                                plan, 
+                                d_onef_out, 
+                                d_sigout
+                                ) 
+                            );
                     gpuErrchk( cudaDeviceSynchronize() );
-                    gpuErrchk( cudaFree(d_onef_out) );
+                    gpuErrchk( 
+                            cudaFree(
+                                d_onef_out
+                                ) 
+                            );
 
                     CUFFT_CALL( cufftDestroy(plan) );
                     gpuErrchk( cudaDeviceSynchronize() );
                 }
 
-                else {
-                    gpuErrchk( cudaMemset(d_sigout, 0, nf_sub_fnt * sizeof(float)) );
+                else 
+                {
+                    gpuErrchk( 
+                            cudaMemset(
+                                d_sigout, 
+                                0, 
+                                nf_sub_fnt * sizeof(float)
+                                ) 
+                            );
                 }
                 
-                gpuErrchk( cudaMalloc((void**)&d_az_trace, nt_sub_scr_job * sizeof(float)) );
-                gpuErrchk( cudaMalloc((void**)&d_el_trace, nt_sub_scr_job * sizeof(float)) );
-                gpuErrchk( cudaMalloc((void**)&d_pwv_trace, nt_sub_scr_job * sizeof(float)) );
-                gpuErrchk( cudaMalloc((void**)&d_time_trace, nt_sub_scr_job * sizeof(float)) );
-                gpuErrchk( cudaMalloc((void**)&d_nepout, nf_sub_fnt * sizeof(float)) );
-
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_az_trace, 
+                            nt_sub_scr_job * sizeof(float)
+                            ) 
+                        );
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_el_trace, 
+                            nt_sub_scr_job * sizeof(float)
+                            ) 
+                        );
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_pwv_trace, 
+                            nt_sub_scr_job * sizeof(float)
+                            ) 
+                        );
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_time_trace, 
+                            nt_sub_scr_job * sizeof(float)
+                            ) 
+                        );
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_nepout, 
+                            nf_sub_fnt * sizeof(float)
+                            ) 
+                        );
                 
                 nBlocks1D = ceilf((float)nt_sub_scr_job / NTHREADS1D / numSMs);
                 blockSize1D = NTHREADS1D;
@@ -865,113 +1492,196 @@ void run_gateau(Instrument *instrument,
 
                 nBlocks2Dx = ceilf((float)nt_sub_scr_job / NTHREADS2DX / numSMs);
                 nBlocks2Dy = ceilf((float)nf_src / NTHREADS2DY / numSMs);
-                blockSize2D = dim3(NTHREADS2DX, NTHREADS2DY);
-                gridSize2D = dim3(nBlocks2Dx*numSMs, nBlocks2Dy*numSMs);
+                blockSize2D = dim3(
+                        NTHREADS2DX, 
+                        NTHREADS2DY
+                        );
+                gridSize2D = dim3(
+                        nBlocks2Dx*numSMs, 
+                        nBlocks2Dy*numSMs
+                        );
                 
                 ftime_counter = static_cast<float>(idx_offset) / instrument->f_sample;
 
-                printf("*** Progress: %d / 100 ***\r", idx_offset*100 / nttot);
+                printf(
+                        "*** Progress: %d / 100 ***\r", 
+                        idx_offset*100 / nttot
+                        );
                 fflush(stdout);
 
-                gpuErrchk( cudaMemset(d_nepout, 0, nf_sub_fnt * sizeof(float)) );
+                gpuErrchk( 
+                        cudaMemset(
+                            d_nepout, 
+                            0, 
+                            nf_sub_fnt * sizeof(float)
+                            ) 
+                        );
                 
-                gpuErrchk( cudaMemcpyToSymbol(ct_start, &ftime_counter, sizeof(float)) );
-                gpuErrchk( cudaMemcpyToSymbol(cnt, &nt_sub_scr_job, sizeof(int)) );
+                gpuErrchk( 
+                        cudaMemcpyToSymbol(
+                            ct_start, 
+                            &ftime_counter, 
+                            sizeof(float)
+                            ) 
+                        );
+                gpuErrchk( 
+                        cudaMemcpyToSymbol(
+                            cnt, 
+                            &nt_sub_scr_job, 
+                            sizeof(int)
+                            ) 
+                        );
 
-                calc_traces_rng<<<gridSize1D, 
-                                  blockSize1D>>>
-                                      (d_az_scan,
-                                       d_el_scan,
-                                       d_az_scan_center,
-                                       d_el_scan_center,
-                                       az_fpa,
-                                       el_fpa,
-                                       x_atm,
-                                       y_atm,
-                                       d_pwv_screen,
-                                       d_az_trace,
-                                       d_el_trace,
-                                       d_pwv_trace,
-                                       d_time_trace, 
-                                       idx_offset);
+                calc_traces_rng<<<gridSize1D, blockSize1D>>>(
+                        d_az_scan,
+                        d_el_scan,
+                        d_az_scan_center,
+                        d_el_scan_center,
+                        az_fpa,
+                        el_fpa,
+                        x_atm,
+                        y_atm,
+                        d_pwv_screen,
+                        d_az_trace,
+                        d_el_trace,
+                        d_pwv_trace,
+                        d_time_trace, 
+                        idx_offset
+                        );
+
                 gpuErrchk( cudaDeviceSynchronize() );
+                
+                gpuErrchk( 
+                        cudaFree(
+                            d_time_trace
+                            ) 
+                        );
 
                 // CALL TO MAIN SIMULATION KERNEL
-                calc_power<<<gridSize2D, 
-                             blockSize2D>>>
-                                 (d_az_trace,
-                                  d_el_trace,
-                                  d_pwv_trace,
-                                  f_atm, 
-                                  pwv_atm, 
-                                  az_src, 
-                                  el_src,
-                                  f_src,
-                                  d_eta_ap,
-                                  d_psd_atm,
-                                  d_eta_cascade,
-                                  d_psd_cascade, 
-                                  d_eta_atm,
-                                  d_filterbank,
-                                  d_sigout,
-                                  d_nepout,
-                                  d_I_nu);
+                calc_power<<<gridSize2D, blockSize2D>>>(
+                        d_az_trace,
+                        d_el_trace,
+                        d_pwv_trace,
+                        f_atm, 
+                        pwv_atm, 
+                        az_src, 
+                        el_src,
+                        f_src,
+                        d_eta_illum,
+                        d_psd_atm,
+                        d_eta_cascade,
+                        d_psd_cascade, 
+                        d_psd_cmb, 
+                        d_eta_atm,
+                        d_filterbank,
+                        d_sigout,
+                        d_nepout,
+                        d_I_nu
+                        );
                 
                 gpuErrchk( cudaDeviceSynchronize() );
+                
+                gpuErrchk( 
+                        cudaFree(
+                            d_pwv_trace
+                            ) 
+                        );
+                gpuErrchk( 
+                        cudaFree(
+                            d_az_trace
+                            ) 
+                        );
+                gpuErrchk( 
+                        cudaFree(
+                            d_el_trace
+                            ) 
+                        );
 
-                calc_photon_noise<<<gridSize1D, 
-                                    blockSize1D>>>
-                                        (d_sigout, 
-                                         d_nepout, 
-                                         d_c0,
-                                         d_c1,
-                                         devstates,
-                                         idx_in_screen);
+                calc_photon_noise<<<gridSize1D, blockSize1D>>>(
+                        d_sigout, 
+                        d_nepout, 
+                        d_c0,
+                        d_c1,
+                        devstates,
+                        idx_in_screen
+                        );
 
                 gpuErrchk( cudaDeviceSynchronize() );
                 
-                gpuErrchk( cudaFree(d_nepout) );
-                gpuErrchk( cudaFree(d_pwv_trace) );
+                gpuErrchk( 
+                        cudaFree(
+                            d_nepout
+                            ) 
+                        );
                 
-                // ALLOCATE STRINGS FOR WRITING OUTPUT
-                std::string signame = std::to_string(idx_write) + "signal.out";
-                std::string azname = std::to_string(idx_write) + "az.out";
-                std::string elname = std::to_string(idx_write) + "el.out";
+                float *d_sigout_T;
 
-                // Only write time for first spaxel
-                if(idx_spax == 0) 
-                {
-                    std::string timename = std::to_string(idx_write) + "time.out";
-                    std::vector<float> timeout(nt_sub_scr_job);
-                    gpuErrchk( cudaMemcpy(timeout.data(), d_time_trace, nt_sub_scr_job * sizeof(float), cudaMemcpyDeviceToHost) );
-                    write1DArray<float>(timeout, str_outpath, timename);
-                    gpuErrchk( cudaFree(d_time_trace) );
-                }
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_sigout_T, 
+                            nf_sub_fnt * sizeof(float)
+                            ) 
+                        );
+                
+                nBlocks1D = ceilf((float)nf_sub_fnt / NTHREADS1D / numSMs);
+                blockSize1D = NTHREADS1D;
+                gridSize1D = nBlocks1D*numSMs;
+                
+                transpose_flat_array<<<gridSize1D, blockSize1D>>>(
+                        d_sigout_T,
+                        d_sigout,
+                        nt_sub_scr_job,
+                        nf_ch
+                        );
+                
+                float *sigout_T = new float[nf_sub_fnt];
+                gpuErrchk( 
+                        cudaMemcpy(
+                            sigout_T, 
+                            d_sigout_T, 
+                            nf_sub_fnt * sizeof(float), 
+                            cudaMemcpyDeviceToHost
+                            ) 
+                        );
 
-                std::vector<float> sigout(nf_sub_fnt);
-                std::vector<float> azout(nt_sub_scr_job);
-                std::vector<float> elout(nt_sub_scr_job);
+                gpuErrchk( 
+                        cudaFree(
+                            d_sigout
+                            ) 
+                        );
+                gpuErrchk( 
+                        cudaFree(
+                            d_sigout_T
+                            ) 
+                        );
 
-                gpuErrchk( cudaMemcpy(sigout.data(), d_sigout, nf_sub_fnt * sizeof(float), cudaMemcpyDeviceToHost) );
-                gpuErrchk( cudaMemcpy(azout.data(), d_az_trace, nt_sub_scr_job * sizeof(float), cudaMemcpyDeviceToHost) );
-                gpuErrchk( cudaMemcpy(elout.data(), d_el_trace, nt_sub_scr_job * sizeof(float), cudaMemcpyDeviceToHost) );
-
-                write1DArray<float>(sigout, str_outpath, signame, std::to_string(idx_spax));
-                write1DArray<float>(azout, str_outpath, azname, std::to_string(idx_spax));
-                write1DArray<float>(elout, str_outpath, elname, std::to_string(idx_spax));
-                gpuErrchk( cudaFree(d_sigout) );
-                gpuErrchk( cudaFree(d_az_trace) );
-                gpuErrchk( cudaFree(d_el_trace) );
+                outfile.
+                    write_chunk_to_spaxel(
+                            nt_sub_scr_job,
+                            sigout_T
+                            );
                 
                 idx_write++;
                 idx_offset += nt_sub_scr_job;
                 idx_in_screen += nt_sub_scr_job;
             }
             gpuErrchk( cudaDeviceSynchronize() );
-            gpuErrchk( cudaFree(d_pwv_screen) );
+            gpuErrchk( 
+                    cudaFree(
+                        d_pwv_screen
+                        ) 
+                    );
 
             idx_wrap++;
         }
+        if (idx_offset != nttot) 
+        {
+            exit(1);
+        }
+
+        outfile.
+            close_spaxel(idx_spax);
+        
         printf("*** Progress: 100 / 100 ***\r");
     }
     gpuErrchk( cudaDeviceReset() );

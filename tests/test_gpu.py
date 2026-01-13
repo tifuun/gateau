@@ -24,8 +24,6 @@ class TestGPU(unittest.TestCase):
                 35,
                 "CUDA driver error! Check your hardware/driver setup "
                 "and make sure GPU is forwarded into container!! "
-                "This part should crash with a GPUAssert, not "
-                "driver error!! "
                 )
 
             self.assertNotEqual(

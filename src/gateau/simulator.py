@@ -4,14 +4,13 @@ import shutil
 import copy 
 import sys
 import numpy as np
+from pathlib import Path
 
 import gateau.ifu as gifu
 import gateau.input_checker as gcheck
 import gateau.bindings as gbind
 import gateau.cascade as gcascade
-import gateau.output_utils as goututils
 
-import shutil
 import logging
 from gateau.custom_logger import CustomLogger
 from gateau.atmosphere_utils import get_eta_atm
@@ -157,7 +156,7 @@ class simulator(object):
         self.set_gateau_dict(atmosphere_dict, gcheck.checkAtmosphereDict, "atmosphere")
         self.set_gateau_dict(source_dict, gcheck.checkSourceDict, "source")
 
-        eta_cascade, psd_cascade, eta_ap = gcascade.get_cascade(cascade_list, self.source["f_src"])
+        eta_cascade, psd_cascade, eta_ap, psd_cmb = gcascade.get_cascade(cascade_list, self.source["f_src"])
 
         eta_stage = np.array([x for arr in eta_cascade for x in arr])
         psd_stage = np.array([x for arr in psd_cascade for x in arr])
@@ -165,21 +164,23 @@ class simulator(object):
         self.cascade = {
                 "eta_stage"     : eta_stage,
                 "psd_stage"     : psd_stage,
-                "num_stage"     : len(eta_cascade) - 1
+                "num_stage"     : len(eta_cascade) - 1,
+                "psd_cmb"       : psd_cmb
                 }
+
 
         #### END SETUP INITIALISATION ####
         self.initialisedSetup = True
         
         #### INITIALISING OBSERVATION PARAMETERS ####
         # Calculate number of time evaluations
-        # Note that, in order to simplify TLS noise calculations, we make nTimes even
-        self.nTimes = math.ceil(t_obs * self.instrument["f_sample"])
+        # Note that, in order to simplify TLS noise calculations, we make n_times even
+        self.n_times = math.ceil(t_obs * self.instrument["f_sample"])
 
-        if self.nTimes % 2 == 1:
-            self.nTimes -= 1
+        if self.n_times % 2 == 1:
+            self.n_times -= 1
 
-        times_array = np.arange(0, self.nTimes / self.instrument["f_sample"], 1 / self.instrument["f_sample"])
+        times_array = np.arange(0, self.n_times / self.instrument["f_sample"], 1 / self.instrument["f_sample"])
 
         if isinstance(scan_func, list):
             az_scan, el_scan = scan_func[0](times_array, az0, el0)
@@ -216,7 +217,20 @@ class simulator(object):
             idx_ch_arr = np.arange(self.instrument["nf_ch"])
             self.instrument["f_ch_arr"] = f0_ch * (1 + 1 / self.instrument["R"])**idx_ch_arr
                 
-        self.instrument["filterbank"] = gifu.generateFilterbankFromR(self.instrument, self.source)
+        if self.instrument["single_line"]:
+            self.instrument["filterbank"] = gifu.generate_filterbank(self.instrument, self.source)
+        else:
+            self.instrument["filterbank"] = gifu.generate_filterbank_independent(self.instrument, self.source)
+
+        # Now normalize to unit average peak height
+        max_peak_mean = np.nanmean(
+            np.nanmax(
+                self.instrument["filterbank"], 
+                axis=-1
+                )
+            )
+
+        self.instrument["filterbank"] /= max_peak_mean
 
         if self.instrument["use_onef"]:
             if isinstance(self.instrument["onef_level"], float) or isinstance(self.instrument["onef_level"], int):
@@ -242,6 +256,7 @@ class simulator(object):
         
 
         #### INITIALISING TELESCOPE PARAMETERS ####
+        self.telescope["eta_ruze"] = np.ones(self.source["f_src"].size)
         if isinstance(self.telescope.get("eta_taper"), float):
             self.telescope["eta_taper"] *= np.ones(self.source["f_src"].size)
         
@@ -250,31 +265,41 @@ class simulator(object):
 
             eta_surf = np.exp(-(4 * np.pi * self.telescope["s_rms"] * self.source["f_src"] / self.c)**2)
 
-            self.telescope["eta_taper"] *= eta_surf 
+            self.telescope["eta_ruze"] *= eta_surf 
+
+        self.telescope["eta_illum"] = self.telescope["eta_taper"] * self.telescope["eta_ruze"]
 
         if return_full:
-            eta_taper = copy.deepcopy(self.telescope["eta_taper"])
-            eta_ap *= eta_taper
+            eta_illum = copy.deepcopy(self.telescope["eta_illum"])
+            eta_ap *= eta_illum
+
+            for i, eta_cascade_stage in enumerate(eta_cascade):
+                if not i:
+                    eta_tot = eta_cascade_stage
+                else:
+                    eta_tot *= eta_cascade_stage
 
             eta_atm = get_eta_atm(self.source["f_src"],
                                   self.atmosphere["PWV0"],
                                   np.mean(el_scan))
 
-            eta_ap_chan = goututils.average_over_filterbank(eta_ap, 
+            eta_ap_chan = gcascade.average_over_filterbank(eta_ap, 
                                                             self.instrument["filterbank"],
                                                             norm = True)
             
-            eta_atm_chan = goututils.average_over_filterbank(eta_atm, 
+            eta_atm_chan = gcascade.average_over_filterbank(eta_atm, 
+                                                             self.instrument["filterbank"],
+                                                             norm = True)
+            
+            eta_tot_chan = gcascade.average_over_filterbank(eta_tot, 
                                                              self.instrument["filterbank"],
                                                              norm = True)
             
             out_dict = {
                     "eta_ap"     : eta_ap_chan,
                     "eta_atm"    : eta_atm_chan,
-                    "f_ch_arr"   : copy.deepcopy(self.instrument["f_ch_arr"]),
+                    "eta_tot"    : eta_tot_chan,
                     "filterbank" : copy.deepcopy(self.instrument["filterbank"]),
-                    "az_scan"    : az_scan,
-                    "el_scan"    : el_scan
                     }
 
             return out_dict 
@@ -283,7 +308,8 @@ class simulator(object):
             verbosity: int = 1, 
             outname: str = "out", 
             overwrite: bool = False,
-            outscale: str = "Tb") -> None:
+            outscale: str = "Tb",
+            seed: int = 0) -> None:
         """!
         Run a gateau simulation.
 
@@ -298,6 +324,8 @@ class simulator(object):
             If False (default), a prompt will appear to either overwrite or specify new directory.
         @param outscale Store output in brightness temperature [K] or power [W].
             Accepts "Tb" or "P". Defaults to "Tb".
+        @param seed Seed for photon and 1/f noise generation. 
+            Defaults to 0, which will internally be converted to a random seed using the current time.
         """
 
         if not self.initialisedSetup:
@@ -305,30 +333,18 @@ class simulator(object):
             raise InitialError
             sys.exit()
 
-        outpath = os.path.join(self.outPath, outname)
+        if isinstance(outname, str):
+            outname = Path(outname)
 
-        outpath_succes = False
-        while not outpath_succes:
-            if not os.path.exists(outpath):
-                os.makedirs(outpath)
-                outpath_succes = True
+        outname = outname.with_suffix(".h5")
 
-            elif overwrite:
-                shutil.rmtree(outpath)
-                os.makedirs(outpath)
-                outpath_succes = True
+        path = outname.parent
 
-            elif not overwrite:
-                self.clog.warning(f"Output path {outpath} exists! Overwrite or change path?")
-                choice = input("\033[93mOverwrite (y/n)? > ").lower()
-                if choice == "y" or choice == "":
-                    shutil.rmtree(outpath)
-                else:
-                    outpath = input("\033[93mSpecify new output path: > ")
-        
+        path.mkdir(parents=True, exist_ok=True)
+
         # Check if enough HDD is available in outpath for this simulation
-        n_bytes_required = ((self.instrument["nf_ch"] + 2)*self.instrument["n_spax"] + 1) * self.nTimes * 4
-        if (n_bytes_free := int(MEMFRAC * shutil.disk_usage(outpath).free)) < n_bytes_required:
+        n_bytes_required = ((self.instrument["nf_ch"] + 2)*self.instrument["n_spax"] + 1) * self.n_times * 4
+        if (n_bytes_free := int(MEMFRAC * shutil.disk_usage(self.outPath).free)) < n_bytes_required:
             self.clog.warning(f"Required disk space of {n_bytes_required} bytes exceeds available buffer of {n_bytes_free}")
             choice = input("\033[93mProceed (y/n)? > ").lower()
             if choice == "y" or choice == "":
@@ -336,19 +352,16 @@ class simulator(object):
             else:
                 exit()
 
-        # Create folders for each spaxel
-        for idx_spax in range(self.instrument.get("n_spax")):
-            os.makedirs(os.path.join(outpath, str(idx_spax)))
         self.clog.info("\033[1;32m*** STARTING gateau SIMULATION ***")
         
         gbind.run_gateau(self.instrument, 
-                         self.telescope, 
-                         self.atmosphere, 
-                         self.source,
-                         self.cascade,
-                         self.nTimes, 
-                         outpath,
-                         outscale)
-        
-        self.clog.info("\033[1;32m*** FINISHED gateau SIMULATION ***")
+                            self.telescope, 
+                        self.atmosphere, 
+                             self.source,
+                        self.cascade,
+                             self.n_times, 
+                     outname,
+                                       outscale,
+                  seed)
 
+        self.clog.info("\033[1;32m*** FINISHED gateau SIMULATION ***")

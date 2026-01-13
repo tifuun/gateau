@@ -22,6 +22,7 @@ class Cascade(Structure):
 
     _fields_ = [("eta_stage", POINTER(c_float)),
                  ("psd_stage", POINTER(c_float)),
+                 ("psd_cmb", POINTER(c_float)),
                  ("num_stage", c_int)]
 
 class Instrument(Structure):
@@ -30,6 +31,7 @@ class Instrument(Structure):
     """
 
     _fields_ = [("nf_ch", c_int),
+                ("f_ch", POINTER(c_float)),
                 ("f_sample", c_float),
                 ("filterbank", POINTER(c_float)),
                 ("delta", c_float),
@@ -48,7 +50,7 @@ class Telescope(Structure):
     """
 
     _fields_ = [
-            ("eta_ap", POINTER(c_float)),
+            ("eta_illum", POINTER(c_float)),
             ("az_scan", POINTER(c_float)),
             ("el_scan", POINTER(c_float)),
             ("az_scan_center", POINTER(c_float)),

@@ -1,9 +1,9 @@
 import numpy as np
 import tempfile
+import h5py
 from pathlib import Path
 
 from gateau.simulator import simulator
-from gateau.output_utils import yield_output
 from gateau.scan_patterns import stare
 
 AXSIZE = 3
@@ -75,7 +75,7 @@ def selftest():
 
         n_hr = 0.42
 
-        eta_tot, eta_atm, az_scan, el_scan = interface.initialise(
+        return_dict = interface.initialise(
             n_hr * 3600,
             0,
             60,
@@ -84,13 +84,44 @@ def selftest():
             telescope_dict,
             atmosphere_dict,
             source_dict,
-            cascade_list
+            cascade_list,
+            return_full=True
             )
 
-        outpath = tmpdir / 'output'
-        interface.run(outname=outpath)
+        seed = 420
+        
+        outpath_ref = str(tmpdir / 'ref')
+        interface.run(outname=outpath_ref, seed=seed)
 
-        res = yield_output(outpath)
+        outpath = str(tmpdir / 'output')
+        interface.run(outname=outpath, seed=seed)
 
-        # TODO verify results against a known-good output
+        f = h5py.File(f"{outpath}.h5", 'r')
+        f_ref = h5py.File(f"{outpath_ref}.h5", 'r')
+
+        times = f["OBSATTRS"]["times"][:].astype(np.float64)
+
+        freq = f["OBSATTRS"]["frequencies"][:].astype(np.float64)
+
+        tods = f["SPAXEL0"]["data"][:].astype(np.float64)
+
+        ra = f["OBSATTRS"]["az"][:]
+        dec = f["OBSATTRS"]["el"][:]
+
+        tods_ref = f_ref["SPAXEL0"]["data"][:].astype(np.float64)
+
+# Check if output length is as specified
+        assert(times.size == interface.n_times)
+        assert(ra.size == interface.n_times)
+        assert(dec.size == interface.n_times)
+            
+# Check if output frequency array length is as specified
+        assert(freq.size == interface.instrument["f_ch_arr"].size)
+
+# Check if output has correct shape
+        assert(times.size == tods.shape[0])
+        assert(freq.size == tods.shape[1])
+            
+# Check if generated hdf5 is same as ref
+        np.allclose(tods.ravel(), tods_ref.ravel())
 

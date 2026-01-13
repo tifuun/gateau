@@ -5,8 +5,8 @@
 Welcome to the documentation pages for `Gateau`! This is a Python package
 designed to simulate astronomical signals through the atmosphere.
 
-`Gateau` is designed to be an improvement over its predecessor `TiEMPO` \cite
-Huijten2022.
+`Gateau` is designed to be an improvement over its
+predecessor `TiEMPO` \cite Huijten2022.
 These improvements are:
 - Offloading the heavy lifting to a parallel C++/CUDA implementation.
 - More flexible interface for interchanging astronomical sources.

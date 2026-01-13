@@ -1,0 +1,102 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    paths:
+      - Dockerfile
+      - .github/workflows/build-image.yml
+    # This is needed to prevent it from ALSO running
+    # on tagged commits that don't update the dockerfile or workflow
+    branches:
+      - '**'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # uncomment this in case running into storage limitation
+      # Thanks to
+      # <https://carlosbecker.com/posts/github-actions-disk-space/>
+      # for this hack!
+      #
+      # ################# SNIP #################
+      #
+      #- run: df -h
+
+      #- name: Free up disk space
+      #  run: |
+      #    sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      #    sudo docker image prune --all --force
+      #    sudo docker builder prune -a
+
+      #- run: df -h
+      #
+      #
+      #
+      # ################# /SNIP #################
+      #
+      #
+      #
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create cache directory
+        run: |
+          # At the time of writing /tmp is the same disk
+          # as / in the runner VM
+          # but this may change in the future
+          # so we deliberately store the cache in NOT /tmp
+          # in order to avoid running out of ramdisk space
+          sudo mkdir /nottmp
+          sudo chown "$(whoami)" /nottmp
+
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /nottmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.repository }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha
+            type=ref,event=branch
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/nottmp/.buildx-cache
+          cache-to: type=local,dest=/nottmp/.buildx-cache-new,mode=max
+
+      - name: Move cache for next build
+        run: |
+          rm -rf /nottmp/.buildx-cache
+          mv /nottmp/.buildx-cache-new /nottmp/.buildx-cache
+

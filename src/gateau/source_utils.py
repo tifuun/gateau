@@ -1,18 +1,20 @@
 import numpy as np
 import multiprocessing
 from scipy.ndimage import generic_filter
-from scipy.special import j1
 import scipy.constants as scc
-import math
+import os
 from functools import partial
 import warnings
-from numpy.fft import fft2, ifft2, fftshift, ifftshift, fftfreq
+from numpy.fft import fft2, fftshift, fftfreq
 from scipy.interpolate import griddata
 
 from typing import Tuple
 
-from gateau.custom_logger import parallel_iterator
+import logging
 
+from gateau.custom_logger import CustomLogger, parallel_iterator
+
+logging.getLogger(__name__)
 warnings.filterwarnings("ignore")
 
 NCPU = multiprocessing.cpu_count()
@@ -72,7 +74,10 @@ def convolve_source_cube(source_cube: np.ndarray,
                          source_cube_unit: str = "I_nu",
                          num_threads: int = NCPU) -> np.ndarray:
     
-    print("\033[1;32m*** CONVOLVING SOURCE CUBE ***")
+    clog_mgr = CustomLogger(os.path.basename(__file__))
+    clog = clog_mgr.getCustomLogger()
+    
+    clog.info("\033[1;32m*** CONVOLVING SOURCE CUBE ***")
     
     chunks_source_cube = np.array_split(source_cube, 
                                         num_threads,
