@@ -1,6 +1,7 @@
 py.install_sources(
   [
     '__init__.py',
+    '__main__.py',
     'atmosphere_utils.py',
     'bind_utils.py',
     'bindings.py',
