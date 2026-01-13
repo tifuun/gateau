@@ -4,6 +4,7 @@ from scipy.ndimage import generic_filter
 from scipy.special import j1
 import scipy.constants as scc
 import math
+import os
 from functools import partial
 import warnings
 from numpy.fft import fft2, ifft2, fftshift, ifftshift, fftfreq
