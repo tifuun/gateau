@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/${{ github.repository }}:maybetree
+      image: ghcr.io/${{ github.repository }}
       options: --user root
 
     steps:
