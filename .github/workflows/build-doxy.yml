@@ -10,7 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/${{ github.repository }}
+      # Pull image with tag "main" which is hardcoded in build-image.yml
+      image: ghcr.io/${{ github.repository }}:main
       options: --user root
 
     steps:

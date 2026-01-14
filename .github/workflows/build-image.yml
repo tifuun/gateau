@@ -90,7 +90,8 @@ jobs:
           context: .
           push: true
           load: true
-          tags: ${{ steps.meta.outputs.tags }}
+          #tags: ${{ steps.meta.outputs.tags }}
+          tags: "main"
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/nottmp/.buildx-cache
           cache-to: type=local,dest=/nottmp/.buildx-cache-new,mode=max
