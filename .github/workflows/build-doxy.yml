@@ -5,12 +5,6 @@ on:
     tags:
       - "v*"
 
-permissions:
-  contents: write   # needed to publish pages
-  packages: read    # needed to pull image from GHCR
-  pages: write      # apparently needed??
-  id-token: write   # ??? what???
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -38,15 +32,18 @@ jobs:
         with:
           path: ./docs
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
 
