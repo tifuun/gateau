@@ -5,6 +5,7 @@ set -e
 rm -f win/requirements.txt
 pip install pip-tools
 pip-compile \
+	-v -v -v -v \
 	--all-extras \
 	--all-build-deps \
 	--output-file win/requirements.txt \
