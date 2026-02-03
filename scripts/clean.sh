@@ -7,17 +7,13 @@ rm -rf \
 	.ruff_cache \
 	.skbuild-info.json \
 	CMakeCache.txt \
-	CMakeCache.txt \
 	CMakeFiles \
-	CMakeFiles/ \
 	CMakeInit.txt \
-	System\ Volume\ Information/ \
 	Makefile \
+	System\ Volume\ Information/ \
 	\$RECYCLE.BIN/ \
 	build \
-	build/ \
 	dist \
-	dist/ \
 	docs \
 	gateau_test \
 	gsl \
@@ -26,9 +22,12 @@ rm -rf \
 	requirements.txt.bak \
 	src/gateau/libgateau.so \
 	testfile \
+	tmp \
 	venv/ \
 	wheel/ \
-	win/ \
 
+find . -name '__pycache__' -exec rm -rf {} \;
+find . -name '*.pyc' -exec rm -rf {} \;
+find . -name '*.pyo' -exec rm -rf {} \;
 
 
