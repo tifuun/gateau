@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 pip download \
 	-r win/requirements.txt \
 	-d win/pipcache \
