@@ -109,11 +109,18 @@ gateau_test
 gateau_tests
 gsl
 
+archive/**
+!archive/wheel/
+!archive/wheel/old/
+!archive/wheel/**/*.tar.gz
+!archive/wheel/**/*.whl
 !archive/wheel/*.tar.gz
-!archive/wheel/*/*.tar.gz
 !archive/wheel/*.whl
-!archive/wheel/*/*.whl
+!archive/docker/
+!archive/docker/**/*.tar*
 !archive/docker/*.tar*
+!archive/pipcache/
+!archive/pipcache/*.whl
 
 *.deb
 
