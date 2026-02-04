@@ -5,10 +5,11 @@
 	exit 1 
 }
 
-enforce_pwd ./win/scripts/build-in-vm.sh
+enforce_pwd ./win/scripts/run-interactive-vm.sh
 load_paths
 path_libexec
 check_deps_qemu
+check_kvm_group
 find_iconv
 
 check_empty_dist
@@ -24,7 +25,7 @@ trap cleanup INT
 start_virtiofsd
 start_qemu_with_no_overlay
 
-wait_vm
+wait_vm_start
 wait_qga
 mount_virtiofs
 

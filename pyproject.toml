@@ -38,6 +38,18 @@ requires-python = '>=3.9'
 [project.optional-dependencies]
 dev = ["pip-tools", "wheel-filename"]
 doxy = ["jupyter"]  # doxy also needs doxygen package from system package manager
+tooling = [
+	"pip-tools",
+	"build",
+	"twine",
+	"auditwheel",
+	]
+
+# You'd expect these to be pulled in automatically, but apparently not??
+windows = [
+	"pywinpty>=2.0.1",
+	"ninja>=1.8.2",
+	]
 
 #[tool.meson-python]
 ## TODO is needed?

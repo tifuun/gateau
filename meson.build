@@ -74,71 +74,57 @@ cpp_args = [
 ]
 
 # ---- Include directories ----
-inc_dirs = include_directories(
+gateau_inc_dirs = [
   'src/gateau/include',
   'src/gateau/cuda',
-)
+]
 
 # ---- figure out static/dynamic gsl+hdf5 ----
 
-# are we building a wheel or are we `pip install`ing?
-is_building_wheel = run_command(
-  'sh', '-c', 'test -n "$PEP517_BUILD_BACKEND" && echo yes || echo no',
-  check : false
-).stdout().strip() == 'no'
-
-if get_option('gsl_static').enabled()
-  message('Option set to use STATIC gsl')
-  gsl_static = true
-elif get_option('gsl_static').disabled()
-  message('Option set to use DYNAMIC gsl')
-  gsl_static = false
-else
-  message('Option set to autochoose static/dynamic gsl...')
-
-  if is_building_wheel
-    message('we are building wheel, therefore choosing STATIC gsl')
-    gsl_static = true
-  else
-    message('we are building to install, therefore choosing DYNAMIC gsl')
-    gsl_static = false
-  endif
-endif
-
-
-if get_option('hdf5_static').enabled()
-  message('Option set to use STATIC hdf5')
-  hdf5_static = true
-elif get_option('hdf5_static').disabled()
-  message('Option set to use DYNAMIC hdf5')
-  hdf5_static = false
-else
-  message('Option set to autochoose static/dynamic hdf5...')
-
-  if is_building_wheel
-    message('we are building wheel, therefore choosing STATIC hdf5')
-    hdf5_static = true
-  else
-    message('we are building to install, therefore choosing DYNAMIC hdf5')
-    hdf5_static = false
-  endif
-endif
+gsl_static = false
+hdf5_static = false
 
 # ---- External libraries ----
-gsl = dependency(
+
+if host_machine.system() == 'windows'
+  gsl_lib_dirs = [
+    #'Z:\\win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native\\static\\gsl.lib',
+    #'Z:\\win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native\\static\\gslcblas.lib',
+    'Z:\\win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native',
+    ]
+  gsl_inc_dirs = [
+    'win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native',
+    ]
+  hdf5_lib_dirs = [
+    'win\\dep\\hdf5\\HDF5-2.0.0-win64\\lib',
+    ]
+  hdf5_inc_dirs = [
+    'Z:\\win\\dep\\hdf5\\HDF5-2.0.0-win64\\include',
+    ]
+else
+  gsl_lib_dirs = []
+  gsl_inc_dirs = []
+  hdf5_lib_dirs = []
+  hdf5_inc_dirs = []
+endif
+
+gsl = cpp.find_library(
   'gsl',
   required: true,
-  static: gsl_static
+  static: gsl_static,
+  dirs: gsl_lib_dirs,
   )
 gslcblas = cpp.find_library(
   'gslcblas',
   required: true,
-  static: gsl_static
+  static: gsl_static,
+  dirs: gsl_lib_dirs
   )
-hdf5 = dependency(
+hdf5 = cpp.find_library(
   'hdf5',
   required: true,
-  static: hdf5_static
+  static: hdf5_static,
+  dirs: hdf5_lib_dirs,
   )
 
 libs = [cuda_libs, gsl, gslcblas, hdf5]
@@ -150,7 +136,11 @@ cu_sources = files(
 libgateau = library(
   'gateau',
   cu_sources,
-  include_directories: inc_dirs,
+  include_directories: include_directories(
+    gateau_inc_dirs,
+    gsl_inc_dirs,
+    hdf5_inc_dirs,
+    ),
   dependencies: libs,
   name_suffix: 'so',
   pic: true, # no clue, something to do with static linking?
@@ -162,30 +152,6 @@ libgateau = library(
   install_dir: py.get_install_dir() / 'gateau',
 )
 
-#  libgateau = custom_target(
-#    'gateau',
-#    command: [
-#      nvcc,
-#      '-Xcompiler',
-#      '-shared',
-#      '-I', '../src/gateau/include',
-#      '-I', '@BUILD_ROOT@/src/gateau/cuda',
-#      '@INPUT@',
-#      ],
-#
-#    depend_files: [
-#      'src/gateau/include',
-#      ],
-#    input: cu_sources,
-#    output: ['libgateau.so'],
-#
-#    # Install the .so into the gateau python module
-#    # directory alongside the .py files
-#    install: true,
-#    install_dir: py.get_install_dir() / 'gateau',
-#  )
-#
-#endif
 
 subdir('src/gateau')
 

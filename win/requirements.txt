@@ -26,21 +26,29 @@ attrs==25.4.0
     # via
     #   jsonschema
     #   referencing
+auditwheel==6.6.0
+    # via gateau (pyproject.toml)
 babel==2.18.0
     # via jupyterlab-server
+backports-tarfile==1.2.0
+    # via jaraco-context
 beautifulsoup4==4.14.3
     # via nbconvert
 bleach[css]==6.3.0
     # via nbconvert
 build==1.4.0
-    # via pip-tools
+    # via
+    #   gateau (pyproject.toml)
+    #   pip-tools
 certifi==2026.1.4
     # via
     #   httpcore
     #   httpx
     #   requests
 cffi==2.0.0
-    # via argon2-cffi-bindings
+    # via
+    #   argon2-cffi-bindings
+    #   cryptography
 charset-normalizer==3.4.4
     # via requests
 click==8.3.1
@@ -51,6 +59,8 @@ comm==0.2.3
     #   ipywidgets
 contourpy==1.3.3
     # via matplotlib
+cryptography==46.0.4
+    # via secretstorage
 cycler==0.12.1
     # via matplotlib
 debugpy==1.8.20
@@ -59,6 +69,8 @@ decorator==5.2.1
     # via ipython
 defusedxml==0.7.1
     # via nbconvert
+docutils==0.22.4
+    # via readme-renderer
 executing==2.2.1
     # via stack-data
 fastjsonschema==2.21.2
@@ -75,12 +87,16 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via jupyterlab
+id==1.5.0
+    # via twine
 idna==3.11
     # via
     #   anyio
     #   httpx
     #   jsonschema
     #   requests
+importlib-metadata==8.7.1
+    # via keyring
 ipykernel==7.1.0
     # via
     #   jupyter
@@ -97,8 +113,18 @@ ipywidgets==8.1.8
     # via jupyter
 isoduration==20.11.0
     # via jsonschema
+jaraco-classes==3.4.0
+    # via keyring
+jaraco-context==6.1.0
+    # via keyring
+jaraco-functools==4.4.0
+    # via keyring
 jedi==0.19.2
     # via ipython
+jeepney==0.9.0
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==3.1.6
     # via
     #   jupyter-server
@@ -161,10 +187,14 @@ jupyterlab-server==2.28.0
     #   notebook
 jupyterlab-widgets==3.0.16
     # via ipywidgets
+keyring==25.7.0
+    # via twine
 kiwisolver==1.4.9
     # via matplotlib
 lark==1.3.1
     # via rfc3987-syntax
+markdown-it-py==4.0.0
+    # via rich
 markupsafe==3.0.3
     # via
     #   jinja2
@@ -175,12 +205,18 @@ matplotlib-inline==0.2.1
     # via
     #   ipykernel
     #   ipython
+mdurl==0.1.2
+    # via markdown-it-py
 meson==1.10.1
     # via meson-python
 meson-python==0.19.0
     # via gateau (pyproject.toml::build-system.requires)
 mistune==3.2.0
     # via nbconvert
+more-itertools==10.8.0
+    # via
+    #   jaraco-classes
+    #   jaraco-functools
 nbclient==0.10.4
     # via nbconvert
 nbconvert==7.17.0
@@ -194,6 +230,10 @@ nbformat==5.10.4
     #   nbconvert
 nest-asyncio==1.6.0
     # via ipykernel
+nh3==0.3.2
+    # via readme-renderer
+ninja==1.13.0
+    # via gateau (pyproject.toml)
 notebook==7.5.3
     # via jupyter
 notebook-shim==0.2.4
@@ -214,6 +254,7 @@ overrides==7.7.0
 packaging==26.0
     # via
     #   astropy
+    #   auditwheel
     #   build
     #   ipykernel
     #   jupyter-events
@@ -224,6 +265,7 @@ packaging==26.0
     #   meson-python
     #   nbconvert
     #   pyproject-metadata
+    #   twine
     #   wheel
 pandocfilters==1.5.1
     # via nbconvert
@@ -255,6 +297,8 @@ pure-eval==0.2.3
     # via stack-data
 pycparser==3.0
     # via cffi
+pyelftools==0.32
+    # via auditwheel
 pyerfa==2.0.1.5
     # via astropy
 pygments==2.19.2
@@ -263,6 +307,8 @@ pygments==2.19.2
     #   ipython-pygments-lexers
     #   jupyter-console
     #   nbconvert
+    #   readme-renderer
+    #   rich
 pyparsing==3.3.2
     # via matplotlib
 pyproject-hooks==1.2.0
@@ -278,6 +324,8 @@ python-dateutil==2.9.0.post0
     #   matplotlib
 python-json-logger==4.0.0
     # via jupyter-events
+pywinpty==3.0.2
+    # via gateau (pyproject.toml)
 pyyaml==6.0.3
     # via
     #   astropy
@@ -288,29 +336,43 @@ pyzmq==27.1.0
     #   jupyter-client
     #   jupyter-console
     #   jupyter-server
+readme-renderer==44.0
+    # via twine
 referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
     #   jupyter-events
 requests==2.32.5
-    # via jupyterlab-server
+    # via
+    #   id
+    #   jupyterlab-server
+    #   requests-toolbelt
+    #   twine
+requests-toolbelt==1.0.0
+    # via twine
 rfc3339-validator==0.1.4
     # via
     #   jsonschema
     #   jupyter-events
+rfc3986==2.0.0
+    # via twine
 rfc3986-validator==0.1.1
     # via
     #   jsonschema
     #   jupyter-events
 rfc3987-syntax==1.1.0
     # via jsonschema
+rich==14.3.2
+    # via twine
 rpds-py==0.30.0
     # via
     #   jsonschema
     #   referencing
 scipy==1.17.0
     # via gateau (pyproject.toml)
+secretstorage==3.5.0
+    # via keyring
 send2trash==2.1.0
     # via jupyter-server
 six==1.17.0
@@ -352,6 +414,8 @@ traitlets==5.14.3
     #   nbclient
     #   nbconvert
     #   nbformat
+twine==6.2.0
+    # via gateau (pyproject.toml)
 typing-extensions==4.15.0
     # via
     #   anyio
@@ -363,7 +427,9 @@ tzdata==2025.3
 uri-template==1.3.0
     # via jsonschema
 urllib3==2.6.3
-    # via requests
+    # via
+    #   requests
+    #   twine
 wcwidth==0.5.3
     # via prompt-toolkit
 webcolors==25.10.0
@@ -380,6 +446,8 @@ wheel-filename==2.1.0
     # via gateau (pyproject.toml)
 widgetsnbextension==4.0.15
     # via ipywidgets
+zipp==3.23.0
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip

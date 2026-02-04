@@ -127,4 +127,7 @@ archive/**
 build.docker
 build.dk
 
+win/dep/gsl-msvc14-x64.2.3.0.2779/
+win/dep/hdf5/
+win/vm/6.gateau020.qcow2
 

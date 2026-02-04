@@ -160,7 +160,7 @@ wait_vm_finish_infinite() {
 	done
 }
 
-wait_gqa() {
+wait_qga() {
 	eecho "WAITING FOR QEMU GUEST AGENT"
 	qga_ok=""
 
@@ -283,6 +283,7 @@ start_qemu_with_no_overlay() {
 	eecho
 	eecho "Starting qemu with NO OVERLAY!"
 	eecho "Changes made to vm image are PERMANENT."
+	eecho "vm image is: $qcow"
 	eecho
 	eecho
 
@@ -313,7 +314,7 @@ check_vm_image() {
 
 check_pipcache() {
 	eecho "CHECKING PIPCACHE"
-	if ! [ -r "$( find win/pipcache/ -name 'scikit_build_core*.whl' | head -n 1 )" ]
+	if ! [ -r "$( find win/pipcache/ -name 'meson_python*.whl' | head -n 1 )" ]
 	then
 		eecho "Looks like python dependencies in 'win/pipcache' are "
 		eecho "missing or inaccessible. "
@@ -347,6 +348,29 @@ make_overlay() {
 
 		qemu-img info "$overlay" \
 			|| die "Could not get info on overlay qcow2 -- is it borked?"
+	fi
+}
+
+check_kvm_group() {
+	if [ -n "$GATEAU_SKIP_KVM_CHECK" ]
+	then
+		eecho "Skipping kvm permission check!"
+		return
+	fi
+
+	if [ "$(id -u)" -eq 0 ] || id -nG | grep -qw kvm
+	then
+		echo "ok: user is root or is in kvm group"
+	else
+		eecho "User is not root and not in 'kvm' group."
+		eecho "qemu will fail."
+		eecho "Add yourself to 'kvm' group."
+		eecho
+		eecho 'HINT: sudo usermod -aG kvm "$(whoami)"'
+		eecho 'HINT: su "$(whoami)"'
+		eecho
+		eecho "Run with GATEAU_SKIP_KVM_CHECK=1 to skip this check."
+		exit 1
 	fi
 }
 
