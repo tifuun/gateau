@@ -87,25 +87,74 @@ hdf5_static = false
 # ---- External libraries ----
 
 if host_machine.system() == 'windows'
+
+  name_suffix = 'dll.a'
+  # Something later on down the chain
+  # expects it to be .dll.a not .dll
+
   gsl_lib_dirs = [
-    #'Z:\\win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native\\static\\gsl.lib',
-    #'Z:\\win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native\\static\\gslcblas.lib',
-    'Z:\\win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native',
+    'Z:\\win\\tmp\\extracted\\gsl\\build\\native\\',
     ]
   gsl_inc_dirs = [
-    'win\\dep\\gsl-msvc14-x64.2.3.0.2779\\build\\native',
+    'win\\tmp\\extracted\\gsl\\build\\native\\',
     ]
   hdf5_lib_dirs = [
-    'win\\dep\\hdf5\\HDF5-2.0.0-win64\\lib',
+    # Default install location with the msi installer:
+    #'C:\\Program Files\\HDF_Group\\HDF5\\2.0.0\\lib'
+
+    'Z:\\win\\tmp\\extracted\\hdf5\\hdf5\\HDF5-2.0.0-win64\\HDF5-2.0.0-win64\\lib',
     ]
   hdf5_inc_dirs = [
-    'Z:\\win\\dep\\hdf5\\HDF5-2.0.0-win64\\include',
+    # Default install location with the msi installer:
+    #'C:\\Program Files\\HDF_Group\\HDF5\\2.0.0\\include'
+
+    'win\\tmp\\extracted\\hdf5\\hdf5\\HDF5-2.0.0-win64\\HDF5-2.0.0-win64\\include',
     ]
+
+
+  cuda_args = [
+    #'-ccbin',
+    #'cl',
+    #'--use-local-env',
+    '-Xcompiler',
+    '/std:c++14',
+    #'-shared',
+    #'/libdir:noauto',
+    '-DGATEAU_WIN_BUILD',
+    ]
+  add_project_arguments(cuda_args, language: 'cuda')
+
+  zlib_dep = cpp.find_library(
+    'zlib',
+    #version: '>=1.2.8',
+    static: false,
+    required: true,
+    dirs: [
+      'Z:\\win\\tmp\\extracted\\zlib\\zlib-win-x64'
+      ]
+    )
+
+  aec_dep = cpp.find_library(
+    'szip',
+    static: false,
+    required: true,
+    dirs: [
+      'Z:\\win\\tmp\\extracted\\aec\\libaec-1.0.4-h33f27b4_1\\Library\\lib',
+      ]
+    )
+
+  win_deps = [zlib_dep, aec_dep]
+
 else
+  name_suffix = 'so'
+  # Something later on down the chain
+  # expects it to be .dll.a not .dll
+
   gsl_lib_dirs = []
   gsl_inc_dirs = []
   hdf5_lib_dirs = []
   hdf5_inc_dirs = []
+  win_deps = []
 endif
 
 gsl = cpp.find_library(
@@ -127,7 +176,7 @@ hdf5 = cpp.find_library(
   dirs: hdf5_lib_dirs,
   )
 
-libs = [cuda_libs, gsl, gslcblas, hdf5]
+libs = [cuda_libs, gsl, gslcblas, hdf5] + win_deps
 
 cu_sources = files(
   'src/gateau/cuda/kernels.cu',
@@ -142,7 +191,7 @@ libgateau = library(
     hdf5_inc_dirs,
     ),
   dependencies: libs,
-  name_suffix: 'so',
+  name_suffix: name_suffix,
   pic: true, # no clue, something to do with static linking?
   cpp_args: cpp_args,
 

@@ -8,7 +8,24 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-#include <filesystem>
+
+// Use normal std::filesystem when running on c++17
+// and experimental filesystem when running on c++14
+//#if __cplusplus >= 201703L
+
+#ifdef GATEAU_WIN_BUILD
+	#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
+	#include <experimental/filesystem>
+	namespace fs = std::experimental::filesystem;
+#else
+	#include <filesystem>
+	namespace fs = std::filesystem;
+#endif
+
+#ifdef GATEAU_WIN_BUILD
+	#pragma comment(lib, "Shlwapi.lib")
+	// provides __imp_StrStrIA symbol needed by hdf5
+#endif
 
 #include "hdf5.h"
 
@@ -17,7 +34,6 @@
 #ifndef __FILEIO_H
 #define __FILEIO_H
 
-namespace fs = std::filesystem;
 
 #define NPWVATM         55
 #define NFREQ           8301

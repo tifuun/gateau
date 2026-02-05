@@ -57,6 +57,7 @@ htmlcov
 *.spec
 .coverage
 .ipynb_checkpoints
+.mesonpy*
 
 # Archives
 *.zip
@@ -101,6 +102,7 @@ CMakeInit.txt
 
 venv
 tmp
+win/tmp
 docs
 doxy/docs
 podman/output
@@ -110,10 +112,9 @@ gateau_tests
 gsl
 
 archive/**
-!archive/wheel/
-!archive/wheel/old/
-!archive/wheel/**/*.tar.gz
-!archive/wheel/**/*.whl
+!archive/*/
+!archive/**/*.tar.gz
+!archive/**/*.whl
 !archive/wheel/*.tar.gz
 !archive/wheel/*.whl
 !archive/docker/
@@ -121,13 +122,30 @@ archive/**
 !archive/docker/*.tar*
 !archive/pipcache/
 !archive/pipcache/*.whl
+!archive/winvm/
+!archive/winvm/*.qcow2
 
 *.deb
 
 build.docker
 build.dk
+build.win
 
-win/dep/gsl-msvc14-x64.2.3.0.2779/
-win/dep/hdf5/
+wheelhouse
+
+win/dep/*
+!win/dep/
+!win/dep/*.zip
+!win/dep/*.exe
+!win/dep/*.msi
+!win/dep/*.tar*
+
+win/archive/*
+!win/archive/
+!win/archive/*.zip
+!win/archive/*.exe
+!win/archive/*.msi
+!win/archive/*.tar*
+
 win/vm/6.gateau020.qcow2
 

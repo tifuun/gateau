@@ -11,7 +11,6 @@
 #include <vector>
 #include <thread>
 #include <string>
-#include <filesystem>
 #include <string.h>
 
 #include <cufft.h>

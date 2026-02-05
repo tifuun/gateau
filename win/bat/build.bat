@@ -4,17 +4,35 @@ setlocal
 ECHO Switching to shared folder...
 Z:
 
-ECHO Installing deps...
+if not defined GATEAU_SKIP_DEPS (
+	ECHO Installing deps...
+	ECHO set "GATEAU_SKIP_DEPS=1" to skip this.
 
-C:\Users\maybetree\AppData\Local\Programs\Python\Python312\python.exe -m pip install --no-index --find-links=win\pipcache -r win\requirements.txt
-C:\Users\maybetree\AppData\Local\Programs\Python\Python312\python.exe -m pip install --no-index --find-links=win\pipcache build
+	C:\Users\maybetree\AppData\Local\Programs\Python\Python312\python.exe -m pip install --no-index --find-links=win\tmp\pipcache -r win\requirements.txt
+	C:\Users\maybetree\AppData\Local\Programs\Python\Python312\python.exe -m pip install --no-index --find-links=win\tmp\pipcache build 
+) else (
+	ECHO Skip installing deps.
+)
 
 ECHO Building...
 
-C:\Users\maybetree\AppData\Local\Programs\Python\Python312\python.exe -m build --no-isolation
+rmdir /s /q build.win
 
+C:\Users\maybetree\AppData\Local\Programs\Python\Python312\python.exe -m build --verbose --verbose --verbose --wheel --no-isolation --config-setting=builddir=build.win
+
+REM --wheel is needed because... no clue honestly? But doesn't work
+REM without it
+REM see <https://github.com/mesonbuild/meson-python/issues/507>
+REM
 REM --no-isolation tells build to use the pkgs we just installed
 REM instead of trying to dl them from the internet
+REM
+REM --config-settings=builddir=build.win
+REM tells mesonpy to use a persistent
+REM `build.win` instead of a temporary directory
+REM for build files.
+REM This is required because otherwise mesonpy would crash trying to clean
+REM up the temporary directory due to windows file locking stuff.
 
 REM ECHO Renaming wheel...
 REM 

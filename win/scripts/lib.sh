@@ -41,17 +41,32 @@ check_deps() {
 	do
 		if ! command -v "$dep"
 		then
-			eecho "'$dep' is missing, go install it!"
-			eecho "Hint: some executables may get installed into "
+			eecho "command '$dep' is missing, go install it!"
+			eecho
+			eecho "HINT: some executables may get installed into "
 			eecho "/usr/libexec which is usually not in PATH, "
 			eecho "but I will check there as well!"
+			eecho
+			eecho "HINT: 'win/packages' contains scripts "
+			eecho "for various distros that install all "
+			eecho "needed packages automatically. "
 			exit 2
 		fi
 	done
 }
 
+check_sdl_ui() {
+	has_sdl="$(qemu-system-x86_64 -display help | grep '^sdl')" \
+		|| die "qemu SDL ui is missing, go install it!"
+	if [ -z "has_sdl" ]
+	then
+		die "qemu SDL ui is missing, go install it!"
+	fi
+}
+
 check_deps_qemu() {
-	check_deps qemu-system-x86_64 virtiofsd jq socat qemu-img
+	check_deps qemu-system-x86_64 virtiofsd jq socat qemu-img unzip
+	check_sdl_ui
 }
 
 
@@ -270,6 +285,10 @@ start_qemu() {
 		-monitor unix:"$qmon_sock",server,nowait \
 		-serial none \
 		-pidfile "$qemu_pid_file" \
+		-rtc base=2077-01-01 \
+		`# even when setting rtc to localtime, ` \
+		`# meson complains about clock skew. ` \
+		`# so brute force it by setting it WAY in the future lol.` \
 		-daemonize
 }
 
@@ -334,6 +353,8 @@ make_tmpdirs() {
 	mkdir -p "$(dirname "$qga_sock")" || die "Could not mkdir for '$qga_sock'"
 	mkdir -p "$(dirname "$overlay")" || die "Could not mkdir for '$overlay'"
 	mkdir -p "$(dirname "$qemu_pid_file")" || die "Could not mkdir for '$qemu_pid_file'"
+	mkdir -p "$unzip_dir" || die "Could not mkdir for '$unzip_dir'"
+	mkdir -p "$pipcache_link_dir" || die "Could not mkdir for '$pipcache_link_dir'"
 }
 
 make_overlay() {
@@ -372,5 +393,66 @@ check_kvm_group() {
 		eecho "Run with GATEAU_SKIP_KVM_CHECK=1 to skip this check."
 		exit 1
 	fi
+}
+
+extract_zip() {
+	if [ -z "$1" ]
+	then
+		die "extract_zip ran without source!"
+	fi
+
+	if [ -z "$2" ]
+	then
+		die "extract_zip ran without dest!"
+	fi
+
+	if [ ! -r "$1" ]
+	then
+		die "File '$1' is missing or not readable!"
+	fi
+
+	if [ -d "$2" ]
+	then
+		eecho "$2 already exists,"
+		eecho "skipping extraction!"
+		return
+	fi
+
+	mkdir -p "$2" \
+		|| die "Failed to mkdir unzip dest."
+
+	unzip -n "$1" -d "$2" \
+		|| die "Failed to unzip"
+
+}
+
+extract_zip_all() {
+	extract_zip \
+		"win/dep/hdf5-2.0.0-win-vs2022_cl.zip" \
+		"$unzip_dir/hdf5"
+
+	extract_zip \
+		"$unzip_dir/hdf5/hdf5/HDF5-2.0.0-win64.zip" \
+		"$unzip_dir/hdf5/hdf5/HDF5-2.0.0-win64"
+
+	extract_zip \
+		"win/dep/gsl-msvc14-x64.2.3.0.2779.zip" \
+		"$unzip_dir/gsl"
+
+	extract_zip \
+		"win/dep/libaec-1.0.4-h33f27b4_1.zip" \
+		"$unzip_dir/aec"
+
+	extract_zip \
+		"win/dep/zlib-win-x64.zip" \
+		"$unzip_dir/zlib"
+
+}
+
+copy_pipcache() {
+	# Hardlink pipcache into separate directory
+	# because windows does not understand symlinks
+	cp -l win/pipcache/*.whl "$pipcache_link_dir" \
+		|| die "Failed to hardlink pipcache!"
 }
 
