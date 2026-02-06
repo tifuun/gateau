@@ -55,19 +55,20 @@ if host_machine.system() == 'windows'
     required: true,
     #version : '>=13',
     modules: ['cufft'],
+    static: false,
     )
 
   gsl = cpp.find_library(
     'gsl',
     required: true,
-    static: false,
+    static: true,
     dirs: gsl_lib_dirs,
     )
 
   gslcblas = cpp.find_library(
     'gslcblas',
     required: true,
-    static: false,
+    static: true,
     dirs: gsl_lib_dirs
     )
 
@@ -75,7 +76,7 @@ if host_machine.system() == 'windows'
   hdf5 = cpp.find_library(
     'hdf5',
     required: true,
-    static: false,
+    static: true,
     dirs: hdf5_lib_dirs,
     )
 
@@ -90,7 +91,7 @@ if host_machine.system() == 'windows'
   zlib = cpp.find_library(
     'zlib',
     #version: '>=1.2.8',
-    static: false,
+    static: true,
     required: true,
     dirs: [
       'Z:\\win\\tmp\\extracted\\zlib\\zlib-win-x64'
@@ -99,7 +100,7 @@ if host_machine.system() == 'windows'
 
   aec = cpp.find_library(
     'szip',
-    static: false,
+    static: true,
     required: true,
     dirs: [
       'Z:\\win\\tmp\\extracted\\aec\\libaec-1.0.4-h33f27b4_1\\Library\\lib',
