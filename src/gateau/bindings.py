@@ -29,16 +29,15 @@ def load_gateaulib() -> CDLL:
     """
 
     if platform.system() == "Windows":
-        lib_filename = "gateau.dll"
+        lib_filename = "libgateau.dll.a"
     elif platform.system() == "Darwin":
         raise NotImplementedError(
-            "Mac OS is not supported by Glateau and never will be. Sorry."
+            "Mac OS is not supported by Gateau and never will be. Sorry."
             )
     else:
         lib_filename = "libgateau.so"
 
     try:
-
         with impresources.path(gateau, lib_filename) as sopath:
             lib = CDLL(sopath)
 

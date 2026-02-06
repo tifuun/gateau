@@ -20,8 +20,8 @@ rmdir /s /q build.win
 
 C:\Users\maybetree\AppData\Local\Programs\Python\Python312\python.exe -m build --verbose --verbose --verbose --wheel --no-isolation --config-setting=builddir=build.win
 
-REM --wheel is needed because... no clue honestly? But doesn't work
-REM without it
+REM --wheel is needed because... no clue honestly?
+REM But doesn't work without it
 REM see <https://github.com/mesonbuild/meson-python/issues/507>
 REM
 REM --no-isolation tells build to use the pkgs we just installed
