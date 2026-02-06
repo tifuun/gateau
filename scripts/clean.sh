@@ -16,6 +16,7 @@ rm -rf \
 	build.win \
 	build.docker \
 	build.dk \
+	wheelhouse \
 	dist \
 	docs \
 	gateau_test \
