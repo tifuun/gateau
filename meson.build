@@ -34,7 +34,8 @@ if host_machine.system() == 'windows'
   # lib dirs must be absolute, inc dirs must be relative?
 
   gsl_lib_dirs = [
-    'Z:\\win\\tmp\\extracted\\gsl\\build\\native\\',
+    #'Z:\\win\\tmp\\extracted\\gsl\\build\\native\\',
+    'Z:\\win\\tmp\\extracted\\gsl\\build\\native\\static',
     ]
 
   gsl_inc_dirs = [
@@ -84,7 +85,15 @@ if host_machine.system() == 'windows'
     '-Xcompiler',
     '/std:c++14',
     '-DGATEAU_WIN_BUILD',
+    #'-MT',
     ]
+
+  #cpp_args = [
+  #  '-Xcompiler',
+  #  '-static',
+  #  '-fPIC',
+  #  '/MT',
+  #]
 
   add_project_arguments(cuda_args, language: 'cuda')
 
@@ -213,12 +222,34 @@ libgateau = library(
   name_suffix: name_suffix,
   pic: true, # no clue, something to do with static linking?
   cpp_args: cpp_args,
+  link_args:  [
+    #'-MT',                            # Static CRT runtime
+    #'/NODEFAULTLIB:msvcrt',           # Exclude dynamic CRT
+    #'/NODEFAULTLIB:msvcrtd',          # Exclude debug dynamic CRT
+    #'/DEFAULTLIB:ucrt.lib',           # Universal CRT (static)
+    #'/DEFAULTLIB:vcruntime.lib',      # VC runtime (static) - contains __GSHandlerCheck
+    ##'/DEFAULTLIB:vcruntime140_1.lib',   # VS version-specific runtime
+    #'/DEFAULTLIB:msvcrt.lib',         # Legacy CRT symbols
+    #'/DEFAULTLIB:oldnames.lib',       # Legacy C names
+    #'/DEFAULTLIB:kernel32.lib',       # Windows API
+    #'/DEFAULTLIB:user32.lib'
+],
 
   # Install the .so into the gateau python module
   # directory alongside the .py files
   install: true,
   install_dir: py.get_install_dir() / 'gateau',
 )
+
+install_data(
+  'win\\tmp\\extracted\\aec\\libaec-1.0.4-h33f27b4_1\\Library\\bin\\aec.dll',
+  install_dir: py.get_install_dir() / 'gateau',
+  )
+
+install_data(
+  'win\\tmp\\extracted\\aec\\libaec-1.0.4-h33f27b4_1\\Library\\bin\\szip.dll',
+  install_dir: py.get_install_dir() / 'gateau',
+  )
 
 
 subdir('src/gateau')

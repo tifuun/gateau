@@ -13,7 +13,9 @@ from ctypes import (
     )
 from typing import Union
 from contextlib import ExitStack
+from pathlib import Path
 import platform
+from os import add_dll_directory
 
 import gateau.threadmgr as gmanager
 import gateau.structs as gstructs
@@ -39,6 +41,9 @@ def load_gateaulib() -> CDLL:
 
     try:
         with impresources.path(gateau, lib_filename) as sopath:
+            if platform.system() == "Windows":
+                print(Path(sopath).parent)
+                add_dll_directory(Path(sopath).parent)
             lib = CDLL(sopath)
 
 
