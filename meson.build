@@ -56,7 +56,7 @@ if host_machine.system() == 'windows'
     required: true,
     #version : '>=13',
     modules: ['cufft'],
-    static: false,
+    static: true,
     )
 
   gsl = cpp.find_library(
@@ -223,16 +223,17 @@ libgateau = library(
   pic: true, # no clue, something to do with static linking?
   cpp_args: cpp_args,
   link_args:  [
-    #'-MT',                            # Static CRT runtime
-    #'/NODEFAULTLIB:msvcrt',           # Exclude dynamic CRT
-    #'/NODEFAULTLIB:msvcrtd',          # Exclude debug dynamic CRT
-    #'/DEFAULTLIB:ucrt.lib',           # Universal CRT (static)
-    #'/DEFAULTLIB:vcruntime.lib',      # VC runtime (static) - contains __GSHandlerCheck
-    ##'/DEFAULTLIB:vcruntime140_1.lib',   # VS version-specific runtime
-    #'/DEFAULTLIB:msvcrt.lib',         # Legacy CRT symbols
-    #'/DEFAULTLIB:oldnames.lib',       # Legacy C names
-    #'/DEFAULTLIB:kernel32.lib',       # Windows API
-    #'/DEFAULTLIB:user32.lib'
+    '-MT',                            # Static CRT runtime
+    '/NODEFAULTLIB:msvcrt',           # Exclude dynamic CRT
+    '/NODEFAULTLIB:msvcrtd',          # Exclude debug dynamic CRT
+    '/DEFAULTLIB:ucrt.lib',           # Universal CRT (static)
+    '/DEFAULTLIB:vcruntime.lib',      # VC runtime (static) - contains __GSHandlerCheck
+    #'/DEFAULTLIB:vcruntime140_1.lib',   # VS version-specific runtime
+    #'/DEFAULTLIB:msvcp140.lib',   # VS version-specific runtime
+    '/DEFAULTLIB:msvcrt.lib',         # Legacy CRT symbols
+    '/DEFAULTLIB:oldnames.lib',       # Legacy C names
+    '/DEFAULTLIB:kernel32.lib',       # Windows API
+    '/DEFAULTLIB:user32.lib'
 ],
 
   # Install the .so into the gateau python module

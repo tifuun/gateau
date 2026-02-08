@@ -42,7 +42,6 @@ def load_gateaulib() -> CDLL:
     try:
         with impresources.path(gateau, lib_filename) as sopath:
             if platform.system() == "Windows":
-                print(Path(sopath).parent)
                 add_dll_directory(Path(sopath).parent)
             lib = CDLL(sopath)
 
