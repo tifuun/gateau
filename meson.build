@@ -32,36 +32,30 @@ cu_sources = files(
 
 if host_machine.system() == 'windows'
   # lib dirs must be absolute, inc dirs must be relative?
-
-  gsl_lib_dirs = [
-    #'Z:\\win\\tmp\\extracted\\gsl\\build\\native\\',
-    'Z:\\win\\tmp\\extracted\\gsl\\build\\native\\static',
+  vcpkg_lib_dirs = [
+    'Z:\\vcpkg_installed\\x64-windows\\lib'
     ]
 
-  gsl_inc_dirs = [
-    'win\\tmp\\extracted\\gsl\\build\\native\\',
+  vcpkg_inc_dirs = [
+    'vcpkg_installed\\x64-windows\\include'
     ]
+  
+  #vcpkg = find_program(
+  #  'vcpkg',
+  #  required: true,
+  #  #dirs: [
+  #  #  #'Z:\\win\\tmp\\extracted\\vcpkg'
+  #  #  'C:\\Users\\maybetree\Desktop\\vcpkg\\vcpkg-master'
+  #  #  ]
+  #  )
 
-  hdf5_lib_dirs = [
-    #'Z:\\win\\tmp\\extracted\\hdf5\\hdf5\\HDF5-2.0.0-win64\\HDF5-2.0.0-win64\\lib',
-
-    #'Z:\\win\\tmp\\extracted\\hdf5-1\\HDF5-1.14.6-win64\\lib',
-
-    #'Z:\\win\\tmp\\extracted\\hdf5-3\\HDF5-1.12.3-win64\\lib',
-    
-    'Z:\\win\\tmp\\extracted\\hdf5-4\\HDF5-1.10.11-win64\\lib',
-    ]
-
-  hdf5_inc_dirs = [
-    #'win\\tmp\\extracted\\hdf5\\hdf5\\HDF5-2.0.0-win64\\HDF5-2.0.0-win64\\include',
-
-    #'win\\tmp\\extracted\\hdf5-1\\HDF5-1.14.6-win64\\include',
-
-    #'win\\tmp\\extracted\\hdf5-3\\HDF5-1.12.3-win64\\include',
-
-    'win\\tmp\\extracted\\hdf5-4\\HDF5-1.10.11-win64\\include',
-    ]
-
+  #run_command(
+  #  vcpkg,
+  #  'install',
+  #  '--x-wait-for-lock',
+  #  '--x-manifest-root=' + meson.current_source_dir(),
+  #  check: true
+  #  )
 
   cufft = dependency(
     'cuda',
@@ -75,14 +69,14 @@ if host_machine.system() == 'windows'
     'gsl',
     required: true,
     static: true,
-    dirs: gsl_lib_dirs,
+    dirs: vcpkg_lib_dirs,
     )
 
   gslcblas = cpp.find_library(
     'gslcblas',
     required: true,
     static: true,
-    dirs: gsl_lib_dirs
+    dirs: vcpkg_lib_dirs,
     )
 
   # On windows this MUST be cpp.find_library
@@ -90,7 +84,7 @@ if host_machine.system() == 'windows'
     'hdf5',
     required: true,
     static: true,
-    dirs: hdf5_lib_dirs,
+    dirs: vcpkg_lib_dirs,
     )
 
   cuda_args = [
@@ -109,31 +103,12 @@ if host_machine.system() == 'windows'
 
   add_project_arguments(cuda_args, language: 'cuda')
 
-  zlib = cpp.find_library(
-    'zlib',
-    #version: '>=1.2.8',
-    static: true,
-    required: true,
-    dirs: [
-      'Z:\\win\\tmp\\extracted\\zlib\\zlib-win-x64'
-      ]
-    )
 
-  aec = cpp.find_library(
-    'szip',
-    static: true,
-    required: true,
-    dirs: [
-      'Z:\\win\\tmp\\extracted\\aec\\libaec-1.0.4-h33f27b4_1\\Library\\lib',
-      ]
-    )
-
-  deps = [cufft, gsl, gslcblas, hdf5, zlib, aec]
-  #deps = [cufft, gsl, gslcblas, hdf5, ]
+  #deps = [cufft, gsl, gslcblas, hdf5, zlib, aec]
+  deps = [cufft, gsl, gslcblas, hdf5, ]
   incls = [
     gateau_inc_dirs,
-    gsl_inc_dirs,
-    hdf5_inc_dirs,
+    vcpkg_inc_dirs,
     ]
 
 else
@@ -256,12 +231,32 @@ libgateau = library(
 )
 
 install_data(
-  'win\\tmp\\extracted\\aec\\libaec-1.0.4-h33f27b4_1\\Library\\bin\\aec.dll',
+  'vcpkg_installed\\x64-windows\\bin\\gsl.dll',
   install_dir: py.get_install_dir() / 'gateau',
   )
 
 install_data(
-  'win\\tmp\\extracted\\aec\\libaec-1.0.4-h33f27b4_1\\Library\\bin\\szip.dll',
+  'vcpkg_installed\\x64-windows\\bin\\aec.dll',
+  install_dir: py.get_install_dir() / 'gateau',
+  )
+
+install_data(
+  'vcpkg_installed\\x64-windows\\bin\\gslcblas.dll',
+  install_dir: py.get_install_dir() / 'gateau',
+  )
+
+install_data(
+  'vcpkg_installed\\x64-windows\\bin\\hdf5.dll',
+  install_dir: py.get_install_dir() / 'gateau',
+  )
+
+install_data(
+  'vcpkg_installed\\x64-windows\\bin\\szip.dll',
+  install_dir: py.get_install_dir() / 'gateau',
+  )
+
+install_data(
+  'vcpkg_installed\\x64-windows\\bin\\zlib1.dll',
   install_dir: py.get_install_dir() / 'gateau',
   )
 

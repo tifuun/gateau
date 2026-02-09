@@ -16,6 +16,7 @@ from contextlib import ExitStack
 from pathlib import Path
 import platform
 from os import add_dll_directory
+import os
 
 import gateau.threadmgr as gmanager
 import gateau.structs as gstructs
@@ -34,7 +35,7 @@ def load_gateaulib() -> CDLL:
         lib_filename = "libgateau.dll.a"
     elif platform.system() == "Darwin":
         raise NotImplementedError(
-            "Mac OS is not supported by Gateau and never will be. Sorry."
+            "Mac OS is not supporteddll Gateau and never will be. Sorry."
             )
     else:
         lib_filename = "libgateau.so"
@@ -43,7 +44,9 @@ def load_gateaulib() -> CDLL:
         with impresources.path(gateau, lib_filename) as sopath:
             if platform.system() == "Windows":
                 add_dll_directory(Path(sopath).parent)
-            lib = CDLL(sopath)
+            os.chdir(Path(sopath).parent)
+            print(os.listdir(Path(sopath).parent))
+            lib = CDLL('libgateau.dll')
 
 
     except OSError as err:

@@ -18,7 +18,7 @@ ECHO Building...
 
 rmdir /s /q build.win
 
-C:\Users\maybetree\AppData\Local\Programs\Python\Python312\python.exe -m build --verbose --verbose --verbose --wheel --no-isolation --config-setting=builddir=build.win
+C:\Users\maybetree\AppData\Local\Programs\Python\Python312\python.exe -m build --verbose --verbose --verbose --wheel --no-isolation --config-setting=builddir=build.win -Csetup-args="--native-file=Z:/meson-vcpkg.txt" .
 
 REM --wheel is needed because... no clue honestly?
 REM But doesn't work without it
@@ -33,6 +33,11 @@ REM `build.win` instead of a temporary directory
 REM for build files.
 REM This is required because otherwise mesonpy would crash trying to clean
 REM up the temporary directory due to windows file locking stuff.
+REM
+REM -Csetup-args="--native-file=Z:/meson-vcpkg.txt"
+REM This... makes meson work with vcpkg I guess?
+REM Honestly no clue it's been a whole week of messing around trying
+REM to get this to work and its genuinely impacting my mental health
 
 REM ECHO Renaming wheel...
 REM 

@@ -21,11 +21,13 @@
 #include "fio.h"
 #include "structs.h"
 
-#ifdef _WIN32
-#   define GATEAU_DLL __declspec(dllexport)
-#else
-#   define GATEAU_DLL
-#endif
+// #ifdef _WIN32
+// #   define GATEAU_DLL __declspec(dllexport)
+// #else
+// #   define GATEAU_DLL
+// #endif
+
+#define GATEAU_DLL __declspec(dllexport)
 
 #ifndef __interface_h
 #define __interface_h

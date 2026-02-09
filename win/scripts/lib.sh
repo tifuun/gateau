@@ -267,7 +267,8 @@ start_qemu() {
 		\
 		`# network` \
 		\
-		-netdev user,id=net0,restrict=yes \
+		`#-netdev user,id=net0,restrict=yes` \
+		-netdev user,id=net0,restrict=no \
 		-device e1000,netdev=net0 \
 		\
 		`# virtiofs` \

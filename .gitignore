@@ -147,5 +147,7 @@ win/archive/*
 !win/archive/*.msi
 !win/archive/*.tar*
 
+vcpkg_installed
+
 win/vm/6.gateau020.qcow2
 

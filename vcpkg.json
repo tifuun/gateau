@@ -1,0 +1,9 @@
+{
+  "name": "gateau",
+  "version": "0.2.0",
+  "description": "foobar",
+  "dependencies": [
+    "gsl",
+    "hdf5"
+  ]
+}
