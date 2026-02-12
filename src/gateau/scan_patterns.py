@@ -57,23 +57,16 @@ def chop(times: np.ndarray,
 def daisy(times: np.ndarray,
           az0: Union[float, np.ndarray], 
           el0: Union[float, np.ndarray],
-          v_scan: float,
-          r_inner: float,
-          r_outer: float,
-          n_petal: float) -> Union[np.ndarray, np.ndarray]: 
+          r_petal: float,
+          period_cycle: float,
+          period_petal: float) -> Union[np.ndarray, np.ndarray]: 
 
     az0, el0 = check_size(times, az0, el0)
+
+    az = r_petal * np.cos(2*np.pi * period_cycle * times) * np.sin(2*np.pi * period_petal * times) + az0
+    el = r_petal * np.sin(2*np.pi * period_cycle * times) * np.sin(2*np.pi * period_petal * times) + el0
     
-    phi_outer = times * v_scan / r_outer
-    phi_inner = times * v_scan / r_inner
-
-    x_outer = r_outer * np.sin(phi_outer) * np.exp(1j * phi_outer/n_petal)
-    x_inner = r_inner * np.sin(phi_outer + np.pi/2) * np.exp(1j * phi_inner/n_petal)
-
-    az = np.real(x_outer + x_inner) + az0
-    el = np.imag(x_outer + x_inner) + el0
-
-    return az, el
+    return az, el 
 
 def check_size(times, az0, el0):
     """!

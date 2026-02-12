@@ -28,6 +28,7 @@ __constant__ int cnum_stage;
 __constant__ float ch_column;               // Column height
 __constant__ float cv_wind;                 // Windspeed
 __constant__ float cpwv0;
+__constant__ float cpwv_slope;
 
 // CONSTANTS FOR KERNEL LAUNCHES
 #define NTHREADS1D      512
@@ -277,6 +278,14 @@ void initCUDA(
                 sizeof(float)
                 ) 
             );
+    
+    gpuErrchk( 
+            cudaMemcpyToSymbol(
+                cpwv_slope, 
+                &(atmosphere->pwv_slope), 
+                sizeof(float)
+                ) 
+            );
 }
 
 // Kernel to convert column-major flattened array to row-major flattened array
@@ -418,7 +427,7 @@ void calc_traces_rng(
                                                                                      
         az_trace[idx] = az_point;                                                    
         el_trace[idx] = el_point;
-        pwv_trace[idx] = pwv_point + cpwv0;
+        pwv_trace[idx] = pwv_point + cpwv0 + cpwv_slope*(time_point + ct_start);
 
         time_trace[idx] = time_point + ct_start;
     }

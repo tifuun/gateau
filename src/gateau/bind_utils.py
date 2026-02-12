@@ -97,7 +97,8 @@ def allfillAtmosphere(AtmDict: dict[str, any],
     AtmStruct.dx = c_float(AtmDict["dx"])
     AtmStruct.dy = c_float(AtmDict["dy"])
     AtmStruct.path = c_char_p(os.path.join(AtmDict["path"], "prepd").encode())
-    AtmStruct.pwv0 = c_float(AtmDict["PWV0"])
+    AtmStruct.pwv0 = c_float(AtmDict["PWV0"][0])
+    AtmStruct.pwv_slope = c_float(AtmDict["PWV_slope"])
 
 def allfillSource(SourceDict: dict[str, any], 
                   SourceStruct: Structure) -> None:

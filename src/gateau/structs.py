@@ -67,7 +67,8 @@ class Atmosphere(Structure):
             ("dx", c_float),
             ("dy", c_float),
             ("path", c_char_p),
-            ("pwv0", c_float)]
+            ("pwv0", c_float),
+            ("pwv_slope", c_float)]
 
 class Source(Structure):
     """!

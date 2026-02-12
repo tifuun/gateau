@@ -182,6 +182,9 @@ class simulator(object):
 
         times_array = np.arange(0, self.n_times / self.instrument["f_sample"], 1 / self.instrument["f_sample"])
 
+        # We also convert the average pwv tuple in the atmosphere dict to a starting pwv and a slope
+        self.atmosphere["PWV_slope"] = (self.atmosphere["PWV0"][1] - self.atmosphere["PWV0"][0]) / times_array[-1]
+
         if isinstance(scan_func, list):
             az_scan, el_scan = scan_func[0](times_array, az0, el0)
             self.telescope["az_scan_center"] = az_scan
@@ -280,7 +283,7 @@ class simulator(object):
                     eta_tot *= eta_cascade_stage
 
             eta_atm = get_eta_atm(self.source["f_src"],
-                                  self.atmosphere["PWV0"],
+                                  np.mean(self.atmosphere["PWV0"]),
                                   np.mean(el_scan))
 
             eta_ap_chan = gcascade.average_over_filterbank(eta_ap, 

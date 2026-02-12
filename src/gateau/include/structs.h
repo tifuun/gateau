@@ -63,7 +63,8 @@ struct Atmosphere
     float dx;          /**< Gridsize along x axis in meters.*/
     float dy;          /**< Gridsize along y axis in meters.*/
     char* path;    /**< Path to prepd folder.*/
-    float pwv0;
+    float pwv0;        /**< Average PWV at start of simulation.*/
+    float pwv_slope;   /**< Linear slope of average PWV.*/
 };
 
 
