@@ -56,6 +56,8 @@ def prep_atm_ARIS_pool(args: Tuple[np.ndarray,
         
         dPWV_Gauss = gaussian_filter(dPWV, std, mode='mirror', truncate=truncate)
 
+        min_PWV = np.nanmin(dPWV_Gauss)
+
         dPWV_path = os.path.join(prepd_path, f"{file_idx}.datp")
         np.savetxt(dPWV_path, dPWV_Gauss)
 
