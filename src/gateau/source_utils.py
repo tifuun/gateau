@@ -26,7 +26,15 @@ def convolve_source_cube_pool(args: Tuple[np.ndarray, np.ndarray, int],
                               el_arr: np.ndarray,
                               edge_taper: float,
                               source_cube_unit: str) -> np.ndarray:
-    
+
+    az_rad = az_arr / 180 * np.pi
+    el_rad = el_arr / 180 * np.pi
+
+    d_az = np.nanmean(np.diff(az_rad))
+    d_el = np.nanmean(np.diff(el_rad))
+
+    omega_pixel = d_az * d_el * np.cos(el_rad)[None,:]
+
     source_cube, f_src, thread_idx = args
     Rtel = diameter_tel / 2
 
@@ -39,13 +47,14 @@ def convolve_source_cube_pool(args: Tuple[np.ndarray, np.ndarray, int],
                 np.nanmean(source_cube[0,:,i]) + np.nanmean(source_cube[-1,:,i]))
         
         ff = ff_from_aperture(az_arr, el_arr, lam, Rtel, edge_taper)
+        omega_beam = np.nansum(omega_pixel * ff)
 
         norm = 1
         etendu = np.pi*Rtel**2
 
         if source_cube_unit == "I_nu":
-            norm = np.nansum(ff)
-            etendu = lam**2
+            norm = 1#omega_pixel#np.nansum(ff)
+            #etendu *= omega_pixel#lam**2
 
         func = partial(moving_sum, 
                        ff_pattern=ff,
@@ -55,7 +64,7 @@ def convolve_source_cube_pool(args: Tuple[np.ndarray, np.ndarray, int],
             source_cube_convolved[:,:,i] = etendu * source_cube[:,:,i]
 
         else:
-            source_cube_convolved[:,:,i] = etendu * generic_filter(source_cube[:,:,i], 
+            source_cube_convolved[:,:,i] = etendu * generic_filter(source_cube[:,:,i] * omega_pixel, 
                                                       func, 
                                                       size=ff.shape,
                                                       mode="constant",
@@ -128,7 +137,9 @@ def ff_from_aperture(az_arr,
                         -Rk*FACTOR_PAD:Rk*FACTOR_PAD:nv*1j]
 
     mask_R = np.sqrt(ugr**2 + vgr**2) < Rk
+    #aper_power = np.exp(-0.5 * (ugr**2 + vgr**2) / sigma**2) * mask_R
     aper_power = np.exp(-0.5 * (ugr**2 + vgr**2) / sigma**2) * mask_R
+
 
     ff_pattern = np.absolute(fftshift(fft2(aper_power)))**2
     ff_pattern /= np.nanmax(ff_pattern)

@@ -85,9 +85,12 @@ def checkInstrumentDict(instrumentDict):
     return errlist
 
 def checkAtmosphereDict(atmosphereDict):
-    checklist = ["T_atm", "path", "dx", "dy", "h_column", "v_wind"]
+    checklist = ["T_atm", "path", "dx", "dy", "h_column", "v_wind", "PWV0"]
 
     errlist = []
+    if (PWV0 := atmosphereDict.get("PWV0")) is not None:
+        if isinstance(PWV0, float) or isinstance(PWV0, int):
+            atmosphereDict["PWV0"] = (PWV0, PWV0)
 
     for key in checklist:
         if atmosphereDict.get(key) is None:

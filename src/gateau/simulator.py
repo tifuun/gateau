@@ -181,6 +181,22 @@ class simulator(object):
             self.n_times -= 1
 
         times_array = np.arange(0, self.n_times / self.instrument["f_sample"], 1 / self.instrument["f_sample"])
+        
+        # Checking observation time against available time
+        atm_meta = np.loadtxt(os.path.join(self.atmosphere["path"], "prepd", "atm_meta.datp"))
+        t_available = atm_meta[0] * (atm_meta[1] - 2 * atm_meta[2]) * self.atmosphere["dx"] / (self.atmosphere["v_wind"] + np.finfo(float).eps)
+
+        if t_available < t_obs:
+            self.clog.warning(f"Requested observation time of {t_obs} s exceeds available time of {t_available} s in ARIS screens. Reducing requested time to available time.")
+            choice = input("\033[93mProceed (y/n)? > ").lower()
+            if choice == "y" or choice == "":
+                t_obs = t_available
+            else:
+                exit()
+
+        # We also convert the average pwv tuple in the atmosphere dict to a starting pwv and a slope
+        self.atmosphere["PWV_slope"] = (self.atmosphere["PWV0"][1] - self.atmosphere["PWV0"][0]) / times_array[-1]
+
 
         if isinstance(scan_func, list):
             az_scan, el_scan = scan_func[0](times_array, az0, el0)
@@ -280,7 +296,7 @@ class simulator(object):
                     eta_tot *= eta_cascade_stage
 
             eta_atm = get_eta_atm(self.source["f_src"],
-                                  self.atmosphere["PWV0"],
+                                  np.mean(self.atmosphere["PWV0"]),
                                   np.mean(el_scan))
 
             eta_ap_chan = gcascade.average_over_filterbank(eta_ap, 
@@ -345,7 +361,7 @@ class simulator(object):
         # Check if enough HDD is available in outpath for this simulation
         n_bytes_required = ((self.instrument["nf_ch"] + 2)*self.instrument["n_spax"] + 1) * self.n_times * 4
         if (n_bytes_free := int(MEMFRAC * shutil.disk_usage(self.outPath).free)) < n_bytes_required:
-            self.clog.warning(f"Required disk space of {n_bytes_required} bytes exceeds available buffer of {n_bytes_free}")
+            self.clog.warning(f"Required disk space of {n_bytes_required} bytes exceeds available buffer of {n_bytes_free} bytes.")
             choice = input("\033[93mProceed (y/n)? > ").lower()
             if choice == "y" or choice == "":
                 pass
