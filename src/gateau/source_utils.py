@@ -124,8 +124,9 @@ def ff_from_aperture(az_arr,
     nv = el_arr.size*FACTOR_PAD
 
     Rk = R  / lam
+    #print("\n", 1e-9*scc.c / lam)
 
-    sigma = Rk / np.sqrt(2 * np.log(10**(-edge_taper/20)))
+    sigma = Rk / np.sqrt(-2 * np.log(10**(edge_taper/20)))
 
     u = np.linspace(-Rk, Rk, nu)*FACTOR_PAD
     v = np.linspace(-Rk, Rk, nv)*FACTOR_PAD
@@ -137,12 +138,17 @@ def ff_from_aperture(az_arr,
                         -Rk*FACTOR_PAD:Rk*FACTOR_PAD:nv*1j]
 
     mask_R = np.sqrt(ugr**2 + vgr**2) < Rk
-    #aper_power = np.exp(-0.5 * (ugr**2 + vgr**2) / sigma**2) * mask_R
-    aper_power = np.exp(-0.5 * (ugr**2 + vgr**2) / sigma**2) * mask_R
+    aper_field = np.exp(-0.5 * (ugr**2 + vgr**2) / sigma**2) * mask_R
+    
+    #import matplotlib.pyplot as plt
+    #plt.imshow(20*np.log10(aper_field))
+    #plt.show()
 
 
-    ff_pattern = np.absolute(fftshift(fft2(aper_power)))**2
+    #ff_pattern = np.absolute(fftshift(fft2(aper_field)))**2
+    ff_pattern = np.absolute(fftshift(fft2(aper_field)))
     ff_pattern /= np.nanmax(ff_pattern)
+    
 
     az_fft = np.arcsin(fftshift(fftfreq(nu, d=du))) * 180 / np.pi + az_c
     el_fft = np.arcsin(fftshift(fftfreq(nv, d=dv))) * 180 / np.pi + el_c
@@ -155,5 +161,9 @@ def ff_from_aperture(az_arr,
                             el_arr[0]:el_arr[-1]:el_arr.size*1j]
 
     ff_pattern_interp = griddata((az_fft_gr.ravel(), el_fft_gr.ravel()), ff_pattern.ravel(), (az_gr, el_gr), method="linear")
+    
+    #import matplotlib.pyplot as plt
+    #plt.pcolormesh(az_gr*3600, el_gr*3600, 20*np.log10(ff_pattern_interp), vmin=-3, vmax=0)
+    #plt.show()
 
     return ff_pattern_interp

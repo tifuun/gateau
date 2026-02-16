@@ -15,20 +15,19 @@
 #define DEG2RAD PI/180
 
 // OBSERVATION-INSTRUMENT PARAMETERS
-__constant__ float cdt;                     // Timestep
-__constant__ float ct_start;                // Starting time
-__constant__ float cf_sample;               // Sampling frequency of readout
-__constant__ float csqrt_samp;               // Sampling frequency of readout
-__constant__ float cGR_factor;              // Factor for GR noise: 2 * Delta / eta_pb
-__constant__ int cnt;                       // Number of time evals
-__constant__ int cnf_ch;                    // Number of filter freqs
-__constant__ int cnum_stage;
+__device__ __constant__ float ct_start;                // Starting time
+__device__ __constant__ float cf_sample;               // Sampling frequency of readout
+__device__ __constant__ float csqrt_samp;               // Sampling frequency of readout
+__device__ __constant__ float cGR_factor;              // Factor for GR noise: 2 * Delta / eta_pb
+__device__ __constant__ int cnt;                       // Number of time evals
+__device__ __constant__ int cnf_ch;                    // Number of filter freqs
+__device__ __constant__ int cnum_stage;
 
 // ATMOSPHERE PARAMETERS
-__constant__ float ch_column;               // Column height
-__constant__ float cv_wind;                 // Windspeed
-__constant__ float cpwv0;
-__constant__ float cpwv_slope;
+__device__ __constant__ float ch_column;               // Column height
+__device__ __constant__ float cv_wind;                 // Windspeed
+__device__ __constant__ float cpwv0;
+__device__ __constant__ float cpwv_slope;
 
 // CONSTANTS FOR KERNEL LAUNCHES
 #define NTHREADS1D      512
@@ -180,8 +179,7 @@ void time_wrt_to(
   @param source CuSource object containing source definitions.
   @param atmosphere CuAtmosphere object containing atmosphere parameters.
   @param nTimes number of time evaluations in simulation.
-
-  @return BT Array of two dim3 objects, containing number of blocks per grid and number of threads per block.
+  @param num_stage Number of stages in radiative transfer cascade.
  */
 __host__ 
 void initCUDA(
@@ -193,19 +191,10 @@ void initCUDA(
         int num_stage
         ) 
 {
-    float dt = 1. / instrument->f_sample;
     float GR_factor = 2 * instrument->delta / instrument->eta_pb;
-    float sqrt_samp = sqrtf(0.5 / dt); // Constant term needed for noise calculation
+    float sqrt_samp = sqrtf(0.5 * instrument->f_sample); // Constant term needed for noise calculation
 
     // OBSERVATION-INSTRUMENT PARAMETERS
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                cdt, 
-                &dt, 
-                sizeof(float)
-                ) 
-            );
-    
     gpuErrchk( 
             cudaMemcpyToSymbol(
                 cf_sample, 
@@ -213,6 +202,8 @@ void initCUDA(
                 sizeof(float)
                 ) 
             );
+    gpuErrchk(cudaGetLastError());
+    gpuErrchk(cudaDeviceSynchronize());
 
     gpuErrchk( 
             cudaMemcpyToSymbol(
@@ -407,7 +398,7 @@ void calc_traces_rng(
         float az_point, el_point;
         float x_point, y_point;
                                                                                      
-        time_point = idx * cdt;
+        time_point = idx / cf_sample;
 
         az_point = az_scan[idx + idx_offset] + az_fpa;
         el_point = el_scan[idx + idx_offset] + el_fpa;
