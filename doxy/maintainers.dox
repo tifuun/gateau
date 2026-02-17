@@ -79,15 +79,15 @@ Procedure for publishing to pypi is same as for any other python package.
 	[releases page](https://github.com/tifuun/gateau/releases/)
 3. `pip install twine`
 4. 
-	```
-	TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx twine upload \
-		--verbose --skip-existing --non-interactive \
-		gateau-x.x.x-cp39.cp310.cp311.cp312.cp313-none-x86_64.whl \
-		gateau-x.x.x.tar.gz
-	```
-	- replace `pypi-xxxxxx` with your token.
-		Do not change the `TWINE_USERNAME=__token__`
-		string.
+```
+TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx twine upload \
+	--verbose --skip-existing --non-interactive \
+	gateau-x.x.x-cp39.cp310.cp311.cp312.cp313-none-manylinux_2_31_x86_64.whl \
+	gateau-x.x.x.tar.gz
+```
+- replace `pypi-xxxxxx` with your token.
+	Do not change the `TWINE_USERNAME=__token__`
+	string.
 
 
 ## Architecture: ctypes wrapper module
