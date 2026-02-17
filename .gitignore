@@ -84,6 +84,10 @@ htmlcov
 !img/*.png
 !img/*.svg
 !img/*.gv
+!logo/*.jpg
+!logo/*.png
+!logo/*.svg
+!logo/*.gv
 
 # cmake
 
