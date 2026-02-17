@@ -287,6 +287,10 @@ If you think that setting a single option by passing a command line
 flag that somehow contains three separate equals signs is absolutely
 insane syntax: we agree.
 
+## Windows
+
+For documentation of our failure to build Gateau for Windows,
+see @ref windows .
 
 ## Troubleshooting
 
