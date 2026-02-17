@@ -117,6 +117,8 @@ archive/**
 !archive/**/*.whl
 !archive/wheel/*.tar.gz
 !archive/wheel/*.whl
+!archive/wheel/ubuntu-20-04-first/
+!archive/wheel/ubuntu-20-04-first/*.whl
 !archive/docker/
 !archive/docker/**/*.tar*
 !archive/docker/*.tar*
