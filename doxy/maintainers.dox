@@ -200,8 +200,9 @@ It is even less likely thet you will find static position-independent
 builds in your package manager.
 Therefore, you will either need to compile
 them yourself,
-or use the prebuilt Debian packages provided
-[here](https://github.com/stratal-systems/debian-packages/releases/tag/v2-2).
+or use the prebuilt packages provided
+[here](https://github.com/stratal-systems/ubuntu-20-04-packages/releases) (ubuntu 20.04),
+or [here](https://github.com/stratal-systems/debian-packages/releases/tag/v2-2) (debian bookworm).
 If you decide to compile them yourself,
 you are welcome to use the makefiles
 (
