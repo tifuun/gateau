@@ -1,11 +1,11 @@
-FROM debian:bookworm
+FROM ubuntu:20.04
+
+ARG CUDA_KEYRING_URL=https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.1-1_all.deb
+ARG LIBGSL_DEB_URL=https://github.com/stratal-systems/ubuntu-20-04-packages/releases/download/v0-1/libgsl-static-pic_2.5.0_amd64.deb
+ARG LIBHDF5_DEB_URL=https://github.com/stratal-systems/ubuntu-20-04-packages/releases/download/v0-1/libhdf5-static-pic_2.0.0_amd64.deb
+
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG CUDA_KEYRING_URL=https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
-ARG GSL_SIG_URL=https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz.sig
-ARG GSL_URL=https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz
-ARG LIBGSL_DEB_URL=https://github.com/stratal-systems/debian-packages/releases/download/v2-2/libgsl-static-pic_2.5.0_amd64.deb
-ARG LIBHDF5_DEB_URL=https://github.com/stratal-systems/debian-packages/releases/download/v2-2/libhdf5-static-pic_2.0.0_amd64.deb
 WORKDIR /setup
 
 RUN \
@@ -17,9 +17,9 @@ RUN \
 		git-annex  `# all git cmds will fail in annex repo w/o annex` \
 		meson \
 		pkg-config \
-		python3.11 \
-		python3.11-dev \
-		python3.11-venv \
+		python3.9 \
+		python3.9-dev \
+		python3.9-venv \
 		wget \
 		&& \
 		:
@@ -45,11 +45,17 @@ RUN \
 	wget "${LIBGSL_DEB_URL}" && \
 	wget "${LIBHDF5_DEB_URL}" && \
 	dpkg -i *.deb && \
+	rm -rf *.deb && \
 	:
 
 # These are all needed to build doxygen docs
 # plus jupyter but that's handled by pip 
 # (it's marked as an extra dep in pyproject.toml)
+#
+# Yeah, no, really. We pull in entirety of texlive
+# just so doxygen can process the one single bibtex
+# reference in peace.
+# Whatever, storage is cheap.
 RUN \
 	apt install -y \
 		doxygen \
@@ -59,7 +65,7 @@ RUN \
 	:
 
 RUN \
-	python3.11 -m venv /venv && \
+	python3.9 -m venv /venv && \
 	. /venv/bin/activate && \
 	pip install pip-tools && \
 	:
