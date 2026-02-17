@@ -14,8 +14,13 @@ from copy import copy
 
 try:
     from wheel_filename import WheelFilename
-except ImportError as err:
-    raise Exception("Please install `wheel-filename` python package.") from err
+    parse_wheel_filename = WheelFilename.parse
+except ImportError:
+    try:
+        # older version
+        from wheel_filename import parse_wheel_filename
+    except ImportError as err:
+        raise Exception("Please install `wheel-filename` python package.") from err
 
 
 def main():
@@ -40,11 +45,26 @@ def main():
     for file in args.filename:
         if not file.exists():
             raise Exception(f"File {file} doesnt exist.")
-        name = WheelFilename.parse(file.name)
-        new_name = copy(name)
-        new_name.python_tags = PYTHON_TAGS
-        # TODO actually ask `ldd` for glibc version
-        new_name.platform_tags = [f'manylinux_2_31_x86_64']
+        name = parse_wheel_filename(file.name)
+
+        try:
+            new_name = copy(name)
+
+            new_name.python_tags = PYTHON_TAGS
+            # TODO actually ask `ldd` for glibc version
+            new_name.platform_tags = [f'manylinux_2_31_x86_64']
+
+        except AttributeError:
+            # older version
+
+            new_name = name._asdict()
+
+            new_name['python_tags'] = PYTHON_TAGS
+            # TODO actually ask `ldd` for glibc version
+            new_name['platform_tags'] = [f'manylinux_2_31_x86_64']
+
+            new_name = type(name)(**new_name)
+
         new_name = str(new_name)
 
         if new_name == file.name:
