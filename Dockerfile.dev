@@ -1,7 +1,7 @@
-FROM debian:bookworm
+FROM ubuntu:20.04
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG CUDA_KEYRING_URL=https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
+ARG CUDA_KEYRING_URL=https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.1-1_all.deb
 ARG GSL_SIG_URL=https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz.sig
 ARG GSL_URL=https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz
 ARG LIBGSL_DEB_URL=https://github.com/stratal-systems/debian-packages/releases/download/v2-2/libgsl-static-pic_2.5.0_amd64.deb
@@ -17,9 +17,9 @@ RUN \
 		git-annex  `# all git cmds will fail in annex repo w/o annex` \
 		meson \
 		pkg-config \
-		python3.11 \
-		python3.11-dev \
-		python3.11-venv \
+		python3.9 \
+		python3.9-dev \
+		python3.9-venv \
 		wget \
 		&& \
 		:
@@ -41,11 +41,11 @@ RUN \
 
 ENV PATH=/usr/local/cuda/bin:${PATH}
 
-RUN \
-	wget "${LIBGSL_DEB_URL}" && \
-	wget "${LIBHDF5_DEB_URL}" && \
-	dpkg -i *.deb && \
-	:
+#RUN \
+#	wget "${LIBGSL_DEB_URL}" && \
+#	wget "${LIBHDF5_DEB_URL}" && \
+#	dpkg -i *.deb && \
+#	:
 
 # These are all needed to build doxygen docs
 # plus jupyter but that's handled by pip 
@@ -59,23 +59,9 @@ RUN \
 	:
 
 RUN \
-	python3.11 -m venv /venv && \
+	python3.9 -m venv /venv && \
 	. /venv/bin/activate && \
 	pip install pip-tools && \
-	:
-
-COPY ./pyproject.toml /setup/pyproject.toml
-COPY ./meson.build /setup/meson.build
-COPY ./meson.options /setup/meson.options
-COPY ./README.md /setup/README.md
-COPY ./src /setup/src
-
-RUN \
-	. /venv/bin/activate && \
-	pip-compile --verbose --all-build-deps --all-extras pyproject.toml && \
-	`#pip download -r requirements.txt -d pipcache --only-binary=:all: && ` \
-	pip install -r requirements.txt && \
-	pip install build twine && \
 	:
 
 WORKDIR /app
