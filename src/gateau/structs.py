@@ -3,7 +3,7 @@
 Structs that are passed to the C++ backend.
 """ 
 
-from ctypes import Structure, POINTER, c_float, c_int, c_char_p
+from ctypes import Structure, POINTER, c_float, c_int, c_char_p, c_bool
 
 class ArrSpec(Structure):
     """!

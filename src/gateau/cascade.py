@@ -124,7 +124,7 @@ def sizer(eta: Union[np.ndarray, float],
         return eta
 
 def read_from_folder(cascade_folder: str,
-                     yaml_name: str = "cascade.yaml"
+                     yaml_name: str
                      ) -> list[dict[any, any]]:
     """
     Generate a cascade list from a cascade folder.
@@ -139,12 +139,14 @@ def read_from_folder(cascade_folder: str,
 
     yaml_name
         String containing the name of the YAML file containing the cascade.
-        Defaults to 'cascade.yaml'.
 
     Returns
     ----------
     List containing the cascade.
     """
+
+    if not yaml_name.endswith(".yaml"):
+        yaml_name += ".yaml"
 
     assert(os.path.exists(cascade_folder))
     assert(os.path.exists(yaml_path := os.path.join(cascade_folder, 
@@ -152,7 +154,7 @@ def read_from_folder(cascade_folder: str,
 
     with open(yaml_path) as stream:
         try:
-            cascade_list = yaml.safe_load(stream)
+            cascade_list = yaml.safe_load(stream)["cascade"]
         except yaml.YAMLError as exc:
             print(exc)
 
@@ -176,7 +178,7 @@ def read_from_folder(cascade_folder: str,
 
 def save_cascade(cascade_list: list[dict[any, any]],
                  save_folder: str,
-                 yaml_name: str = "cascade") -> None:
+                 yaml_name: str) -> None:
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
 
