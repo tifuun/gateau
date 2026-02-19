@@ -1,9 +1,9 @@
 /** 
 \page gateaudocs Documentation
-This page contains the software documentation for `Gateau`. 
+This page contains the software documentation for `gateau`. 
 
 \section apiref Public API Reference
-The public API reference contains all public methods of `Gateau`.
+The public API reference contains all public methods of `gateau`.
 This list acts as a reference for general users and is structured in groups for a better overview.
 
 \section input_templates Input Dictionary Templates & Datatypes

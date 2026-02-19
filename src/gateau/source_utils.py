@@ -24,8 +24,7 @@ def convolve_source_cube_pool(args: Tuple[np.ndarray, np.ndarray, int],
                               diameter_tel: float, 
                               az_arr: np.ndarray, 
                               el_arr: np.ndarray,
-                              edge_taper: float,
-                              source_cube_unit: str) -> np.ndarray:
+                              edge_taper: float) -> np.ndarray:
 
     az_rad = az_arr / 180 * np.pi
     el_rad = el_arr / 180 * np.pi
@@ -52,15 +51,11 @@ def convolve_source_cube_pool(args: Tuple[np.ndarray, np.ndarray, int],
 
         func = partial(moving_sum, ff_pattern=ff)
 
-        if source_cube_unit == "F_nu_beam":
-            source_cube_convolved[:,:,i] = area_phys * source_cube[:,:,i]
-
-        else:
-            source_cube_convolved[:,:,i] = area_phys * generic_filter(source_cube[:,:,i] * omega_pixel, 
-                                                      func, 
-                                                      size=ff.shape,
-                                                      mode="constant",
-                                                      cval=cval)
+        source_cube_convolved[:,:,i] = area_phys * generic_filter(source_cube[:,:,i] * omega_pixel, 
+                                                  func, 
+                                                  size=ff.shape,
+                                                  mode="constant",
+                                                  cval=cval)
     return source_cube_convolved
 
 def moving_sum(source_slice, ff_pattern):
@@ -70,10 +65,37 @@ def convolve_source_cube(source_cube: np.ndarray,
                          az_arr: np.ndarray,
                          el_arr: np.ndarray,
                          f_src: np.ndarray,
-                         diameter_tel: float,
+                         radius_tel: float,
                          edge_taper: float = -10,
-                         source_cube_unit: str = "I_nu",
                          num_threads: int = NCPU) -> np.ndarray:
+    
+    """!   
+    Prepare source cube for usage in gateau.
+    This function takes a source cube, representing an astronomical source.
+    The cube should be a 3-dimensional Numpy array containing specific intensity in S.I. units. 
+    The first axis corresponds to azimuth, the second to elevation, and the last to source frequencies.
+    Then, the far-field pattern at each source frequency is calculated from the 2-dimensional Fourier transform of the aperture illumination.
+    Circularly symmetric Gaussian illumination is assumed.
+    Each azimuth-elevation slice in the source cube is then convolved by its respective far-field pattern.
+    Run this function at least once per source cube/telescope model combination.
+    
+    @param source_cube 3-dimensional Numpy array containg source.
+        Axes represent azimuth, elevation, and source freuencies.
+        The unit of the source cube must be specific intensity, in S.I. units.
+    @param az_arr Numpy array containing azimuth coordinates, in degrees.
+    @param el_arr Numpy array containing elevation coordinates, in degrees.
+    @param f_src Numpy array containing source frequencies in Hertz.
+    @param radius_tel Radius of primary aperture of telescope, in meters.
+    @param edge_taper Power level of illumination pattern at rim of primary aperture, in decibel.
+        Defaults to -10 dB.
+    @param num_threads Number of CPU threads to use for the ARIS screen preparation.
+        Defaults to the total number of threads on the CPU. 
+        
+    @returns far-field pattern convolved source cube, in units of spectral power / beam.
+        The cube is also 3-dimensional, with the axes representing the same coordinates as the input cube.
+
+    @ingroup public_API
+    """
     
     clog_mgr = CustomLogger(os.path.basename(__file__))
     clog = clog_mgr.getCustomLogger()
@@ -83,8 +105,8 @@ def convolve_source_cube(source_cube: np.ndarray,
     chunks_source_cube = np.array_split(source_cube, 
                                         num_threads,
                                         axis=-1)
-    chunks_f_src = np.array_split(f_src, 
-                                  num_threads)
+
+    chunks_f_src = np.array_split(f_src, num_threads)
     chunk_idxs = np.arange(0, num_threads)
 
     args = zip(chunks_source_cube, 
@@ -92,11 +114,10 @@ def convolve_source_cube(source_cube: np.ndarray,
                chunk_idxs)
 
     func_to_pool = partial(convolve_source_cube_pool, 
-                           diameter_tel=diameter_tel,
+                           radius_tel=radius_tel,
                            az_arr = az_arr, 
                            el_arr = el_arr,
-                           edge_taper=edge_taper,
-                           source_cube_unit=source_cube_unit)
+                           edge_taper=edge_taper)
     
     with multiprocessing.get_context("spawn").Pool(num_threads) as pool:
         out = np.concatenate(pool.map(func_to_pool, args), axis=-1)

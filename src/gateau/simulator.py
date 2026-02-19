@@ -148,12 +148,38 @@ class simulator(object):
                    return_full: bool = False) -> Union[None, dict[str, any]]:
         """!
         Initialise a gateau setup. 
+        THis function needs to be called before running a simulation.
+        Here, a lot of intermediary user-supplied quantities are converted into quantities used by gateau.
 
+        @param t_obs Total observation time for simulation, in seconds.
+        @param az0 Central azimuth value for the (first) scan pattern, in degrees.
+        @param el0 Central elevation value for the (first) scan pattern, in degrees.
+        @param scan_func Function handle of the function defining the scan pattern. 
+            First argument must be a Numpy array consisting of timestamps.
+            Second and third argument must be scalars or Numpy arrays containing central azimuth and elevation values, respectively.
+            The 'scan_func' argument can also be a list of function handles. 
+            In this case, the first function in the list is evaluated using az0 and el0 as supplied to this function.
+            Then, the output is passed to the next function handle in the list.
+        @param instrument_dict Dictionary containing instrument specification.
+        @param telescope_dict Dictionary containing telescope specification.
+        @param atmosphere_dict Dictionary containing atmosphere specification.
+        @param source_dict Dictionary containing source specification.
+        @param cascade_list List containing the cascade to be used. 
+            Can also be a string containg the path to the folder containing a cascade .yaml file.
+        @param cascade_yaml Name of .yaml file containing cascade.
+            Only used if 'cascade_list' is a string containing a folder with a cascade .yaml.
+            Defaults to 'cascade.yaml'.
+        @param return_full Boolean determining whether extra output is returned.
+            This extra output might be useful when you want to process the actual gateau output further.
+            Defaults to False.
 
-        @ingroup initialise
+        @returns Dictionary containing the aperture efficiency and atmospheric transmission.
+            The latter is evaluated using the PWV0 supplied in the atmosphere dictionary.
+            Both quantities are averaged over the spectral shape of each channel.
+            The dictionary is only returned when 'return_full' is True.
+    
+        @ingroup public_API
         """
-
-
         self.set_gateau_dict(instrument_dict, gcheck.checkInstrumentDict, "instrument")
         self.set_gateau_dict(telescope_dict, gcheck.checkTelescopeDict, "telescope")
         self.set_gateau_dict(atmosphere_dict, gcheck.checkAtmosphereDict, "atmosphere")
@@ -173,7 +199,6 @@ class simulator(object):
                 "num_stage"     : len(eta_cascade) - 1,
                 "psd_cmb"       : psd_cmb
                 }
-
 
         #### END SETUP INITIALISATION ####
         self.initialisedSetup = True
@@ -322,12 +347,6 @@ class simulator(object):
             eta_illum = copy.deepcopy(self.telescope["eta_illum"])
             eta_ap *= eta_illum
 
-            for i, eta_cascade_stage in enumerate(eta_cascade):
-                if not i:
-                    eta_tot = eta_cascade_stage
-                else:
-                    eta_tot *= eta_cascade_stage
-
             eta_atm = get_eta_atm(self.source["f_src"],
                                   np.mean(self.atmosphere["PWV0"]),
                                   np.mean(el_scan))
@@ -340,22 +359,16 @@ class simulator(object):
                                                              self.instrument["filterbank"],
                                                              norm = True)
             
-            eta_tot_chan = gcascade.average_over_filterbank(eta_tot, 
-                                                             self.instrument["filterbank"],
-                                                             norm = True)
-            
             out_dict = {
                     "eta_ap"     : eta_ap_chan,
                     "eta_atm"    : eta_atm_chan,
-                    "eta_tot"    : eta_tot_chan,
-                    "filterbank" : copy.deepcopy(self.instrument["filterbank"]),
                     }
 
             return out_dict 
         
     def run(self, 
             verbosity: int = 1, 
-            outname: str = "out", 
+            outname: Union[str, Path] = "out", 
             overwrite: bool = False,
             outscale: str = "Tb",
             seed: int = 0) -> None:
