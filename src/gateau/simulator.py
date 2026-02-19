@@ -21,6 +21,8 @@ from typing import Union
 logging.getLogger(__name__)
 
 MEMFRAC = 0.8
+LIM_ATM_LO = 0.1
+LIM_ATM_HI = 5.5
 
 class FieldError(Exception):
     """!
@@ -141,7 +143,8 @@ class simulator(object):
                    telescope_dict: dict[str, any],
                    atmosphere_dict: dict[str, any],
                    source_dict: dict[str, any],
-                   cascade_list: list[dict[str, any]],
+                   cascade_list: Union[list[dict[str, any]], str],
+                   cascade_yaml: str = "cascade.yaml",
                    return_full: bool = False) -> Union[None, dict[str, any]]:
         """!
         Initialise a gateau setup. 
@@ -155,6 +158,9 @@ class simulator(object):
         self.set_gateau_dict(telescope_dict, gcheck.checkTelescopeDict, "telescope")
         self.set_gateau_dict(atmosphere_dict, gcheck.checkAtmosphereDict, "atmosphere")
         self.set_gateau_dict(source_dict, gcheck.checkSourceDict, "source")
+
+        if isinstance(cascade_list, str):
+            cascade_list = gcascade.read_from_folder(cascade_list, cascade_yaml) 
 
         eta_cascade, psd_cascade, eta_ap, psd_cmb = gcascade.get_cascade(cascade_list, self.source["f_src"])
 
@@ -194,9 +200,30 @@ class simulator(object):
             else:
                 exit()
 
+        # Checking if start/end PWV will not be lower/higher than ATM tabulated PWV values
+        # We take into account min/max of the ARIS screens
+        avg_PWV = np.nanmean(self.atmosphere["PWV0"])
+
+        if (avg_PWV + atm_meta[3]) < LIM_ATM_LO:
+
+            self.clog.warning(f"Average PWV of {avg_PWV} mm will likely go below tabulated limit of {LIM_ATM_LO} with the supplied screens.")
+            choice = input("\033[93mProceed (y/n)? > ").lower()
+            if choice == "y" or choice == "":
+                pass
+            else:
+                exit()
+
+        if (avg_PWV + atm_meta[4]) > LIM_ATM_HI:
+
+            self.clog.warning(f"Average PWV of {avg_PWV} mm will likely go above tabulated limit of {LIM_ATM_HI} with the supplied screens.")
+            choice = input("\033[93mProceed (y/n)? > ").lower()
+            if choice == "y" or choice == "":
+                pass
+            else:
+                exit()
+
         # We also convert the average pwv tuple in the atmosphere dict to a starting pwv and a slope
         self.atmosphere["PWV_slope"] = (self.atmosphere["PWV0"][1] - self.atmosphere["PWV0"][0]) / times_array[-1]
-
 
         if isinstance(scan_func, list):
             az_scan, el_scan = scan_func[0](times_array, az0, el0)
@@ -230,6 +257,12 @@ class simulator(object):
         elif self.instrument.get("R") and self.instrument.get("fl_ch"):
             # R and fl_ch given -> number of channels unknown
             self.instrument["nf_ch"] = np.ceil(np.emath.logn(1 + 1/self.instrument["R"], self.instrument["fl_ch"]/self.instrument["f0_ch"])).astype(int)
+            idx_ch_arr = np.arange(self.instrument["nf_ch"])
+            self.instrument["f_ch_arr"] = f0_ch * (1 + 1 / self.instrument["R"])**idx_ch_arr
+        
+        elif self.instrument.get("nf_ch") and self.instrument.get("fl_ch"):
+            # number of channels and fl_ch given -> filter Q unknown
+            self.instrument["R"] = 1 / ((self.instrument["fl_ch"]/self.instrument["f0_ch"])**(1/(self.instrument["nf_ch"] - 1)) - 1)
             idx_ch_arr = np.arange(self.instrument["nf_ch"])
             self.instrument["f_ch_arr"] = f0_ch * (1 + 1 / self.instrument["R"])**idx_ch_arr
                 

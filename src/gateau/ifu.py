@@ -117,11 +117,9 @@ def generate_fpa_pointings(instrumentDict: dict[str, any]) -> tuple[np.ndarray,
     spacing = instrumentDict.get("spacing") 
 
     for q in range(-radius, radius + 1):
-        print(q)
         r1 = max(-radius, -q - radius)
         r2 = min(radius, -q + radius)
         for r in range(r1, r2 + 1):
-            print(r)
             x = spacing * 3 / 2 / np.sqrt(3) * q
             y = spacing * (r + q / 2)
 

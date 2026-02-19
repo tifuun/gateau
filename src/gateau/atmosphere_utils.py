@@ -14,6 +14,7 @@ from typing import Tuple
 
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RectBivariateSpline
+from scipy.integrate import quad
 
 import logging
 
@@ -26,16 +27,18 @@ NCPU = multiprocessing.cpu_count()
 def prep_atm_ARIS_pool(args: Tuple[np.ndarray,
                                    int], 
                        path_to_aris: str, 
-                       diameter_tel: float,
-                       num_screens: int) -> None:
-    Rtel = diameter_tel / 2
-    std = Rtel/np.sqrt( 2.*np.log(10.) )
-    truncate = Rtel/std
+                       Rtel: float,
+                       sigma: float,
+                       num_screens: int) -> Tuple[float, float]:
+    
+    truncate = Rtel/sigma
     
     files, thread_idx = args
+
+    min_PWV_arr = np.zeros(files.size)
+    max_PWV_arr = np.zeros(files.size)
     
-    for file in parallel_iterator(files, thread_idx):
-    
+    for ii, file in enumerate(parallel_iterator(files, thread_idx)):
         file_split = file.split("-")
 
         file_idx = int(file_split[-1])
@@ -48,20 +51,29 @@ def prep_atm_ARIS_pool(args: Tuple[np.ndarray,
         n_suby = np.unique(subchunk[:,1]).size
        
         if not subchunk[0,0]:
-            with open(os.path.join(prepd_path, "atm_meta.datp"), "w") as metafile:
-                metafile.write(f"{num_screens} {n_subx} {n_suby}")
+            with open(os.path.join(prepd_path, "_atm_meta.datp"), "w") as metafile_intermediary:
+                metafile_intermediary.write(f"{num_screens} {n_subx} {n_suby}")
 
         dEPL = subchunk[:,2].reshape((n_subx, n_suby))
         dPWV = (1./6.3003663 * dEPL*1e-6)*1e+3 #in mm
         
-        dPWV_Gauss = gaussian_filter(dPWV, std, mode='mirror', truncate=truncate)
+        dPWV_Gauss = gaussian_filter(dPWV, sigma, mode='mirror', truncate=truncate)
 
         min_PWV = np.nanmin(dPWV_Gauss)
+        max_PWV = np.nanmax(dPWV_Gauss)
 
         dPWV_path = os.path.join(prepd_path, f"{file_idx}.datp")
         np.savetxt(dPWV_path, dPWV_Gauss)
 
-def prep_atm_ARIS(path_to_aris, diameter_tel, num_threads = NCPU):
+        min_PWV_arr[ii] = min_PWV
+        max_PWV_arr[ii] = max_PWV
+
+    return (np.nanmin(min_PWV_arr), np.nanmax(max_PWV_arr))
+
+def prep_atm_ARIS(path_to_aris: str, 
+                  diameter_tel: float,
+                  edge_taper: float = -10,
+                  num_threads: int = NCPU) -> None:
     """!   
     Prepare ARIS atmospheric screens for usage in gateau.
     This function works in the following way:
@@ -90,14 +102,33 @@ def prep_atm_ARIS(path_to_aris, diameter_tel, num_threads = NCPU):
     chunk_idxs = np.arange(0, num_threads)
 
     args = zip(chunks_screen_files, chunk_idxs)
+    
+    Rtel = diameter_tel / 2
+
+    # We now calculate sigma of Gaussian.
+    # Note that, since we want the sigma of the powwer pattern, we divide the edge taper by 10.
+    # This gives us the sigma of the power pattern in the near field.
+    sigma = Rtel / np.sqrt(-2 * np.log(10**(edge_taper/10)))
 
     func_to_pool = partial(prep_atm_ARIS_pool, 
                            path_to_aris=path_to_aris,
-                           diameter_tel=diameter_tel,
+                           Rtel=Rtel,
+                           sigma=sigma,
                            num_screens=len(screen_files))
 
     with multiprocessing.get_context("spawn").Pool(num_threads) as pool:
-        pool.map(func_to_pool, args)
+        out = pool.map(func_to_pool, args)
+
+    min_PWV = np.nanmin(np.array([x[0] for x in out]))
+    max_PWV = np.nanmax(np.array([x[1] for x in out]))
+
+    with open(os.path.join(prepd_path, "_atm_meta.datp"), "r") as metafile_intermediary:
+        with open(os.path.join(prepd_path, "atm_meta.datp"), "w") as metafile:
+            for line in metafile_intermediary:
+                line = line.rstrip('\n') + f" {min_PWV} {max_PWV}"
+                metafile.write(line)
+
+    os.remove(os.path.join(prepd_path, "_atm_meta.datp"))
 
 def get_eta_atm(f_src: np.ndarray,
                 pwv0: float,
@@ -126,3 +157,4 @@ def get_eta_atm(f_src: np.ndarray,
                                                          pwv0,)
 
         return np.squeeze(eta_atm_interp) ** (1 / np.sin(el0 * np.pi / 180))
+

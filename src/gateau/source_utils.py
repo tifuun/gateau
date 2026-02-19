@@ -47,32 +47,24 @@ def convolve_source_cube_pool(args: Tuple[np.ndarray, np.ndarray, int],
                 np.nanmean(source_cube[0,:,i]) + np.nanmean(source_cube[-1,:,i]))
         
         ff = ff_from_aperture(az_arr, el_arr, lam, Rtel, edge_taper)
-        omega_beam = np.nansum(omega_pixel * ff)
 
-        norm = 1
-        etendu = np.pi*Rtel**2
+        area_phys = np.pi*Rtel**2
 
-        if source_cube_unit == "I_nu":
-            norm = 1#omega_pixel#np.nansum(ff)
-            #etendu *= omega_pixel#lam**2
-
-        func = partial(moving_sum, 
-                       ff_pattern=ff,
-                       norm=norm)
+        func = partial(moving_sum, ff_pattern=ff)
 
         if source_cube_unit == "F_nu_beam":
-            source_cube_convolved[:,:,i] = etendu * source_cube[:,:,i]
+            source_cube_convolved[:,:,i] = area_phys * source_cube[:,:,i]
 
         else:
-            source_cube_convolved[:,:,i] = etendu * generic_filter(source_cube[:,:,i] * omega_pixel, 
+            source_cube_convolved[:,:,i] = area_phys * generic_filter(source_cube[:,:,i] * omega_pixel, 
                                                       func, 
                                                       size=ff.shape,
                                                       mode="constant",
                                                       cval=cval)
     return source_cube_convolved
 
-def moving_sum(source_slice, ff_pattern, norm):
-    return np.nansum(source_slice * ff_pattern.ravel()) / norm
+def moving_sum(source_slice, ff_pattern):
+    return np.nansum(source_slice * ff_pattern.ravel())
 
 def convolve_source_cube(source_cube: np.ndarray,
                          az_arr: np.ndarray,
@@ -124,7 +116,6 @@ def ff_from_aperture(az_arr,
     nv = el_arr.size*FACTOR_PAD
 
     Rk = R  / lam
-    #print("\n", 1e-9*scc.c / lam)
 
     sigma = Rk / np.sqrt(-2 * np.log(10**(edge_taper/20)))
 
@@ -140,19 +131,11 @@ def ff_from_aperture(az_arr,
     mask_R = np.sqrt(ugr**2 + vgr**2) < Rk
     aper_field = np.exp(-0.5 * (ugr**2 + vgr**2) / sigma**2) * mask_R
     
-    #import matplotlib.pyplot as plt
-    #plt.imshow(20*np.log10(aper_field))
-    #plt.show()
-
-
-    #ff_pattern = np.absolute(fftshift(fft2(aper_field)))**2
-    ff_pattern = np.absolute(fftshift(fft2(aper_field)))
+    ff_pattern = np.absolute(fftshift(fft2(aper_field)))**2
     ff_pattern /= np.nanmax(ff_pattern)
-    
 
     az_fft = np.arcsin(fftshift(fftfreq(nu, d=du))) * 180 / np.pi + az_c
     el_fft = np.arcsin(fftshift(fftfreq(nv, d=dv))) * 180 / np.pi + el_c
-
 
     az_fft_gr, el_fft_gr = np.mgrid[az_fft[0]:az_fft[-1]:nu*1j, 
                                     el_fft[0]:el_fft[-1]:nv*1j]
@@ -161,9 +144,6 @@ def ff_from_aperture(az_arr,
                             el_arr[0]:el_arr[-1]:el_arr.size*1j]
 
     ff_pattern_interp = griddata((az_fft_gr.ravel(), el_fft_gr.ravel()), ff_pattern.ravel(), (az_gr, el_gr), method="linear")
-    
-    #import matplotlib.pyplot as plt
-    #plt.pcolormesh(az_gr*3600, el_gr*3600, 20*np.log10(ff_pattern_interp), vmin=-3, vmax=0)
-    #plt.show()
+    ff_pattern_interp /= np.nanmax(ff_pattern_interp)
 
     return ff_pattern_interp

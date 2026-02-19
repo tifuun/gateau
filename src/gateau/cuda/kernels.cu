@@ -184,8 +184,6 @@ void time_wrt_to(
 __host__ 
 void initCUDA(
         Instrument *instrument, 
-        Telescope *telescope, 
-        Source *source, 
         Atmosphere *atmosphere, 
         int nTimes,
         int num_stage
@@ -202,8 +200,6 @@ void initCUDA(
                 sizeof(float)
                 ) 
             );
-    gpuErrchk(cudaGetLastError());
-    gpuErrchk(cudaDeviceSynchronize());
 
     gpuErrchk( 
             cudaMemcpyToSymbol(
@@ -513,25 +509,25 @@ void calc_power(
         bool offsource = ((temp1 < az_src.start) || (temp1 > az_src_max)) || 
                          ((temp2 < el_src.start) || (temp2 > el_src_max));
 
-        // This can be improved quite alot...
         if(offsource) 
         {
-            temp1 = az_src_max;
-            temp2 = el_src_max;
+            psd_nu = 0.;
         }
         
-        x0y0 = f_src.num * (iaz + iel * az_src.num);
-        x1y0 = f_src.num * (iaz + 1 + iel * az_src.num);
-        x0y1 = f_src.num * (iaz + (iel+1) * az_src.num);
-        x1y1 = f_src.num * (iaz + 1 + (iel+1) * az_src.num);
-        
-        t = (temp1 - (az_src.start + az_src.step*iaz)) / az_src.step;
-        u = (temp2 - (el_src.start + el_src.step*iel)) / el_src.step;
-        
-        psd_nu = (1-t)*(1-u) * source[x0y0 + idy];
-        psd_nu += t*(1-u) * source[x1y0 + idy];
-        psd_nu += (1-t)*u * source[x0y1 + idy];
-        psd_nu += t*u * source[x1y1 + idy];
+        else {
+            x0y0 = f_src.num * (iaz + iel * az_src.num);
+            x1y0 = f_src.num * (iaz + 1 + iel * az_src.num);
+            x0y1 = f_src.num * (iaz + (iel+1) * az_src.num);
+            x1y1 = f_src.num * (iaz + 1 + (iel+1) * az_src.num);
+            
+            t = (temp1 - (az_src.start + az_src.step*iaz)) / az_src.step;
+            u = (temp2 - (el_src.start + el_src.step*iel)) / el_src.step;
+            
+            psd_nu = (1-t)*(1-u) * source[x0y0 + idy];
+            psd_nu += t*(1-u) * source[x1y0 + idy];
+            psd_nu += (1-t)*u * source[x0y1 + idy];
+            psd_nu += t*u * source[x1y1 + idy];
+        }
 
         freq = f_src.start + f_src.step * idy;
 
@@ -554,9 +550,6 @@ void calc_power(
         
         psd_atm_loc = psd_atm[idy];
         psd_cmb_loc = psd_cmb[idy];
-        
-        // Coupling to source
-        psd_in = eta_illum_loc * psd_nu * 0.5 + psd_cmb_loc;
 
         // Calculate blank sky psd for stages involving spillover to sky
         psd_sky = rad_trans(
@@ -564,6 +557,9 @@ void calc_power(
                 eta_atm_interp, 
                 psd_atm_loc
                 );
+        
+        // Coupling to source
+        psd_in = eta_illum_loc * psd_nu * 0.5 + psd_cmb_loc;
         
         // Initial pass through atmosphere
         psd_in = rad_trans(
@@ -772,8 +768,6 @@ void run_gateau(
     // Initialize constant memory
     initCUDA(
             instrument, 
-            telescope, 
-            source, 
             atmosphere, 
             ntscr, 
             cascade->num_stage
