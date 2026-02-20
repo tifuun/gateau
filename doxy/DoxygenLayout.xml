@@ -6,6 +6,7 @@
     <!--<tab type="pages" visible="no" title="" intro=""/>-->
     <tab type="user" url="@ref design" visible="yes" title="Design Philosophy"/>
     <tab type="user" url="@ref demos" visible="yes" title="Demonstrations"/>
+    <tab type="user" url="@ref faq" visible="yes" title="Frequently Asked Questions"/>
     <tab type="user" url="@ref maintainers" visible="yes" title="For Maintainers"/>
     <tab type="user" url="@ref windows" visible="yes" title="Gateau on Windows"/>
     <tab type="user" url="@ref gateaudocs" visible="yes" title="Documentation"/>

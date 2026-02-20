@@ -1,0 +1,22 @@
+/**
+@page faq Frequently Asked Questions
+
+This is the FAQ page for Gateau users.
+There is a more detailed troubleshooting guide
+on the \ref maintainers "maintainers page".
+
+\tableofcontents
+
+## Q: I had a script that used to run fine, but all of a sudden returns errors that start with GPUassert. What do I do?
+
+A: Try updating your nvidia drivers.
+For example, if you used apt to install them,
+try running:
+
+```
+sudo apt update && sudo apt upgrade
+```
+
+*/
+
+

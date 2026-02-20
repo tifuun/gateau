@@ -42,6 +42,13 @@ how to do this. When running the above pip install command, the installer will
 look for a valid CUDA compiler and for valid runtime libraries. When found, the
 CUDA libraries for `Gateau` are compiled.
 
+
+\section faq_main Frequently Asked Questions
+
+For common troubleshooting instructions,
+please see the \ref faq "FAQ Page".
+
+
 \section license License
 
 Gateau is free software: you can redistribute it and/or modify it under
