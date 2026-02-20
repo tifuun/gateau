@@ -40,7 +40,8 @@ instrument_dict = {
         "f0_ch"         : 300e9,
         "nf_ch"         : 1,
         "R"             : 500,
-        "f_sample"      : 158
+        "f_sample"      : 158,
+        "eta_circuit"   : ETATEST
         }
 
 atmosphere_dict = {
