@@ -91,6 +91,8 @@ def prep_atm_ARIS(path_to_aris: str,
     and filters this with a truncated Gaussian corresponding to the power pattern of the primary aperture.
     The output screens are stored in a folder named '/prepd/', which is stored in the same folder as the ARIS screens.
     Run this function at least once per ARIS collection/telescope model combination.
+        
+    @ingroup public_API_atmosphere
     
     @param path_to_aris String containing the path to the folder containing the ARIS screens.
         The path can either be absolute or relative to your working directory.
@@ -99,8 +101,6 @@ def prep_atm_ARIS(path_to_aris: str,
         Defaults to -10 dB.
     @param num_threads Number of CPU threads to use for the ARIS screen preparation.
         Defaults to the total number of threads on the CPU. 
-        
-    @ingroup public_API
     """
 
     clog_mgr = CustomLogger(os.path.basename(__file__))

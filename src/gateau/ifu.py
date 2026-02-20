@@ -34,6 +34,7 @@ def generate_filterbank(instrumentDict: dict[str, any],
     
     Ql          = instrumentDict.get("R")
     f0          = instrumentDict.get("f_ch_arr")
+    eta         = instrumentDict.get("eta_circuit")
     f           = sourceDict.get("f_src")
     
     kernel = lorentzian
@@ -43,18 +44,17 @@ def generate_filterbank(instrumentDict: dict[str, any],
     transfer = np.ones((len(f), len(f0)))
     if np.isscalar(Ql):
         Ql = np.full(len(f0), Ql)
+    
+    if np.isscalar(eta):
+        eta = np.full(len(f0), eta)
 
     idx_sort = np.flip(np.argsort(f0))
-
-    factor_resonator = 1
-    if instrumentDict.get("resonator_type") == "half-wave":
-        factor_resonator = 0.5
 
     for i_in_idx, i in enumerate(idx_sort):
         f0_i = f0[i]
         Ql_i = Ql[i]
 
-        L0 = factor_resonator * kernel(f, f0_i, Ql_i)
+        L0 = eta[i] * kernel(f, f0_i, Ql_i)
         T = L0.copy()
         T_star = np.zeros(len(f))
         for j in idx_sort[:i_in_idx]:

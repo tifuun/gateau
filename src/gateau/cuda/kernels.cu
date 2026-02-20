@@ -585,18 +585,11 @@ void calc_power(
                     );
         }
 
-        temp1 = eta_cascade[cnum_stage*f_src.num + idy];
-        temp2 = psd_cascade[cnum_stage*f_src.num + idy];
-
         #pragma unroll 
         for(int k=0; k<cnf_ch; k++) 
         {
-            eta_kj = filterbank[k*f_src.num + idy] * temp1;
-            psd_in_k = rad_trans(
-                    psd_in, 
-                    eta_kj, 
-                    temp2
-                    );
+            eta_kj = filterbank[k*f_src.num + idy];
+            psd_in_k =  psd_in * eta_kj;
 
             sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
 

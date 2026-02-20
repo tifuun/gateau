@@ -64,7 +64,7 @@ DATP = (
     "-5.452e-03 -5.451e-03 -5.452e-03\n"
     )
 
-ATM_META = "1 8 3"
+ATM_META = "1 8 3 -0.01 0.01"
 
 def selftest():
     with tempfile.TemporaryDirectory() as tmpdir:

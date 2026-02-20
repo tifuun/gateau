@@ -78,6 +78,8 @@ def convolve_source_cube(source_cube: np.ndarray,
     Circularly symmetric Gaussian illumination is assumed.
     Each azimuth-elevation slice in the source cube is then convolved by its respective far-field pattern.
     Run this function at least once per source cube/telescope model combination.
+
+    @ingroup public_API_source
     
     @param source_cube 3-dimensional Numpy array containg source.
         Axes represent azimuth, elevation, and source freuencies.
@@ -93,8 +95,6 @@ def convolve_source_cube(source_cube: np.ndarray,
         
     @returns far-field pattern convolved source cube, in units of spectral power / beam.
         The cube is also 3-dimensional, with the axes representing the same coordinates as the input cube.
-
-    @ingroup public_API
     """
     
     clog_mgr = CustomLogger(os.path.basename(__file__))

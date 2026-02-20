@@ -9,7 +9,6 @@ Also, TLS noise characteristics are set from this file.
 Al_NbTiN = {
         "delta"         : 188 * 1.60218e-19 * 1e-6,
         "eta_pb"        : 0.4,
-        "Tc"            : 1.2,
         "cutoff"        : 90e9
         }
 

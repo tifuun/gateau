@@ -1,3 +1,9 @@
+"""!
+@file simulator.py
+@brief Interface file for the gateau simulator. 
+    This file contains the public methods necessary for initialising and running gateau simulations. 
+"""
+
 import math
 import os
 import shutil
@@ -5,6 +11,7 @@ import copy
 import sys
 import numpy as np
 from pathlib import Path
+from scipy.constants import c
 
 import gateau.ifu as gifu
 import gateau.input_checker as gcheck
@@ -39,14 +46,6 @@ class InitialError(Exception):
 class simulator(object):
     """!
     Interface for gateau simulations
-
-    Attributes:
-        <type>Dict      :   Storage for input dictionaries. 
-                            These are evaluated versions of the user input, containing references to actual data.
-        clog_mgr        :   Logger manager. Top-level wrapper for actual logger.
-                            Manager handles meta information, such as pwd.
-        clog            :   Custom logger for communicating information, warnings, and errors to user.
-        outPath         :   Path to directory where to store simulation output. Defaults to current working directory.
     """
 
     atmosphere      = None
@@ -61,36 +60,31 @@ class simulator(object):
 
     clog_mgr = CustomLogger(os.path.basename(__file__))
     clog = clog_mgr.getCustomLogger()
-
-    outPath = os.getcwd() # Output path defaults to cwd    
     
     c = 2.99792458e8
 
     def __init__(self, 
-                 verbose: bool = True, 
-                 outPath: str = None) -> None:
+                 verbose: bool = True) -> None:
         """!
         Create an interface object for gateau.
 
         @param verbose Set verbosity of logger. If False, will not log any output to screen.
             If True, will log simulation information, warnings, and errors to screen. 
             Default is True.
-        @param outPath Path to where the interface object will write output. 
-            Default is the current working directory.
         """
 
-        self.outPath = outPath if outPath is not None else self.outPath
         if not verbose:
             self.clog.setLevel(logging.CRITICAL)
     
     def setLoggingVerbosity(self, 
-                            verbose: bool = True) -> None:
+                            verbose: bool) -> None:
         """!
         Set or change the verbosity of the gateau logger.
-        
-        @param verbose Give verbose output. Default is True.
 
-        @ingroup settersgetters
+        @ingroup public_API_settersgetters
+        
+        @param verbose Set verbosity of logger. If False, will not log any output to screen.
+            If True, will log simulation information, warnings, and errors to screen. 
         """
 
         if not verbose:
@@ -98,41 +92,6 @@ class simulator(object):
         
         else:
             self.clog.setLevel(logging.INFO)
-
-    def setOutPath(self, 
-                   outPath: str) -> None:
-        """!
-        Set or change path to output directory.
-
-        @param outPath Path to output directory.
-
-        @ingroup settersgetters
-        """
-
-        self.outPath = outPath
-
-    def set_gateau_dict(self, 
-                        input_dict: dict[str, any], 
-                        check_func: Callable, 
-                        label_dict: str) -> None:
-        """!
-        Pass an input dictionary and check it for correctness.
-
-        @param input_dict Dictionary to be checked.
-        @param check_func Function that should check correctness of input dictionary.
-        @param self_dict Class attribute dictionary to which input dictionary should be copied.
-        @param label_dict Label for input dictionary used for printing the error string, if needed.
-        @param flag_set Class attribute flag that should be set to True upon acceptance of input dictionary.
-        
-        @ingroup settersgetters
-        """
-        
-        setattr(self, label_dict, copy.deepcopy(input_dict))
-        errlist = check_func(getattr(self, label_dict))
-        
-        if errlist:
-            errstr = f"Errors encountered in {label_dict} dictionary in fields :{errlist}."
-            raise FieldError(errstr)
 
     def initialise(self, 
                    t_obs: float, 
@@ -150,6 +109,8 @@ class simulator(object):
         Initialise a gateau setup. 
         THis function needs to be called before running a simulation.
         Here, a lot of intermediary user-supplied quantities are converted into quantities used by gateau.
+    
+        @ingroup public_API_simulator
 
         @param t_obs Total observation time for simulation, in seconds.
         @param az0 Central azimuth value for the (first) scan pattern, in degrees.
@@ -177,13 +138,11 @@ class simulator(object):
             The latter is evaluated using the PWV0 supplied in the atmosphere dictionary.
             Both quantities are averaged over the spectral shape of each channel.
             The dictionary is only returned when 'return_full' is True.
-    
-        @ingroup public_API
         """
-        self.set_gateau_dict(instrument_dict, gcheck.checkInstrumentDict, "instrument")
-        self.set_gateau_dict(telescope_dict, gcheck.checkTelescopeDict, "telescope")
-        self.set_gateau_dict(atmosphere_dict, gcheck.checkAtmosphereDict, "atmosphere")
-        self.set_gateau_dict(source_dict, gcheck.checkSourceDict, "source")
+        self._set_gateau_dict(instrument_dict, gcheck.checkInstrumentDict, "instrument")
+        self._set_gateau_dict(telescope_dict, gcheck.checkTelescopeDict, "telescope")
+        self._set_gateau_dict(atmosphere_dict, gcheck.checkAtmosphereDict, "atmosphere")
+        self._set_gateau_dict(source_dict, gcheck.checkSourceDict, "source")
 
         if isinstance(cascade_list, str):
             cascade_list = gcascade.read_from_folder(cascade_list, cascade_yaml) 
@@ -196,7 +155,7 @@ class simulator(object):
         self.cascade = {
                 "eta_stage"     : eta_stage,
                 "psd_stage"     : psd_stage,
-                "num_stage"     : len(eta_cascade) - 1,
+                "num_stage"     : len(eta_cascade),
                 "psd_cmb"       : psd_cmb
                 }
 
@@ -297,14 +256,14 @@ class simulator(object):
             self.instrument["filterbank"] = gifu.generate_filterbank_independent(self.instrument, self.source)
 
         # Now normalize to unit average peak height
-        max_peak_mean = np.nanmean(
-            np.nanmax(
-                self.instrument["filterbank"], 
-                axis=-1
-                )
-            )
+        #max_peak_mean = np.nanmean(
+        #    np.nanmax(
+        #        self.instrument["filterbank"], 
+        #        axis=-1
+        #        )
+        #    )
 
-        self.instrument["filterbank"] /= max_peak_mean
+        #self.instrument["filterbank"] /= max_peak_mean
 
         if self.instrument["use_onef"]:
             if isinstance(self.instrument["onef_level"], float) or isinstance(self.instrument["onef_level"], int):
@@ -337,7 +296,7 @@ class simulator(object):
         if self.telescope.get("s_rms") is not None:
             self.telescope["s_rms"] *= 1e-6 # Convert um to m
 
-            eta_surf = np.exp(-(4 * np.pi * self.telescope["s_rms"] * self.source["f_src"] / self.c)**2)
+            eta_surf = np.exp(-(4 * np.pi * self.telescope["s_rms"] * self.source["f_src"] / c)**2)
 
             self.telescope["eta_ruze"] *= eta_surf 
 
@@ -350,43 +309,30 @@ class simulator(object):
             eta_atm = get_eta_atm(self.source["f_src"],
                                   np.mean(self.atmosphere["PWV0"]),
                                   np.mean(el_scan))
-
-            eta_ap_chan = gcascade.average_over_filterbank(eta_ap, 
-                                                            self.instrument["filterbank"],
-                                                            norm = True)
             
-            eta_atm_chan = gcascade.average_over_filterbank(eta_atm, 
-                                                             self.instrument["filterbank"],
-                                                             norm = True)
-            
-            out_dict = {
-                    "eta_ap"     : eta_ap_chan,
-                    "eta_atm"    : eta_atm_chan,
+            return {
+                    "eta_ap"     : self._average_over_filterbank(eta_ap),
+                    "eta_atm"    : self._average_over_filterbank(eta_atm),
                     }
-
-            return out_dict 
         
     def run(self, 
-            verbosity: int = 1, 
             outname: Union[str, Path] = "out", 
             overwrite: bool = False,
             outscale: str = "Tb",
             seed: int = 0) -> None:
         """!
         Run a gateau simulation.
-
-        This is the main routine of gateau and should be called after filling all dictionaries and running the self.initialise() method.
+        This is the main routine of gateau and should be called after filling all dictionaries and running the 'initialise' method.
+    
+        @ingroup public_API_simulator
         
-        @param t_obs Total observation time in seconds.
-        @param verbosity Level of verbosity for simulation.
-            0           : no extra output w.r.t. logger.
-            1 (default) : show execution times of important routines.
-        @param outname Name ofirectory to store output in. Directory will be placed in outPath.
+        @param outname Name of output hdf5 file. If a path, will place output in the path.
+            Defaults to 'out', which will place the output in 'out.hdf5' in your working directory.
         @param overwrite Whether to overwrite existing output directories. 
-            If False (default), a prompt will appear to either overwrite or specify new directory.
+            If False (default), a prompt will appear to either overwrite or terminate simulation.
         @param outscale Store output in brightness temperature [K] or power [W].
             Accepts "Tb" or "P". Defaults to "Tb".
-        @param seed Seed for photon and 1/f noise generation. 
+        @param seed Seed for photon and pink noise generation. 
             Defaults to 0, which will internally be converted to a random seed using the current time.
         """
 
@@ -399,14 +345,21 @@ class simulator(object):
             outname = Path(outname)
 
         outname = outname.with_suffix(".h5")
-
         path = outname.parent
+
+        if outname.is_file() and not overwrite:
+            self.clog.warning(f"File {outname.name} already exists in {path.resolve()}.")
+            choice = input("\033[93mProceed (y/n)? > ").lower()
+            if choice == "y" or choice == "":
+                pass
+            else:
+                exit()
 
         path.mkdir(parents=True, exist_ok=True)
 
         # Check if enough HDD is available in outpath for this simulation
         n_bytes_required = ((self.instrument["nf_ch"] + 2)*self.instrument["n_spax"] + 1) * self.n_times * 4
-        if (n_bytes_free := int(MEMFRAC * shutil.disk_usage(self.outPath).free)) < n_bytes_required:
+        if (n_bytes_free := int(MEMFRAC * shutil.disk_usage(path).free)) < n_bytes_required:
             self.clog.warning(f"Required disk space of {n_bytes_required} bytes exceeds available buffer of {n_bytes_free} bytes.")
             choice = input("\033[93mProceed (y/n)? > ").lower()
             if choice == "y" or choice == "":
@@ -427,3 +380,38 @@ class simulator(object):
                   seed)
 
         self.clog.info("\033[1;32m*** FINISHED gateau SIMULATION ***")
+    
+    def _set_gateau_dict(self, 
+                        input_dict: dict[str, any], 
+                        check_func: Callable, 
+                        label_dict: str) -> None:
+        """!
+        Pass an input dictionary and check it for correctness.
+
+        @param input_dict Dictionary to be checked.
+        @param check_func Function that should check correctness of input dictionary.
+        @param self_dict Class attribute dictionary to which input dictionary should be copied.
+        @param label_dict Label for input dictionary used for printing the error string, if needed.
+        @param flag_set Class attribute flag that should be set to True upon acceptance of input dictionary.
+        """
+        
+        setattr(self, label_dict, copy.deepcopy(input_dict))
+        errlist = check_func(getattr(self, label_dict))
+        
+        if errlist:
+            errstr = f"Errors encountered in {label_dict} dictionary in fields :{errlist}."
+            raise FieldError(errstr)
+
+    def _average_over_filterbank(self, array_to_average: np.ndarray) -> np.ndarray:
+        """!
+        Average an array over the filterbank.
+        
+        @param array_to_average Numpy array with size equal to size of source frequency array.
+
+        @returns Array averaged over filterbank.
+        """
+        sh_f = self.instrument["filterbank"].shape
+        assert array_to_average.size == sh_f[1]
+
+        array_tiled = np.squeeze(array_to_average)[None,:] * self.instrument["filterbank"]
+        return np.nansum(array_tiled, axis=1) / np.nansum(self.instrument["filterbank"], axis=1)
