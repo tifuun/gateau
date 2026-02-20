@@ -255,16 +255,6 @@ class simulator(object):
         else:
             self.instrument["filterbank"] = gifu.generate_filterbank_independent(self.instrument, self.source)
 
-        # Now normalize to unit average peak height
-        #max_peak_mean = np.nanmean(
-        #    np.nanmax(
-        #        self.instrument["filterbank"], 
-        #        axis=-1
-        #        )
-        #    )
-
-        #self.instrument["filterbank"] /= max_peak_mean
-
         if self.instrument["use_onef"]:
             if isinstance(self.instrument["onef_level"], float) or isinstance(self.instrument["onef_level"], int):
                 self.instrument["onef_level"] *= np.ones(self.instrument["nf_ch"])

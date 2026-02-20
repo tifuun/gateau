@@ -34,7 +34,7 @@ def generate_filterbank(instrumentDict: dict[str, any],
     
     Ql          = instrumentDict.get("R")
     f0          = instrumentDict.get("f_ch_arr")
-    eta         = instrumentDict.get("eta_circuit")
+    eta         = instrumentDict.get("eta_peak")
     f           = sourceDict.get("f_src")
     
     kernel = lorentzian
@@ -83,17 +83,20 @@ def generate_filterbank_independent(instrumentDict: dict[str, any],
 
     Ql          = instrumentDict.get("R")
     f0          = instrumentDict.get("f_ch_arr")
+    eta         = instrumentDict.get("eta_peak")
     f           = sourceDict.get("f_src")
     
     if np.isscalar(Ql):
         Ql = np.full(len(f0), Ql)
     
+    if np.isscalar(eta):
+        eta = np.full(len(f0), eta)
+    
     kernel = lorentzian
     if instrumentDict["sec_harmonic"]:
         kernel = lorentzian_with_second_order
 
-    #lorentzian = (A * gamma**2 / ((f_src[None,:] - f_filt[:,None])**2 + gamma**2))**order
-    transfer = lorentzian(f[None,:], f0[:,None], Ql[:,None])
+    transfer = eta[:,None] * lorentzian(f[None,:], f0[:,None], Ql[:,None])
 
     if (cutoff := instrumentDict.get("cutoff")) is not None:
         transfer[:,f < cutoff] = 0

@@ -27,6 +27,7 @@ def checkInstrumentDict(instrumentDict):
                  "box_eq", 
                  "order", 
                  "radius",
+                 "eta_peak",
                  "single_line"]
 
     errlist = []
@@ -73,8 +74,8 @@ def checkInstrumentDict(instrumentDict):
     if instrumentDict.get("single_line") is None:
         instrumentDict["single_line"] = True
     
-    if instrumentDict.get("resonator_type") is None:
-        instrumentDict["resonator_type"] = "half-wave"
+    if instrumentDict.get("eta_peak") is None:
+        instrumentDict["eta_peak"] = 1
 
     for key in checklist:
         if instrumentDict.get(key) is None:
