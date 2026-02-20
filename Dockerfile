@@ -30,16 +30,19 @@ RUN \
 	apt-get update && \
 	`# DO NOT INSTALL FULL TOOLCHAIN! ` && \
 	`# It takes like 10gb of space and like 30min ` && \
-	`# apt-get -y install cuda-toolkit-12-3 ` && \
+	`# apt-get -y install cuda-toolkit-11-1 ` && \
 	`# Install only the parts we need: ` && \
 	apt-get -y install \
-		cuda-nvcc-12-3 \
-		libcufft-dev-12-3 \
-		libcurand-dev-12-3 \
+		cuda-nvcc-11-1 \
+		libcufft-dev-11-1 \
+		libcurand-dev-11-1 \
 		&& \
 	:
 
-ENV PATH=/usr/local/cuda/bin:${PATH}
+# Newer versions:
+#ENV PATH=/usr/local/cuda/bin:${PATH}
+# Older versions:
+ENV PATH=/usr/local/cuda-11.1/bin:${PATH}
 
 RUN \
 	wget "${LIBGSL_DEB_URL}" && \

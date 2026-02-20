@@ -1,11 +1,11 @@
 FROM ubuntu:20.04
 
-ARG DEBIAN_FRONTEND=noninteractive
 ARG CUDA_KEYRING_URL=https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.1-1_all.deb
-ARG GSL_SIG_URL=https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz.sig
-ARG GSL_URL=https://mirror.clientvps.com/gnu/gsl/gsl-2.5.tar.gz
-ARG LIBGSL_DEB_URL=https://github.com/stratal-systems/debian-packages/releases/download/v2-2/libgsl-static-pic_2.5.0_amd64.deb
-ARG LIBHDF5_DEB_URL=https://github.com/stratal-systems/debian-packages/releases/download/v2-2/libhdf5-static-pic_2.0.0_amd64.deb
+ARG LIBGSL_DEB_URL=https://github.com/stratal-systems/ubuntu-20-04-packages/releases/download/v0-1/libgsl-static-pic_2.5.0_amd64.deb
+ARG LIBHDF5_DEB_URL=https://github.com/stratal-systems/ubuntu-20-04-packages/releases/download/v0-1/libhdf5-static-pic_2.0.0_amd64.deb
+
+
+ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /setup
 
 RUN \
@@ -30,26 +30,35 @@ RUN \
 	apt-get update && \
 	`# DO NOT INSTALL FULL TOOLCHAIN! ` && \
 	`# It takes like 10gb of space and like 30min ` && \
-	`# apt-get -y install cuda-toolkit-12-3 ` && \
+	`# apt-get -y install cuda-toolkit-11-1 ` && \
 	`# Install only the parts we need: ` && \
 	apt-get -y install \
-		cuda-nvcc-12-3 \
-		libcufft-dev-12-3 \
-		libcurand-dev-12-3 \
+		cuda-nvcc-11-1 \
+		libcufft-dev-11-1 \
+		libcurand-dev-11-1 \
 		&& \
 	:
 
-ENV PATH=/usr/local/cuda/bin:${PATH}
+# Newer versions:
+#ENV PATH=/usr/local/cuda/bin:${PATH}
+# Older versions:
+ENV PATH=/usr/local/cuda-11.1/bin:${PATH}
 
-#RUN \
-#	wget "${LIBGSL_DEB_URL}" && \
-#	wget "${LIBHDF5_DEB_URL}" && \
-#	dpkg -i *.deb && \
-#	:
+RUN \
+	wget "${LIBGSL_DEB_URL}" && \
+	wget "${LIBHDF5_DEB_URL}" && \
+	dpkg -i *.deb && \
+	rm -rf *.deb && \
+	:
 
 # These are all needed to build doxygen docs
 # plus jupyter but that's handled by pip 
 # (it's marked as an extra dep in pyproject.toml)
+#
+# Yeah, no, really. We pull in entirety of texlive
+# just so doxygen can process the one single bibtex
+# reference in peace.
+# Whatever, storage is cheap.
 RUN \
 	apt install -y \
 		doxygen \

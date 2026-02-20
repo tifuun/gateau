@@ -1,7 +1,7 @@
 project(
   'gateau',
   'cpp', 'cuda', 'c',
-  version: '0.2.2',
+  version: '0.2.3',
   default_options: [
     'buildtype=release',
     'cpp_std=c++17',
@@ -9,30 +9,12 @@ project(
   ]
 )
 
-cpp = meson.get_compiler('cpp')
-py = import('python').find_installation()
-
-add_languages('cuda', required: true, native: true)
-
-cuda_libs = dependency(
-  'cuda',
-  required: false,
-  #version : '>=13',
-  modules: ['cufft'],
-  )
-
-if cuda_libs.found()
-  message('Meson could find cuda libraries normally, yay!')
-else
-  warning('Meson could not find CUDA libraries!!')
-  warning('Trying random paths until something works...')
-
-
-  cuda_libs = cpp.find_library(
-    'cufft',
-    dirs: [
-      # Should be here:
+cuda_search_paths = [
+      # Newer versions:
       '/usr/local/cuda/lib64',
+
+      # CUDA 11.1:
+      '/usr/local/cuda-11.1/lib64',
 
       # Arend's laptop:
       '/usr/lib/x86_64-linux-gnu/',
@@ -58,14 +40,29 @@ else
       '~/.local/lib/',
       '~/.local/lib64/',
       '~/cuda/lib64/',
-      ],
-    required: false
-    )
+      ]
 
-  if not cuda_libs.found()
-    error('Could not find CUDA libraries, giving up.')
-  endif
-endif
+cpp = meson.get_compiler('cpp')
+py = import('python').find_installation()
+
+add_languages('cuda', required: true, native: true)
+
+cufft = cpp.find_library(
+  'cufft_static',
+  required: true,
+  static: true,
+  dirs: cuda_search_paths,
+  )
+
+# This is needed -- and ONLY needed -- when using
+# static cufft, from what I can tell. No clue
+# what it actually does
+culibos = cpp.find_library(
+  'culibos',
+  required: true,
+  static: true,
+  dirs: cuda_search_paths,
+  )
 
 cpp_args = [
   '-Xcompiler',
@@ -141,7 +138,7 @@ hdf5 = dependency(
   static: hdf5_static
   )
 
-libs = [cuda_libs, gsl, gslcblas, hdf5]
+libs = [cufft, culibos, gsl, gslcblas, hdf5]
 
 cu_sources = files(
   'src/gateau/cuda/kernels.cu',

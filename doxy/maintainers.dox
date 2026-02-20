@@ -129,7 +129,7 @@ CUDA is required to build and run Gateau.
 This can be installed from
 [NVIDIA's website](https://developer.nvidia.com/cuda-downloads).
 All minor versions of CUDA 11 and CUDA 12 _should_ work,
-but if you don't know which to choose, go with 12.3
+but if you don't know which to choose, go with 11.1
 (because that's what we use to build Gateau).
 
 The entire CUDA toolchain is quite large (~7GB).
@@ -142,16 +142,16 @@ To do this, follow the `deb (network)` (or equivalent for your distro)
 steps on the CUDA website, but, instead of running
 
 ```
-sudo apt-get -y install cuda-toolkit-12-3
+sudo apt-get -y install cuda-toolkit-11-1
 ```
 
 run
 
 ```
 sudo apt-get -y install \
-	cuda-nvcc-12-3 \
-	libcufft-dev-12-3 \
-	libcurand-dev-12-3
+	cuda-nvcc-11-1 \
+	libcufft-dev-11-1 \
+	libcurand-dev-11-1
 ```
 
 
