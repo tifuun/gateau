@@ -57,6 +57,7 @@ htmlcov
 *.spec
 .coverage
 .ipynb_checkpoints
+.mesonpy*
 
 # Archives
 *.zip
@@ -83,6 +84,10 @@ htmlcov
 !img/*.png
 !img/*.svg
 !img/*.gv
+!logo/*.jpg
+!logo/*.png
+!logo/*.svg
+!logo/*.gv
 
 # cmake
 
@@ -101,6 +106,7 @@ CMakeInit.txt
 
 venv
 tmp
+win/tmp
 docs
 doxy/docs
 podman/output
@@ -109,15 +115,45 @@ gateau_test
 gateau_tests
 gsl
 
+archive/**
+!archive/*/
+!archive/**/*.tar.gz
+!archive/**/*.whl
 !archive/wheel/*.tar.gz
-!archive/wheel/*/*.tar.gz
 !archive/wheel/*.whl
-!archive/wheel/*/*.whl
+!archive/wheel/ubuntu-20-04-first/
+!archive/wheel/ubuntu-20-04-first/*.whl
+!archive/docker/
+!archive/docker/**/*.tar*
 !archive/docker/*.tar*
+!archive/pipcache/
+!archive/pipcache/*.whl
+!archive/winvm/
+!archive/winvm/*.qcow2
 
 *.deb
 
 build.docker
 build.dk
+build.win
 
+wheelhouse
+
+win/dep/*
+!win/dep/
+!win/dep/*.zip
+!win/dep/*.exe
+!win/dep/*.msi
+!win/dep/*.tar*
+
+win/archive/*
+!win/archive/
+!win/archive/*.zip
+!win/archive/*.exe
+!win/archive/*.msi
+!win/archive/*.tar*
+
+vcpkg_installed
+
+win/vm/6.gateau020.qcow2
 

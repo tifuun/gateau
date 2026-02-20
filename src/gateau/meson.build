@@ -16,7 +16,6 @@ py.install_sources(
     'source_utils.py',
     'structs.py',
     'threadmgr.py',
-    'types.py',
   ],
   subdir: 'gateau',
 )

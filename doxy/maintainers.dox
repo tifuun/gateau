@@ -79,15 +79,15 @@ Procedure for publishing to pypi is same as for any other python package.
 	[releases page](https://github.com/tifuun/gateau/releases/)
 3. `pip install twine`
 4. 
-	```
-	TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx twine upload \
-		--verbose --skip-existing --non-interactive \
-		gateau-x.x.x-cp39.cp310.cp311.cp312.cp313-none-x86_64.whl \
-		gateau-x.x.x.tar.gz
-	```
-	- replace `pypi-xxxxxx` with your token.
-		Do not change the `TWINE_USERNAME=__token__`
-		string.
+```
+TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx twine upload \
+	--verbose --skip-existing --non-interactive \
+	gateau-x.x.x-cp39.cp310.cp311.cp312.cp313-none-manylinux_2_31_x86_64.whl \
+	gateau-x.x.x.tar.gz
+```
+- replace `pypi-xxxxxx` with your token.
+	Do not change the `TWINE_USERNAME=__token__`
+	string.
 
 
 ## Architecture: ctypes wrapper module
@@ -200,8 +200,9 @@ It is even less likely thet you will find static position-independent
 builds in your package manager.
 Therefore, you will either need to compile
 them yourself,
-or use the prebuilt Debian packages provided
-[here](https://github.com/stratal-systems/debian-packages/releases/tag/v2-2).
+or use the prebuilt packages provided
+[here](https://github.com/stratal-systems/ubuntu-20-04-packages/releases) (ubuntu 20.04),
+or [here](https://github.com/stratal-systems/debian-packages/releases/tag/v2-2) (debian bookworm).
 If you decide to compile them yourself,
 you are welcome to use the makefiles
 (
@@ -287,6 +288,10 @@ If you think that setting a single option by passing a command line
 flag that somehow contains three separate equals signs is absolutely
 insane syntax: we agree.
 
+## Windows
+
+For documentation of our failure to build Gateau for Windows,
+see @ref windows .
 
 ## Troubleshooting
 

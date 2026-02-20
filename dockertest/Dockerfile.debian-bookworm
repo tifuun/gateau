@@ -1,0 +1,41 @@
+FROM debian:bookworm
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG CUDA_KEYRING_URL=https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
+
+RUN \
+	apt update && \
+	apt install -y \
+		python3.11 \
+		python3.11-dev \
+		python3.11-venv \
+		wget \
+		&& \
+		:
+
+RUN \
+	wget "${CUDA_KEYRING_URL}" && \
+	dpkg -i cuda-keyring_1.1-1_all.deb && \
+	apt-get update && \
+	`# DO NOT INSTALL FULL TOOLCHAIN! ` && \
+	`# It takes like 10gb of space and like 30min ` && \
+	`# apt-get -y install cuda-toolkit-12-3 ` && \
+	`# Install only the parts we need: ` && \
+	apt-get -y install \
+		cuda-nvcc-12-3 \
+		libcufft-dev-12-3 \
+		libcurand-dev-12-3 \
+		&& \
+	:
+
+ENV PATH=/usr/local/cuda/bin:${PATH}
+
+RUN \
+	python3.11 -m venv /venv && \
+	. /venv/bin/activate && \
+	pip install pip-tools && \
+	:
+
+WORKDIR /app
+
+
