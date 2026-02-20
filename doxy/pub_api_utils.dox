@@ -1,0 +1,4 @@
+/**
+\defgroup pub_api_utils Public Utilities Reference
+\brief These utility functionas are used to prepare atmosphere screens and source cubes in `gateau`. 
+*/

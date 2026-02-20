@@ -1,6 +1,6 @@
 """!
-@file
-Bindings for the ctypes interface for gateau. 
+@file bindings.py
+@brief Bindings for the ctypes interface for gateau. 
 """
 from importlib import resources as impresources
 
@@ -29,16 +29,17 @@ def load_gateaulib() -> CDLL:
     """
 
     if platform.system() == "Windows":
-        lib_filename = "gateau.dll"
+        raise NotImplementedError(
+            "Windows is not supported by gateau. Sorry."
+            )
     elif platform.system() == "Darwin":
         raise NotImplementedError(
-            "Mac OS is not supported by Glateau and never will be. Sorry."
+            "Mac OS is not supported by gateau. Sorry."
             )
     else:
         lib_filename = "libgateau.so"
 
     try:
-
         with impresources.path(gateau, lib_filename) as sopath:
             lib = CDLL(sopath)
 
@@ -68,8 +69,6 @@ def load_gateaulib() -> CDLL:
 
     return lib
 
-# TODO fix Any!!!
-
 def run_gateau(instrument: dict[str, any], 
                telescope: dict[str, any], 
                atmosphere: dict[str, any], 
@@ -83,17 +82,18 @@ def run_gateau(instrument: dict[str, any],
                ) -> None:
     """!
     Binding for running the gateau simulation.
-    During the simulation, gateau will serialise the output into the specified folder.
 
     @param instrument Dictionary containing instrument parameters.
     @param telescope Dictionary containing telescope parameters.
     @param atmosphere Dictionary containing atmosphere parameters.
     @param source Dictionary containing astronomical source parameters.
+    @param cascade Dictionary containing the efficiencies and psds of the cascade.
     @param n_times Number of time evaluations.
     @param outpath Path to directory where gateau output is stored.
     @param outscale Scale of stored output (brightness temperature or power).
     @param seed Seed to use for noise calculations.
-    @param resourcepath Path to resources folder (None for autodetect)
+    @param resourcepath Path to resources folder. 
+        Defaults to None for autodetect.
     """
 
     lib = load_gateaulib()

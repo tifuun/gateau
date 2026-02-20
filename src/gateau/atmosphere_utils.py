@@ -1,6 +1,7 @@
 """!
 @file atmosphere_utils.py
-@brief Utilities that can be called by users. 
+@brief Utilities for preparing atmosphere screens that can be called by users. 
+    Also contains a function for generating atmospheric transmission curves.
 """
 
 from importlib import resources as impresources
@@ -14,6 +15,7 @@ from typing import Tuple
 
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RectBivariateSpline
+from scipy.integrate import quad
 
 import logging
 
@@ -26,16 +28,32 @@ NCPU = multiprocessing.cpu_count()
 def prep_atm_ARIS_pool(args: Tuple[np.ndarray,
                                    int], 
                        path_to_aris: str, 
-                       diameter_tel: float,
-                       num_screens: int) -> None:
-    Rtel = diameter_tel / 2
-    std = Rtel/np.sqrt( 2.*np.log(10.) )
-    truncate = Rtel/std
+                       radius_tel: float,
+                       sigma: float) -> Tuple[float, float]:
+    """!
+    Function that does the work of 'prep_atm_ARIS'.
+    It is not supposed to be used as-is, but rather to be passed to 'multiprocessing.Pool'.
+
+    @param args Arguments over which parallelisation occurs.
+        In this case, these are a list of ARIS screen names, and the thread index.
+    @param path_to_aris Path to folder containing ARIS screens.
+    @param radius_tel Radius of primary aperture of telescope, in meters.
+    @param sigma Standard deviation of Gaussian power pattern of primary aperture.
+
+    @returns Number of cells along x-direction, per screen.
+    @returns Number of cells along y-direction, per screen.
+    @returns Minimum PWV fluctuation for all screens.
+    @returns Maximum PWV fluctuation for all screens.
+    """
+    
+    truncate = radius_tel/sigma
     
     files, thread_idx = args
+
+    min_PWV_arr = np.zeros(files.size)
+    max_PWV_arr = np.zeros(files.size)
     
-    for file in parallel_iterator(files, thread_idx):
-    
+    for ii, file in enumerate(parallel_iterator(files, thread_idx)):
         file_split = file.split("-")
 
         file_idx = int(file_split[-1])
@@ -47,35 +65,44 @@ def prep_atm_ARIS_pool(args: Tuple[np.ndarray,
         n_subx = np.unique(subchunk[:,0]).size
         n_suby = np.unique(subchunk[:,1]).size
        
-        if not subchunk[0,0]:
-            with open(os.path.join(prepd_path, "atm_meta.datp"), "w") as metafile:
-                metafile.write(f"{num_screens} {n_subx} {n_suby}")
-
         dEPL = subchunk[:,2].reshape((n_subx, n_suby))
         dPWV = (1./6.3003663 * dEPL*1e-6)*1e+3 #in mm
         
-        dPWV_Gauss = gaussian_filter(dPWV, std, mode='mirror', truncate=truncate)
+        dPWV_Gauss = gaussian_filter(dPWV, sigma, mode='mirror', truncate=truncate)
 
         min_PWV = np.nanmin(dPWV_Gauss)
+        max_PWV = np.nanmax(dPWV_Gauss)
 
         dPWV_path = os.path.join(prepd_path, f"{file_idx}.datp")
         np.savetxt(dPWV_path, dPWV_Gauss)
 
-def prep_atm_ARIS(path_to_aris, diameter_tel, num_threads = NCPU):
+        min_PWV_arr[ii] = min_PWV
+        max_PWV_arr[ii] = max_PWV
+
+    return n_subx, n_suby, np.nanmin(min_PWV_arr), np.nanmax(max_PWV_arr)
+
+def prep_atm_ARIS(path_to_aris: str, 
+                  radius_tel: float,
+                  edge_taper: float = -10,
+                  num_threads: int = NCPU) -> None:
     """!   
     Prepare ARIS atmospheric screens for usage in gateau.
-    This function works in the following way:
-        1. Load an ARIS subchunk, stored under the 'path' key in atmosphereDict.
-           This requires the 'filename' key to include the extension of the file.
-           This subchunk is a normal output artefact from ARIS, and therefore does not require further processing after being produced by ARIS.
-        2. Remove ARIS metadata
-        3. Convolve with 2D Gaussian
-        4. Store ARIS data in subfolder (/prepd/) with same name.
-    Run this function ONCE per ARIS collection/telescope site.
+    This function takes a path to dEPL ARIS screens, converts this to PWV using the Smith-Weintraub relation,
+    and filters this with a truncated Gaussian corresponding to the power pattern of the primary aperture.
+    The output screens are stored in a folder named '/prepd/', which is stored in the same folder as the ARIS screens.
+    Run this function at least once per ARIS collection/telescope model combination.
+        
+    @ingroup public_api_utils
     
-    @param atmosphereDict Dictionary containing atmosphere parameters.
-    @param telescopeDict Dictionary containing telescope parameters.
+    @param path_to_aris String containing the path to the folder containing the ARIS screens.
+        The path can either be absolute or relative to your working directory.
+    @param radius_tel Radius of primary aperture of telescope, in meters.
+    @param edge_taper Power level of illumination pattern at rim of primary aperture, in decibel.
+        Defaults to -10 dB.
+    @param num_threads Number of CPU threads to use for the ARIS screen preparation.
+        Defaults to the total number of threads on the CPU. 
     """
+
     clog_mgr = CustomLogger(os.path.basename(__file__))
     clog = clog_mgr.getCustomLogger()
 
@@ -91,17 +118,37 @@ def prep_atm_ARIS(path_to_aris, diameter_tel, num_threads = NCPU):
 
     args = zip(chunks_screen_files, chunk_idxs)
 
+    # We now calculate sigma of Gaussian.
+    # Note that, since we want the sigma of the powwer pattern, we divide the edge taper by 10.
+    # This gives us the sigma of the power pattern in the near field.
+    sigma = radius_tel / np.sqrt(-2 * np.log(10**(edge_taper/10)))
+
     func_to_pool = partial(prep_atm_ARIS_pool, 
                            path_to_aris=path_to_aris,
-                           diameter_tel=diameter_tel,
-                           num_screens=len(screen_files))
+                           radius_tel=radius_tel,
+                           sigma=sigma)
 
     with multiprocessing.get_context("spawn").Pool(num_threads) as pool:
-        pool.map(func_to_pool, args)
+        out = pool.map(func_to_pool, args)
+
+    min_PWV = np.nanmin(np.array([x[2] for x in out]))
+    max_PWV = np.nanmax(np.array([x[3] for x in out]))
+
+    with open(os.path.join(prepd_path, "atm_meta.datp"), "w") as metafile:
+        metafile.write(f"{len(screen_files)} {out[0][0]} {out[0][1]} {min_PWV} {max_PWV}")
 
 def get_eta_atm(f_src: np.ndarray,
                 pwv0: float,
                 el0: float) -> np.ndarray:
+    """!
+    Get atmospheric transmission curve for a range of frequencies.
+
+    @param f_src Array of frequencies at which to evaluate atmospheric transmission, in Hz.
+    @param pwv0 PWV at which to evaluate transmission, in mm.
+    @param el0 Elevation at which to evaluate transmission in degrees.
+    
+    @returns Array of atmospheric transmission values.
+    """
     
     with (impresources.files(resources) / 'eta_atm').open('r') as file:
         reader = csv.reader(file, delimiter=' ')
@@ -126,3 +173,4 @@ def get_eta_atm(f_src: np.ndarray,
                                                          pwv0,)
 
         return np.squeeze(eta_atm_interp) ** (1 / np.sin(el0 * np.pi / 180))
+

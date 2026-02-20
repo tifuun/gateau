@@ -15,20 +15,19 @@
 #define DEG2RAD PI/180
 
 // OBSERVATION-INSTRUMENT PARAMETERS
-__constant__ float cdt;                     // Timestep
-__constant__ float ct_start;                // Starting time
-__constant__ float cf_sample;               // Sampling frequency of readout
-__constant__ float csqrt_samp;               // Sampling frequency of readout
-__constant__ float cGR_factor;              // Factor for GR noise: 2 * Delta / eta_pb
-__constant__ int cnt;                       // Number of time evals
-__constant__ int cnf_ch;                    // Number of filter freqs
-__constant__ int cnum_stage;
+__device__ __constant__ float ct_start;                // Starting time
+__device__ __constant__ float cf_sample;               // Sampling frequency of readout
+__device__ __constant__ float csqrt_samp;               // Sampling frequency of readout
+__device__ __constant__ float cGR_factor;              // Factor for GR noise: 2 * Delta / eta_pb
+__device__ __constant__ int cnt;                       // Number of time evals
+__device__ __constant__ int cnf_ch;                    // Number of filter freqs
+__device__ __constant__ int cnum_stage;
 
 // ATMOSPHERE PARAMETERS
-__constant__ float ch_column;               // Column height
-__constant__ float cv_wind;                 // Windspeed
-__constant__ float cpwv0;
-__constant__ float cpwv_slope;
+__device__ __constant__ float ch_column;               // Column height
+__device__ __constant__ float cv_wind;                 // Windspeed
+__device__ __constant__ float cpwv0;
+__device__ __constant__ float cpwv_slope;
 
 // CONSTANTS FOR KERNEL LAUNCHES
 #define NTHREADS1D      512
@@ -180,32 +179,20 @@ void time_wrt_to(
   @param source CuSource object containing source definitions.
   @param atmosphere CuAtmosphere object containing atmosphere parameters.
   @param nTimes number of time evaluations in simulation.
-
-  @return BT Array of two dim3 objects, containing number of blocks per grid and number of threads per block.
+  @param num_stage Number of stages in radiative transfer cascade.
  */
 __host__ 
 void initCUDA(
         Instrument *instrument, 
-        Telescope *telescope, 
-        Source *source, 
         Atmosphere *atmosphere, 
         int nTimes,
         int num_stage
         ) 
 {
-    float dt = 1. / instrument->f_sample;
     float GR_factor = 2 * instrument->delta / instrument->eta_pb;
-    float sqrt_samp = sqrtf(0.5 / dt); // Constant term needed for noise calculation
+    float sqrt_samp = sqrtf(0.5 * instrument->f_sample); // Constant term needed for noise calculation
 
     // OBSERVATION-INSTRUMENT PARAMETERS
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                cdt, 
-                &dt, 
-                sizeof(float)
-                ) 
-            );
-    
     gpuErrchk( 
             cudaMemcpyToSymbol(
                 cf_sample, 
@@ -407,7 +394,7 @@ void calc_traces_rng(
         float az_point, el_point;
         float x_point, y_point;
                                                                                      
-        time_point = idx * cdt;
+        time_point = idx / cf_sample;
 
         az_point = az_scan[idx + idx_offset] + az_fpa;
         el_point = el_scan[idx + idx_offset] + el_fpa;
@@ -522,25 +509,25 @@ void calc_power(
         bool offsource = ((temp1 < az_src.start) || (temp1 > az_src_max)) || 
                          ((temp2 < el_src.start) || (temp2 > el_src_max));
 
-        // This can be improved quite alot...
         if(offsource) 
         {
-            temp1 = az_src_max;
-            temp2 = el_src_max;
+            psd_nu = 0.;
         }
         
-        x0y0 = f_src.num * (iaz + iel * az_src.num);
-        x1y0 = f_src.num * (iaz + 1 + iel * az_src.num);
-        x0y1 = f_src.num * (iaz + (iel+1) * az_src.num);
-        x1y1 = f_src.num * (iaz + 1 + (iel+1) * az_src.num);
-        
-        t = (temp1 - (az_src.start + az_src.step*iaz)) / az_src.step;
-        u = (temp2 - (el_src.start + el_src.step*iel)) / el_src.step;
-        
-        psd_nu = (1-t)*(1-u) * source[x0y0 + idy];
-        psd_nu += t*(1-u) * source[x1y0 + idy];
-        psd_nu += (1-t)*u * source[x0y1 + idy];
-        psd_nu += t*u * source[x1y1 + idy];
+        else {
+            x0y0 = f_src.num * (iaz + iel * az_src.num);
+            x1y0 = f_src.num * (iaz + 1 + iel * az_src.num);
+            x0y1 = f_src.num * (iaz + (iel+1) * az_src.num);
+            x1y1 = f_src.num * (iaz + 1 + (iel+1) * az_src.num);
+            
+            t = (temp1 - (az_src.start + az_src.step*iaz)) / az_src.step;
+            u = (temp2 - (el_src.start + el_src.step*iel)) / el_src.step;
+            
+            psd_nu = (1-t)*(1-u) * source[x0y0 + idy];
+            psd_nu += t*(1-u) * source[x1y0 + idy];
+            psd_nu += (1-t)*u * source[x0y1 + idy];
+            psd_nu += t*u * source[x1y1 + idy];
+        }
 
         freq = f_src.start + f_src.step * idy;
 
@@ -563,9 +550,6 @@ void calc_power(
         
         psd_atm_loc = psd_atm[idy];
         psd_cmb_loc = psd_cmb[idy];
-        
-        // Coupling to source
-        psd_in = eta_illum_loc * psd_nu * 0.5 + psd_cmb_loc;
 
         // Calculate blank sky psd for stages involving spillover to sky
         psd_sky = rad_trans(
@@ -573,6 +557,9 @@ void calc_power(
                 eta_atm_interp, 
                 psd_atm_loc
                 );
+        
+        // Coupling to source
+        psd_in = eta_illum_loc * psd_nu * 0.5 + psd_cmb_loc;
         
         // Initial pass through atmosphere
         psd_in = rad_trans(
@@ -598,18 +585,11 @@ void calc_power(
                     );
         }
 
-        temp1 = eta_cascade[cnum_stage*f_src.num + idy];
-        temp2 = psd_cascade[cnum_stage*f_src.num + idy];
-
         #pragma unroll 
         for(int k=0; k<cnf_ch; k++) 
         {
-            eta_kj = filterbank[k*f_src.num + idy] * temp1;
-            psd_in_k = rad_trans(
-                    psd_in, 
-                    eta_kj, 
-                    temp2
-                    );
+            eta_kj = filterbank[k*f_src.num + idy];
+            psd_in_k =  psd_in * eta_kj;
 
             sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
 
@@ -781,8 +761,6 @@ void run_gateau(
     // Initialize constant memory
     initCUDA(
             instrument, 
-            telescope, 
-            source, 
             atmosphere, 
             ntscr, 
             cascade->num_stage

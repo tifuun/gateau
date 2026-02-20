@@ -1,21 +1,20 @@
 /** 
 \page gateaudocs Documentation
-This page contains the software documentation for `Gateau`. 
+This page contains the software documentation for `gateau`. 
 
 \section apiref Public API Reference
-The public API reference contains all public methods of `Gateau`.
-This list acts as a reference for general users and is structured in groups for a better overview.
+The public API reference contains all public methods of `gateau`.
+The API reference is further broken down into two sections.
+The first section contains the references for utility functions used to prepare atmosphere screens and source cubes.
+The second section contains the actual simulator API reference.
 
-\section input_templates Input Dictionary Templates & Datatypes
-This section contains an overview of all dictionaries used in `Gateau` as input.
+\subpage public_api_utils
 
-\subpage public_api_templates
-
-\subpage public_api_types
+\subpage public_api_simulator
 
 \section fulldocs Full Software Documentation
-This page contains the entire documented source code, including the GUI source code. 
-It is mostly aimed towards developers wanting to work on `PyPO` and/or the GUI.
+This page contains the entire documented source code. 
+It is mostly aimed towards developers wanting to work on `gateau`.
 
 [Full software documentation](files.html)
 */

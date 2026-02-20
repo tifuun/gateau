@@ -1,3 +1,8 @@
+"""!
+@file cascade.py
+@brief Functionality concerned with setting the radiative transfer cascade.
+"""
+
 import numpy as np
 import os
 import yaml
@@ -5,14 +10,9 @@ import csv
 
 from typing import Union
 
-# constants
-h = 6.62607004 * 10**-34  # Planck constant
-k = 1.38064852 * 10**-23  # Boltzmann constant
-e = 1.60217662 * 10**-19  # electron charge
-c = 299792458.0  # velocity of light
+from scipy.constants import h, k, c
 
 TCMB = 2.725
-
 
 def johnson_nyquist_psd(f_src: np.ndarray, 
                         T: float) -> np.ndarray:
@@ -38,7 +38,7 @@ def window_trans(
     """!
     Calculates the window transmission.
 
-    @param f Frequency. Units: Hz.
+    @param f_src Source frequencies. Units: Hz.
     @param thickness Thickness of the window/lens. Units: m.
     @param tandelta Loss tangent of window/lens dielectric.
     @param neff Refractive index of dielectric. Set to 1 to remove reflections. Units : None.
@@ -81,32 +81,34 @@ def eta_Al_ohmic(f_src: np.ndarray) -> np.ndarray:
     """!
     Calculate Ohmic losses for aluminium over array of sky frequencies.
     
-    @param f_src Numpy array containing source frequencies. Units: GHz
+    @param f_src Numpy array containing source frequencies. Units: Hz
     
     @returns Array with eta values for Ohmic losses.
     """
     
-    eta_Al_ohmic_850 = 0.9975  # Ohmic loss of an Al surface at 850 GHz.
+    eta_Al_ohmic_840 = 0.9975  # Ohmic loss of an Al surface at 840 GHz.
 
-    return 1.0 - (1.0 - eta_Al_ohmic_850) * np.sqrt(f_src / 850e9)
+    return 1.0 - (1.0 - eta_Al_ohmic_840) * np.sqrt(f_src / 840e9)
 
 def sizer(eta: Union[np.ndarray, float], 
            f_src: np.ndarray, 
            f_eta: np.ndarray = None) -> np.ndarray:
     """!
     Resize efficiency term to new size.
-
     Used to vectorize or interpolate on efficiency terms.
-    If efficiency is a scalar, an array is returned with the same size as f_src.
-    If efficiency is an array with different size then f_src, an array containing frequencies at which eta is evaluated should also be passed.
+
+    If eta is a scalar, a constant eta array is returned with the same size as f_src.
+    
+    If eta is an array with eta.size != f_src.size, an array containing frequencies at which eta is evaluated should also be passed.
     A 1D interpolation on f_src is then performed to evaluate eta on f_src.
+    
     If efficiency is array with same size as f_src, it is returned as-is. 
-    Responisibility to verify if the efficiencies are evaluated on the same frequencies as present in f_src is placed on the user.
 
     @param eta Efficiency term of some stage.
-    @param f_src Numpy array containing source frequencies. Units: GHz
-    @param f_eta Numpy array containing frequencies at which eta is evaluated.
-                 Should only be passed when 1D interpolation is required and defaults to None.
+    @param f_src Numpy array containing source frequencies. Units: Hz.
+    @param f_eta Numpy array containing frequencies at which eta is evaluated. Units: Hz.
+                 Should only be passed when 1D interpolation is required in case eta.size != f_src.size.
+                 Defaults to None.
     
     @returns Array with eta values, depending on input (see above).
     """
@@ -124,27 +126,24 @@ def sizer(eta: Union[np.ndarray, float],
         return eta
 
 def read_from_folder(cascade_folder: str,
-                     yaml_name: str = "cascade.yaml"
+                     yaml_name: str
                      ) -> list[dict[any, any]]:
-    """
+    """!
     Generate a cascade list from a cascade folder.
-    The folder should contain a YAML file containing the cascadelist.
-    Any vector-valued efficiency terms should be provided inside the folder as a CSV file, with the first column containing frequencies at which the terms are evaluated and the second column containing the terms themselves.
+    The folder should contain a YAML file containing the cascade list.
+    Any vector-valued efficiency terms should be provided inside the folder as a CSV file, 
+    with the first column containing frequencies at which the terms are evaluated 
+    and the second column containing the terms themselves.
     Then, the CSV can be referenced inside the YAML by passing the CSV name (including .csv) to the `eta_coup` field inside the YAML.
 
-    Parameters
-    ----------
-    cascade_folder
-        String containing path to folder containing cascade YAML and any related CSV files.
+    @param cascade_folder String containing path to folder containing cascade YAML and any related CSV files.
+    @param yaml_name String containing the name of the YAML file containing the cascade.
 
-    yaml_name
-        String containing the name of the YAML file containing the cascade.
-        Defaults to 'cascade.yaml'.
-
-    Returns
-    ----------
-    List containing the cascade.
+    @returns List containing the cascade.
     """
+
+    if not yaml_name.endswith(".yaml"):
+        yaml_name += ".yaml"
 
     assert(os.path.exists(cascade_folder))
     assert(os.path.exists(yaml_path := os.path.join(cascade_folder, 
@@ -152,7 +151,7 @@ def read_from_folder(cascade_folder: str,
 
     with open(yaml_path) as stream:
         try:
-            cascade_list = yaml.safe_load(stream)
+            cascade_list = yaml.safe_load(stream)["cascade"]
         except yaml.YAMLError as exc:
             print(exc)
 
@@ -176,7 +175,7 @@ def read_from_folder(cascade_folder: str,
 
 def save_cascade(cascade_list: list[dict[any, any]],
                  save_folder: str,
-                 yaml_name: str = "cascade") -> None:
+                 yaml_name: str) -> None:
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
 
@@ -209,26 +208,40 @@ def save_cascade(cascade_list: list[dict[any, any]],
 
 def get_cascade(cascade_list: list[dict[str, any]],
                 f_src: np.ndarray) -> tuple[np.ndarray, 
-                                            np.ndarray]:
+                                           np.ndarray]:
     """!
     Calculate a cascade list, consisting of efficiency and psd per stage.
 
-    @param cascade_list List containing, per element, the efficiency and coupling temperature of each stage in the cascade.
-                        For reflective stages, the dictionary should contain either:
-                            - A single eta and temperature
-                            - A tuple with efficiencies and frequencies at which these are defines, and a temperature
-        
-                        For refractive stages, the dictionary should contain:
-                            - thickness of dielectric in meters, 
-                            - loss tangent, 
-                            - effective refractive index, 
-                            - whether to use AR coating, 
-                            - temperature seen in reflection coming from the ISS, 
-                            - and temperature seen in refraction.
+    @param cascade_list List containing, per element, 
+        a dictionary containing the efficiency and coupling temperature of each stage in the cascade.
+        For reflective stages, the dictionary should contain either:
+            - A single eta and temperature.
+            This requires the following fieldnames in the dictionary: 
+            'eta_coup' (scalar) and 'T_parasitic' (scalar).
+            - A tuple with efficiencies and frequencies at which these are defined, and a temperature.
+            This requires the following fieldnames in the dictionary: 
+            'eta_coup' (2-tuple with Numpy arrays) and 'T_parasitic' (scalar).
+
+        For refractive stages, the dictionary should contain:
+            - Thickness of dielectric in meters, fieldname 'thickness'.
+            - Loss tangent, fieldname 'tandelta'. 
+            - Effective refractive index, fieldname 'neff'.
+            - Whether to use anti-reflective (AR) coating, fieldname 'Window_AR'.
+            - Temperature seen in reflection coming from the antenna, fieldname 'T_parasitic_refl'.
+            - Temperature seen in refraction, fieldname 'T_parasitic_refr'.
+
+        Aside from efficiencies and temperatures, each stage can have a name, set with fieldname 'name'.
+        If multiple subsequent stages couple to the same temperature, they can also be grouped.
+        The efficiencies will be precomposed and a total efficiency is calculated.
+        Then, these multiple stages are merged into a single stage and treated as such.
+        This significantly unburdens the CUDA calculation kernel and should hence be used.
+        The fieldname for grouping is 'groupname'. 
+        Subsequent stages to be grouped together must have the same group name.
 
     @param f_src Array with source frequencies. Units: GHz.
     
-    @returns List with list of arrays containing efficiencies as first element, and list containing arrays of psd as second element. 
+    @returns List with list of arrays containing efficiencies as first element, 
+        and list containing arrays of psd as second element. 
     """
 
     group_list = []
@@ -312,15 +325,3 @@ def get_cascade(cascade_list: list[dict[str, any]],
     
     return all_eta, all_psd, eta_ap, psd_cmb
 
-def average_over_filterbank(array_to_average: np.ndarray, 
-                            filterbank: np.ndarray,
-                            norm: bool = False) -> np.ndarray:
-    if norm:
-        div = np.nansum(filterbank, axis=1)
-    else:
-        div = 1
-    sh_f = filterbank.shape
-    assert array_to_average.size == sh_f[1]
-
-    array_tiled = np.squeeze(array_to_average)[None,:] * filterbank
-    return np.nansum(array_tiled, axis=1) / div

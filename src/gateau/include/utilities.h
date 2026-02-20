@@ -157,18 +157,11 @@ void resp_calibration(
                         );
             }
 
-            temp1 = eta_cascade[num_stage*f_src->num + idy];
-            temp2 = psd_cascade[num_stage*f_src->num + idy];
-
             for(int k=0; k<nf_ch; k++) 
             {
                 eta_kj = filterbank[k*f_src->num + idy];
 
-                psd_in_k = rad_trans(
-                        psd_in, 
-                        eta_kj*temp1, 
-                        temp2
-                        );
+                psd_in_k = psd_in * eta_kj;
 
                 Psky[k*NPWV + idx] += psd_in_k * f_src->step; 
                 eta_atm_smooth[k] += eta_kj * eta_atm_interp;

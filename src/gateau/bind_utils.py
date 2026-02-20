@@ -1,8 +1,7 @@
 """!
 @file
-File containing utility functions for the ctypes bindings.
-
-Most of these functions are concerned with allocating memory.
+@brief File containing utility functions for the ctypes bindings.
+    Most of these functions are concerned with allocating memory.
 """
 from ctypes import Structure, c_float, c_int, c_char_p
 
@@ -35,7 +34,6 @@ def allfillInstrument(InstDict: dict[str, any],
     
     @param InstDict Dictionary containing instrument parameters.
     @param InstStruct Struct to be filled and passed to ctypes.
-    @param ct_t Type of data. Use ctypes.c_double for CPU, ctypes.c_float for GPU.
     """
 
     arr_f_ch = ar.array('f', InstDict["f_ch_arr"].ravel())
@@ -67,7 +65,6 @@ def allfillTelescope(TelDict: dict[str, any],
     
     @param TelDict Dictionary containing telescope parameters.
     @param TelStruct Struct to be filled and passed to ctypes.
-    @param ct_t Type of data. Use ctypes.c_double for CPU, ctypes.c_float for GPU.
     """
     arr_eta_illum = ar.array('f', TelDict["eta_illum"].ravel())
     arr_az_scan = ar.array('f', TelDict["az_scan"].ravel())
@@ -88,7 +85,6 @@ def allfillAtmosphere(AtmDict: dict[str, any],
     
     @param AtmDict Dictionary containing atmosphere parameters.
     @param AtmStruct Struct to be filled and passed to ctypes.
-    @param ct_t Type of data. Use ctypes.c_double for CPU, ctypes.c_float for GPU.
     """
 
     AtmStruct.Tatm = c_float(AtmDict["T_atm"])
@@ -107,7 +103,6 @@ def allfillSource(SourceDict: dict[str, any],
     
     @param SourceDict Dictionary containing source angular extents and intensity maps.
     @param SourceStruct Struct to be filled and passed to ctypes.
-    @param ct_t Type of data. Use ctypes.c_double for CPU, ctypes.c_float for GPU.
     """
     
     arr_I_nu = ar.array('f', SourceDict["I_nu"].ravel())
@@ -119,6 +114,13 @@ def allfillSource(SourceDict: dict[str, any],
     SourceStruct.nI_nu = c_int(SourceDict["I_nu"].size)
 
 def arr2ArrSpec(arr: np.ndarray) -> Structure:
+    """!
+    Convert a regularly spaced Numpy array to an array specification object.
+
+    @param arr Regular Numpy array to convert.
+
+    @returns Array specification object representing arr.
+    """
     arrspec = gstructs.ArrSpec()
     arrspec.start = c_float(arr[0])    
     arrspec.step = c_float(arr[1] - arr[0])    

@@ -1,6 +1,6 @@
 """!
-@file
-This file contains class definitions of the custom logger objects used in TiEMPO2.
+@file custom_logger.py
+@brief This file contains class definitions of the custom logger objects used in gateau.
 """
 
 import sys
@@ -68,6 +68,16 @@ class CustomLogger(object):
         return logger
 
 def parallel_iterator(x, idx_thread):
+    """!
+    Wrapper for tqdm for for-loops contained in pooled functions.
+    Makes sure that only thread 0 prints tqdm progressbar to console.
+    All other threads quitly do their job.
+
+    @param x Array over which to iterate.
+    @param idx_thread Thread index, to determine if progressbar is shown.
+
+    @returns Wrapper for tqdm if idx_thread == 0, else return x itself.
+    """
     return tqdm(x, 
                 ncols=100, 
                 total=x.size, 

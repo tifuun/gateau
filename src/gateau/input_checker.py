@@ -64,7 +64,6 @@ def checkInstrumentDict(instrumentDict):
         instrumentDict["eta_pb"] = gmaterials.Al_NbTiN["eta_pb"]
         instrumentDict["cutoff"] = gmaterials.Al_NbTiN["cutoff"]
 
-
     else:
         errlist.append("material")
 
@@ -76,7 +75,6 @@ def checkInstrumentDict(instrumentDict):
     
     if instrumentDict.get("resonator_type") is None:
         instrumentDict["resonator_type"] = "half-wave"
-
 
     for key in checklist:
         if instrumentDict.get(key) is None:
