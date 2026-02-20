@@ -202,9 +202,11 @@ def save_cascade(cascade_list: list[dict[any, any]],
                 stage_dict[key] = item
 
         cascade_to_write.append(stage_dict)
+    
+    glob_dict = {"cascade":cascade_to_write}
 
     with open(os.path.join(save_folder, f"{yaml_name}.yaml"), 'w') as outfile:
-              yaml.dump(cascade_to_write, outfile)
+              yaml.dump(glob_dict, outfile)
 
 def get_cascade(cascade_list: list[dict[str, any]],
                 f_src: np.ndarray) -> tuple[np.ndarray, 

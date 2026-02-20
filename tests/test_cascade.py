@@ -44,13 +44,15 @@ TESTCASCADE = [
         WINDOW_STAGE_CRYO,
         REFL_STAGE_AMB
         ]
+TESTCASCADENAME = "test"
 
 class TestCascade(unittest.TestCase):
     def test_yaml_write_read(self):
         cascade.save_cascade(TESTCASCADE,
-                             TESTFOLDER)        
+                             TESTFOLDER,
+                             TESTCASCADENAME)        
 
-        test_list = cascade.read_from_folder(TESTFOLDER)
+        test_list = cascade.read_from_folder(TESTFOLDER, TESTCASCADENAME)
 
         for stage_ori, stage_load in zip(TESTCASCADE, test_list):
             for key_ori, item_ori in stage_ori.items():
