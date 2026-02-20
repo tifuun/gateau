@@ -1,0 +1,4 @@
+/**
+\defgroup public_api_simulator Public Simulator Reference
+\brief These simulator functions are used to set up and run simulations in `gateau`. 
+*/

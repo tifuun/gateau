@@ -92,7 +92,7 @@ def prep_atm_ARIS(path_to_aris: str,
     The output screens are stored in a folder named '/prepd/', which is stored in the same folder as the ARIS screens.
     Run this function at least once per ARIS collection/telescope model combination.
         
-    @ingroup public_API_atmosphere
+    @ingroup public_api_utils
     
     @param path_to_aris String containing the path to the folder containing the ARIS screens.
         The path can either be absolute or relative to your working directory.

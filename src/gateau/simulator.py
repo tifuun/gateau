@@ -110,7 +110,7 @@ class simulator(object):
         THis function needs to be called before running a simulation.
         Here, a lot of intermediary user-supplied quantities are converted into quantities used by gateau.
     
-        @ingroup public_API_simulator
+        @ingroup public_api_simulator
 
         @param t_obs Total observation time for simulation, in seconds.
         @param az0 Central azimuth value for the (first) scan pattern, in degrees.
@@ -324,7 +324,7 @@ class simulator(object):
         Run a gateau simulation.
         This is the main routine of gateau and should be called after filling all dictionaries and running the 'initialise' method.
     
-        @ingroup public_API_simulator
+        @ingroup public_api_simulator
         
         @param outname Name of output hdf5 file. If a path, will place output in the path.
             Defaults to 'out', which will place the output in 'out.hdf5' in your working directory.

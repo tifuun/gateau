@@ -79,7 +79,7 @@ def convolve_source_cube(source_cube: np.ndarray,
     Each azimuth-elevation slice in the source cube is then convolved by its respective far-field pattern.
     Run this function at least once per source cube/telescope model combination.
 
-    @ingroup public_API_source
+    @ingroup public_api_utils
     
     @param source_cube 3-dimensional Numpy array containg source.
         Axes represent azimuth, elevation, and source freuencies.
