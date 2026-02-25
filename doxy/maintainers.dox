@@ -13,39 +13,42 @@ It is possible to see all action runs on the actions page:
 
 ### Automated parts: docker image, building, and pages
 
-Building Gateau wheels is done in two steps:
-first, a docker image with all of Gateau's
-build dependencies is built.
-This image contains everything needed to build Gateau,
-from `gcc` to python dependencies.
-It will be able to build Gateau even with no access to the internet.
+We use one docker image for both creating gateau sdists and compiling
+the doxygen documentation.
 This image is uploaded to GHCR (github container registry).
 This is done in the `build-image.yml` github workflow.
 The workflow runs on any push that updates `Dockerfile`
 or the workflow file itself.
 
+Although creating the sdist tarball does not require compiling gateau,
+due to how meson-python works,
+all of the compile-time dependencies need to be present in the image.
+
+We go a step further and include absolutely everything needed to build
+gateau in the container.
+It will succeed in building wheels (compiled distributions)
+even with no internet access.
+We do this for archival purposes.
+
 It is possible to download the built image from the packages page:
 
 - <https://github.com/tifuun/gateau/packages>
 
-The second step is building the Gateau wheel.
-This is done in the `build-wheel.yml` github workflow.
+Building the sdist is done in the `build-sdist.yml` github workflow.
 That workflow downloads the docker image from GHCR and uses
-it to build the wheel.
+it to build the sdist.
 A new release is then automatically created,
-and the built wheel and source archive are attached as release artifacts.
+and the sdist tarball are attached as release artifacts.
 This workflow runs on any git tag starting with `v`.
 
-The built wheels can be downloaded from the releases page:
+The sdist tarballs can be downloaded from the releases page:
 
 - <https://github.com/tifuun/gateau/releases/>
-
 
 Documentation is built automatically using doxygen
 and published to github pages.
 This is done using the `build-doxy.yml` github action,
 which runs on any git tag starting with `v`.
-For simplicity, it runs in the same image that is used to build Gateau.
 The built documentation can be viewed on the pages site:
 
 - <https://tifuun.github.io/gateau/>
@@ -57,18 +60,18 @@ from the "artifacts" section of a specific action's run. For example:
 
 ### Non-automated part: testing and publishing
 
-Testing the wheel and publishing to pypi is not automated.
+Testing the sdist and publishing to pypi is not automated.
 
-#### Testing the wheel
+#### Testing the sdist
 
 1. Start with an environment capable of running Gateau
 	(i.e. as described in README.md)
-2. Download the wheel to be tested from the
+2. Download the sdist to be tested from the
 	[releases page](https://github.com/tifuun/gateau/releases/)
-3. `pip install gateau-x.x.x-cp39.cp310.cp311.cp312.cp313-none-x86_64.whl`
+3. `pip install gateau-x.x.x.tar.gz`
 4. `python -m unittest`
 
-If all tests pass, the wheel is good.
+If all tests pass, the sdist is good.
 
 #### Publishing to pypi
 
@@ -82,7 +85,6 @@ Procedure for publishing to pypi is same as for any other python package.
 ```
 TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx twine upload \
 	--verbose --skip-existing --non-interactive \
-	gateau-x.x.x-cp39.cp310.cp311.cp312.cp313-none-manylinux_2_31_x86_64.whl \
 	gateau-x.x.x.tar.gz
 ```
 - replace `pypi-xxxxxx` with your token.
@@ -111,6 +113,103 @@ because almost nobody does it this way.
 In the absence of a standardized terminology,
 we have decided to call this type of python module a
 "ctypes wrapper module".
+
+## Source distribution
+
+Since version 0.2.3, Gateau is distributed as an
+[sdist](https://pydevtools.com/handbook/reference/sdist/).
+We do this to support a wide variety of target platforms
+and CUDA versions.
+
+Prior to 0.2.3, Gateau was distributed as a compiled wheel,
+which links against hdf5 and libgsl statically,
+and libcufft dynamically.
+We decided to abandon this approach when
+we realised that there are multiple versions of libcufft
+that we have to support.
+
+`pip` is not smart enough to probe versions of specific libraries
+(other than the standard c library) before installing a package.
+So even if we built multiple versions of Gateau for multiple versions
+of libcufft,
+the user would still need to manually check which versions of libcufft
+they have and choose the corresponding version of gateau.
+This is a pain in the neck for the user.
+Or, more precisely, it is a
+bigger pain in the neck than `apt-get`ting a few build dependencies
+before `pip install`ing gateau.
+
+Moreover, we realised that same CUDA toolkit version
+can have different libcufft versions depending on who
+packaged it.
+
+For example, CUDA 11.8 on Ubuntu 20.04 via Nvidia's packages
+pulls in libcufft version 11
+
+```
+root@gateau-dev:/play# apt-cache depends --recurse --no-recommends --no-suggests cuda-toolkit-11-8=11.8.* | grep 'Depends: libcufft'
+  Depends: libcufft-11-8
+  Depends: libcufft-dev-11-8
+  Depends: libcufft-11-8
+```
+
+# Debian bookworm cuda 11.8 native pacakges
+
+```
+root@370931ca2407:/# sed -i 's/main/main non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources
+root@370931ca2407:/# apt update
+...
+root@370931ca2407:/# apt-cache depends --recurse  nvidia-cuda-toolkit=11.8.* | grep 'Depends: libcufft'
+  Depends: libcufft10
+  Depends: libcufftw10
+  Depends: libcufft10
+```
+
+------
+
+
+on dev container
+
+root@gateau-dev:/play# apt-cache depends --recurse cuda-toolkit-11-8=11.8.* | grep 'cufft'
+  Depends: libcufft-11-8
+  Depends: libcufft-dev-11-8
+libcufft-11-8
+libcufft-dev-11-8
+  Depends: libcufft-11-8
+  Depends: libcufft10
+  Depends: libcufftw10
+libcufft10
+libcufftw10
+  Depends: libcufft10
+root@gateau-dev:/play# apt-file list libcufft10      
+libcufft10: /usr/lib/x86_64-linux-gnu/libcufft.so.10
+libcufft10: /usr/lib/x86_64-linux-gnu/libcufft.so.10.1.1.243
+libcufft10: /usr/share/doc/libcufft10/changelog.Debian.gz
+libcufft10: /usr/share/doc/libcufft10/copyright
+libcufft10: /usr/share/lintian/overrides/libcufft10
+
+
+
+on debian bookworm 
+
+
+-------
+
+
+
+For example,
+on Debian Bookworm, the `nvidia-cuda-toolkit` version 11.8
+ends up installing 
+`libcufft.so.10`
+(via the dependency chain
+[nvidia-cuda-toolkit](https://packages.debian.org/bookworm/nvidia-cuda-toolkit)
+->
+[nvidia-cuda-dev](https://packages.debian.org/bookworm/nvidia-cuda-dev)
+->
+[libcufft10](https://packages.debian.org/bookworm/libcufft10)
+).
+However,
+on ubuntu 20.04
 
 ## Building Gateau: Editable install for development
 \anchor dev-install
