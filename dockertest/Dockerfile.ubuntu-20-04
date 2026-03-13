@@ -1,17 +1,6 @@
-FROM ubuntu:20.04
+FROM gateau-ubuntu-20-04-base
 
-ARG DEBIAN_FRONTEND=noninteractive
 ARG CUDA_KEYRING_URL=https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.1-1_all.deb
-
-RUN \
-	apt update && \
-	apt install -y \
-		python3.9 \
-		python3.9-dev \
-		python3.9-venv \
-		wget \
-		&& \
-		:
 
 RUN \
 	wget "${CUDA_KEYRING_URL}" && \
@@ -28,14 +17,8 @@ RUN \
 		&& \
 	:
 
+RUN apt-get -y install gcc g++ pkg-config libgsl-dev libhdf5-dev
+
 ENV PATH=/usr/local/cuda/bin:${PATH}
-
-RUN \
-	python3.9 -m venv /venv && \
-	. /venv/bin/activate && \
-	pip install pip-tools && \
-	:
-
-WORKDIR /app
 
 

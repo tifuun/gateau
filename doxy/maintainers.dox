@@ -13,39 +13,42 @@ It is possible to see all action runs on the actions page:
 
 ### Automated parts: docker image, building, and pages
 
-Building Gateau wheels is done in two steps:
-first, a docker image with all of Gateau's
-build dependencies is built.
-This image contains everything needed to build Gateau,
-from `gcc` to python dependencies.
-It will be able to build Gateau even with no access to the internet.
+We use one docker image for both creating gateau sdists and compiling
+the doxygen documentation.
 This image is uploaded to GHCR (github container registry).
 This is done in the `build-image.yml` github workflow.
 The workflow runs on any push that updates `Dockerfile`
 or the workflow file itself.
 
+Although creating the sdist tarball does not require compiling gateau,
+due to how meson-python works,
+all of the compile-time dependencies need to be present in the image.
+
+We go a step further and include absolutely everything needed to build
+gateau in the container.
+It will succeed in building wheels (compiled distributions)
+even with no internet access.
+We do this for archival purposes.
+
 It is possible to download the built image from the packages page:
 
 - <https://github.com/tifuun/gateau/packages>
 
-The second step is building the Gateau wheel.
-This is done in the `build-wheel.yml` github workflow.
+Building the sdist is done in the `build-sdist.yml` github workflow.
 That workflow downloads the docker image from GHCR and uses
-it to build the wheel.
+it to build the sdist.
 A new release is then automatically created,
-and the built wheel and source archive are attached as release artifacts.
+and the sdist tarball are attached as release artifacts.
 This workflow runs on any git tag starting with `v`.
 
-The built wheels can be downloaded from the releases page:
+The sdist tarballs can be downloaded from the releases page:
 
 - <https://github.com/tifuun/gateau/releases/>
-
 
 Documentation is built automatically using doxygen
 and published to github pages.
 This is done using the `build-doxy.yml` github action,
 which runs on any git tag starting with `v`.
-For simplicity, it runs in the same image that is used to build Gateau.
 The built documentation can be viewed on the pages site:
 
 - <https://tifuun.github.io/gateau/>
@@ -57,18 +60,19 @@ from the "artifacts" section of a specific action's run. For example:
 
 ### Non-automated part: testing and publishing
 
-Testing the wheel and publishing to pypi is not automated.
+Testing the sdist and publishing to pypi is not automated and has to be
+done manually.
 
-#### Testing the wheel
+#### Testing the sdist
 
 1. Start with an environment capable of running Gateau
 	(i.e. as described in README.md)
-2. Download the wheel to be tested from the
+2. Download the sdist to be tested from the
 	[releases page](https://github.com/tifuun/gateau/releases/)
-3. `pip install gateau-x.x.x-cp39.cp310.cp311.cp312.cp313-none-x86_64.whl`
+3. `pip install gateau-x.x.x.tar.gz`
 4. `python -m unittest`
 
-If all tests pass, the wheel is good.
+If all tests pass, the sdist is good.
 
 #### Publishing to pypi
 
@@ -82,7 +86,6 @@ Procedure for publishing to pypi is same as for any other python package.
 ```
 TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-xxxxxxx twine upload \
 	--verbose --skip-existing --non-interactive \
-	gateau-x.x.x-cp39.cp310.cp311.cp312.cp313-none-manylinux_2_31_x86_64.whl \
 	gateau-x.x.x.tar.gz
 ```
 - replace `pypi-xxxxxx` with your token.
@@ -112,6 +115,37 @@ In the absence of a standardized terminology,
 we have decided to call this type of python module a
 "ctypes wrapper module".
 
+## Source distribution
+
+Since version 0.2.3, Gateau is distributed as an
+[sdist](https://pydevtools.com/handbook/reference/sdist/).
+We do this to support a wide variety of target platforms
+and CUDA versions.
+
+Prior to 0.2.3, Gateau was distributed as a compiled wheel,
+which links against hdf5 and libgsl statically,
+and libcufft dynamically.
+We decided to abandon this approach when
+we realised that there are multiple versions of libcufft
+that we have to support.
+
+`pip` is not smart enough to probe versions of specific libraries
+(other than the standard c library) before installing a package.
+So even if we built multiple versions of Gateau for multiple versions
+of libcufft,
+the user would still need to manually check which versions of libcufft
+they have and choose the corresponding version of gateau.
+This is a pain in the neck for the user.
+Or, more precisely, it is a
+bigger pain in the neck than `apt-get`ting a few build dependencies
+before `pip install`ing gateau.
+
+The git tag `cuda-static-deadend` contains a meson.build file
+which successfully produces gateau wheels with static libcufft
+that function correctly regardless of the system's libcufft version.
+However, these wheels are illegal to distribute due to license
+incompatibility.
+
 ## Building Gateau: Editable install for development
 \anchor dev-install
 
@@ -129,8 +163,8 @@ CUDA is required to build and run Gateau.
 This can be installed from
 [NVIDIA's website](https://developer.nvidia.com/cuda-downloads).
 All minor versions of CUDA 11 and CUDA 12 _should_ work,
-but if you don't know which to choose, go with 11.1
-(because that's what we use to build Gateau).
+but if you don't know which to choose, go with 12.3
+(because that's what we use for Gateau).
 
 The entire CUDA toolchain is quite large (~7GB).
 If you only want to build gateau without running it,
@@ -142,16 +176,16 @@ To do this, follow the `deb (network)` (or equivalent for your distro)
 steps on the CUDA website, but, instead of running
 
 ```
-sudo apt-get -y install cuda-toolkit-11-1
+sudo apt-get -y install cuda-toolkit-12-3
 ```
 
 run
 
 ```
 sudo apt-get -y install \
-	cuda-nvcc-11-1 \
-	libcufft-dev-11-1 \
-	libcurand-dev-11-1
+	cuda-nvcc-12-3 \
+	libcufft-dev-12-3 \
+	libcurand-dev-12-3
 ```
 
 
@@ -180,113 +214,6 @@ Build caches is stored in the `build` directory
 in the project root.
 It is safe to delete.
 
-## Building Gateau: Wheels for Publishing
-\anchor release-install
-
-Python wheels should link their dependencies statically.
-Moreover, in order to link static dependencies into the shared
-`libgateau.so` object, they need to have position-independent code.
-Thus, before building the Gateau wheel, you need
-to first have static position-independent
-versions of the two dependencies:
-
-- [hdf5](https://github.com/HDFGroup/hdf5)
-- [gsl](https://www.gnu.org/software/gsl/)
-
-If the above makes no sense to you, please read \ref appendix_a.
-
-It is unlikely that you will find static builds in your package manager.
-It is even less likely thet you will find static position-independent
-builds in your package manager.
-Therefore, you will either need to compile
-them yourself,
-or use the prebuilt packages provided
-[here](https://github.com/stratal-systems/ubuntu-20-04-packages/releases) (ubuntu 20.04),
-or [here](https://github.com/stratal-systems/debian-packages/releases/tag/v2-2) (debian bookworm).
-If you decide to compile them yourself,
-you are welcome to use the makefiles
-(
-[gsl](https://github.com/stratal-systems/debian-packages/blob/main/pkg/libgsl-static-pic/debian/rules);
-[hdf5](https://github.com/stratal-systems/debian-packages/blob/main/pkg/libhdf5-static-pic/debian/rules)
-)
-as inspiration.
-
-### Building the wheel
-
-Once you have obtained static position-independent builds of the
-dependencies,
-you can build the wheel with the python `build` module:
-
-```
-python -m build
-```
-
-The built wheel and source archive will be in the `dist` directory.
-Our `meson.build` file will detect that you are
-building a wheel and automatically switch to looking
-for static versions of the dependencies.
-
-Keep in mind that meson will discard all uncommitted changes
-when building wheels.
-Therefore, `git commit` your changes before building the wheel.
-
-### Renaming the wheel
-
-Python wheels need to have
-[very specific filenames](https://packaging.python.org/en/latest/specifications/binary-distribution-format/#file-name-convention).
-`build` does not make the correct filename.
-Therefore, before uploading to PyPI,
-you need to rename the wheel.
-
-The wheel filename produced by `build` looks like this:
-
-```
-gateau-0.1.6-py3-none-any.whl
-```
-
-The correct filename should look like this:
-
-```
-gateau-0.1.6-cp39.cp310.cp311.cp312.cp313-none-manylinux_2_31_x86_64.whl
-```
-
-Here, `2_31` are the major and minor version of GLIBC used to build
-gateau. You can find these by running `ldd --version`.
-You can rename the file by hand or use the provided
-`./scripts/wheelrename.py` script which does this automatically.
-
-## Manually controlling static vs dynamic linking
-\anchor static-v-dynamic
-
-Gateau's `meson.build` file is written such that
-when running `pip install` (i.e. for development purposes),
-meson looks for dynamic versions of gsl and hdf5;
-and when running `python -m build` (i.e. to build wheel
-for distribution), meson looks for static versions.
-
-This is what you want most of the time, but not always.
-In order to force either static or dynamic
-versions of each dependency,
-you can use the `gsl_static` and `gsl_dynamic`
-features defined in `meson.options`.
-
-You can pass custom values to these options through either `pip` or `build`.
-So for example to build a wheel that explicitly links hdf5 dynamically:
-
-```
-python -m build --config-setting=setup-args=-Dhdf5_static=disabled
-```
-
-And if you want to install in editable mode while compiling `libgateau.so`
-to link gsl statically:
-
-```
-python -m pip install -e . --config-setting=setup-args=-Dgsl_static=enabled
-```
-
-If you think that setting a single option by passing a command line
-flag that somehow contains three separate equals signs is absolutely
-insane syntax: we agree.
 
 ## Windows
 
@@ -340,135 +267,6 @@ or
 ```
 pip install build
 ```
-
-### non-PIC hdf5
-\anchor non-pic-hdf5
-
-When trying to compile gateau wheel:
-
-```
-FAILED: libgateau.so 
-nvcc  -o libgateau.so libgateau.so.p/src_gateau_cuda_kernels.cu.o '-Xcompiler=-Wl\,-O1' -shared 
--Xcompiler=-fPIC '-Xcompiler=-Wl\,-soname\,libgateau.so' -cudart static -Xlinker=/usr/local/cuda
-/targets/x86_64-linux/lib/libcufft.so /usr/lib/libgsl.a /usr/lib/libgslcblas.a -lm /usr/lib/x86_
-64-linux-gnu/hdf5/serial/libhdf5_hl.a /usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.a
-/usr/bin/ld: /usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.a(H5HFsection.o): warning: relocation
- against `H5E_CANTREVIVE_g' in read-only section `.text'
-/usr/bin/ld: /usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.a(H5CX.o): relocation R_X86_64_PC32 a
-gainst symbol `H5CX_init_g' can not be used when making a shared object; recompile with -fPIC
-/usr/bin/ld: final link failed: bad value
-collect2: error: ld returned 1 exit status
-ninja: build stopped: subcommand failed.
-
-ERROR Backend subprocess exited when trying to invoke build_wheel
-```
-
-#### Cause
-
-This happens when you have a static but NOT position-independent
-build of hdf5 and you're trying to build `libgateau.so`
-with static hdf5.
-This can happen if you installed hdf5 from Debian repositories,
-for example.
-
-#### Solution
-
-You can uninstall your current version of `hdf5` and replace it
-with one that is BOTH static AND position-independent.
-Or you can tell meson to link again hdf5 dynamically.
-Building Gateau with a static but NOT position-independent
-hdf5 is impossible (see \ref appendix-a).
-
-### Conflict with system hdf5
-
-When installing hdf5 through STRATAL SYSTEMS deb package
-(see \ref release-install):
-
-```
-Selecting previously unselected package libhdf5-static-pic.
-(Reading database ... 49515 files and directories currently installed.)
-Preparing to unpack .../libhdf5-static-pic_2.0.0_amd64.deb ...
-Unpacking libhdf5-static-pic (2.0.0) ...
-dpkg: error processing archive ../libhdf5-static-pic_2.0.0_amd64.deb (--install):
- trying to overwrite '/usr/bin/h5c++', which is also in package hdf5-helpers 1.10.8+repack1-1
-dpkg-deb: error: paste subprocess was killed by signal (Broken pipe)
-Errors were encountered while processing:
- ../libhdf5-static-pic_2.0.0_amd64.deb
-```
-
-#### Solution
-
-Uninstall the system hdf5 packages before installing the deb:
-```
-apt purge hdf5-tools libhdf5-dev  hdf5-helpers
-```
-
-## Appendix A: Static versus Dynamic linking
-\anchor appendix_a
-
-This is an explanation of static versus dynamic linking in the context of
-Gateau, because it is something not very obvious (at least to me).
-
-Static linking means dependencies of a program are embedded directly
-into the program.
-Dynamic linking means the dependencies are excluded from the program,
-and instead located on-the-fly when the program runs.
-
-Dependencies that can be linked dynamically at runtime
-have `.so` (short for "Shared Object") file extension.
-They need to be present on both the machine compiling the program
-and running the program.
-
-Dependencies that can be linked statically at compile time
-have `.a` (short for "Archive") file extension.
-They need to be present on the machine compiling the program,
-but not necessarily on the machine running the program.
-
-Due to the nature of how `ctypes` works,
-the compiled part of Gateau (`libgateau.so`)
-MUST be a shared object (`.so`).
-It cannot be a static archive (`.a`).
-
-The compiled dependencies of Gateau (gsl and hdf5)
-may be linked into `libgateau.so` either statically or dynamically.
-In order to be linked dynamically,
-the dependencies themselves must be shared objects (`.so`).
-This is what you usually get from package managers.
-Therefore, Gateau uses dynamic linking by default when installing
-for development use (see \ref dev-install).
-This can be changed (see \ref static-v-dynamic).
-
-In order to be linked statically,
-the dependencies themselves must be `.a` static archives.
-They must ALSO be compiled as position-independent code
-(with the `-fPIC` flag in GCC).
-People installing Gateau from PyPI may not have gsl and hdf5 installed,
-which is why Gateau uses static linking when building wheels
-(see \ref release-install).
-This can be changed (see \ref static-v-dynamic).
-
-Libraries can also be compiled as `.a` static archives with
-_non_-position-independent code.
-This means they can be linked statically into other static libraries
-or programs.
-But they may not be linked statically into shared objects.
-Because `libgateau.so` is by nature a shared object,
-static non-position-independent libraries are useless in
-the context of Gateau.
-
-For example, the Debian Bookworm package `libhdf5-dev` provides
-both shared object and static archive versions of hdf5.
-However, the static archive files are NOT position-independent.
-This is why \ref non-pic-hdf5 happens: Meson wants static hdf5.
-Meson sees `libhdf5.a`, thinks "is static, all good",
-and hands it off to GCC.
-GCC realizes that even though it is static, it is not position-independent,
-and complains loudly.
-
-### Instead of bothering with static linking, why not just bundle the Shared Object dependencies as separate files like many Linux video games and AppImages do?
-
-Because I didn't think of it earlier.
-Хорошая мысля приходит опосля.
 
 
 

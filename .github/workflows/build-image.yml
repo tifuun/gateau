@@ -5,10 +5,8 @@ on:
     paths:
       - Dockerfile
       - .github/workflows/build-image.yml
-    # This is needed to prevent it from ALSO running
-    # on tagged commits that don't update the dockerfile or workflow
     branches:
-      - '**'
+      - 'main'
 
 permissions:
   contents: read
