@@ -4,7 +4,7 @@
 
 Welcome to the `gateau` Github repository:
 the GPU-Accelerated Time-dEpendent observAtion simUlator! 
-This is the end-to-end simulator for TIFUUn observations,
+This is the end-to-end simulator for TIFUUN observations,
 and is currently still in progress.
 For more info, please see
 [the documentation pages](https://tifuun.github.io/gateau/)
