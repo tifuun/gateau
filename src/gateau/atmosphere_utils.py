@@ -116,6 +116,13 @@ def prep_atm_ARIS(path_to_aris: str,
     chunks_screen_files = np.array_split(screen_files, num_threads)
     chunk_idxs = np.arange(0, num_threads)
 
+    #file_to_read_constants = np.genfromtxt(os.path.join(path_to_aris, screen_files[0]), comments=None, dtype=str, delimiter=None)
+    #for line in file_to_read_constants:
+    #    print(line)
+    #    if True:
+    #        break
+    #    #if "PIXEL SIZE" in line:
+
     args = zip(chunks_screen_files, chunk_idxs)
 
     # We now calculate sigma of Gaussian.
