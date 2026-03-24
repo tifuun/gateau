@@ -14,33 +14,93 @@ These improvements are:
 - Enhanced structure, tests and code documentation, facilitating smooth future development.
 - More elaborate scanning strategies, allowing for the simulation of extended celestial sources.
 
-\section install Installation
+## Installation
+
+### Installing CUDA
+CUDA is an API, developed by NVIDIA, to harness the computing power of a
+graphics processing unit (GPU) for general purpose computing. It provides
+access to the GPU's instruction set through common high-level programming
+languages, such as C and C++.
+
+`gateau` uses CUDA for calculations, and hence must be installed in order to
+use `gateau`.
+It can be
+[installed from source](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/)
+or using a
+[package manager](https://linuxconfig.org/how-to-install-cuda-on-ubuntu-20-04-focal-fossa-linux).
+`gateau` has been tested on both CUDA version 11 and 12, so please stick to
+these versions. Error-free performance on other versions is NOT guaranteed.
+
+Even though `gateau` was exclusively developed on a [GTX 1650
+Mobile](https://www.techpowerup.com/gpu-specs/geforce-gtx-1650-mobile.c3367),
+which is nowhere near impressive by today's standards, it is probably a good
+idea to use `gateau` on GPU's that meet or exceed the specs of this particular
+card.
+
+### Installing dependencies
+
+Since version 0.2.3, Gateau is distributed as an
+[sdist](https://pydevtools.com/handbook/reference/sdist/).
+This means there are a few dependencies, besides CUDA,
+that you need to set up
+before installing Gateau:
+
+- [HDF5](https://github.com/HDFGroup/hdf5)
+    (with development headers)
+- [GNU Scientific Library](https://www.gnu.org/software/gsl/)
+    (with development headers)
+- [GNU Compiler Collection](https://gcc.gnu.org/)
+- [GNU G++ Compiler](https://gcc.gnu.org/projects/cxx-status.html)
+
+These depenencies need to be installed in a way that is discoverable
+by Meson (e.g. via [pkg-config](https://en.wikipedia.org/wiki/Pkg-config)).
+
+On Debian and Ubuntu, all of these dependencies can be installed
+using the package manager:
+
+```sh
+sudo apt-get -y install gcc g++ pkg-config libgsl-dev libhdf5-dev
+```
+
+### Installing gateau
 
 Gateau is available from [pypi](https://pypi.org/project/gateau/).
 You can install it like any other python package:
 
-```
+```sh
 pip install gateau
 ```
 
-\section platforms Supported Platforms
+The installation can be verified by
+launching the `gateau` module from your shell:
+
+```sh
+python -m gateau
+```
+
+or by running the `selftest()` method from within python:
+
+```python
+import gateau
+gateau.selftest()
+```
+
+When installed correctly, the test should run without issues.
+
+In both cases, please make sure
+you are running in the same Python environment as you used
+to install the gateau package.
+
+
+### Supported Platforms
 
 We currently only support Linux with GNU libc
 (known as `manylinux` in the Python world).
-We do not ship wheels for other operating systems
-or linuxes with other libc implementations.
-If you want to get gateau working on one of these platforms,
-have a read of [MAINTAINERS.html](./maintainers.html)
+We have tried and failed to port gateau to Windows.
+If you want to get gateau working on other platforms,
+have a read of [MAINTAINERS.md](./MAINTAINERS.md)
 (and please let us know if you're interested in helping
 us get gateau running on other platforms!).
-
-
-`Gateau` can be run on Nvidia GPUs. For this, CUDA 11 or higher needs to be
-installed. There are plenty of resources
-[online](https://duckduckgo.com/?q=install+cuda)
-how to do this. When running the above pip install command, the installer will
-look for a valid CUDA compiler and for valid runtime libraries. When found, the
-CUDA libraries for `Gateau` are compiled.
 
 
 \section faq_main Frequently Asked Questions

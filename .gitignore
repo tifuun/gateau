@@ -115,7 +115,7 @@ gateau_test
 gateau_tests
 gsl
 
-archive/**
+#archive/**
 !archive/*/
 !archive/**/*.tar.gz
 !archive/**/*.whl
