@@ -4,6 +4,7 @@
   <navindex>
     <tab type="mainpage" visible="yes" title=""/>
     <!--<tab type="pages" visible="no" title="" intro=""/>-->
+    <tab type="user" url="@ref input_dicts" visible="yes" title="Input Dictionary Reference"/>
     <tab type="user" url="@ref design" visible="yes" title="Design Philosophy"/>
     <tab type="user" url="@ref demos" visible="yes" title="Demonstrations"/>
     <tab type="user" url="@ref faq" visible="yes" title="Frequently Asked Questions"/>

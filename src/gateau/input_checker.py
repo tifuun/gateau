@@ -8,6 +8,10 @@ Apart from checking, the functions also set default parameters that are not give
 import numpy as np
 import gateau.materials as gmaterials
 
+TATM = 273
+VWIND = 10
+HCOLUMN = 1500
+
 def checkTelescopeDict(telescopeDict):
     checklist = ["eta_taper"]#, "az_scan", "el_scan"]
 
@@ -84,12 +88,24 @@ def checkInstrumentDict(instrumentDict):
     return errlist
 
 def checkAtmosphereDict(atmosphereDict):
-    checklist = ["T_atm", "path", "dx", "dy", "h_column", "v_wind", "PWV0"]
+    checklist = ["path", "dx", "dy"]
 
     errlist = []
+
+    if atmosphereDict.get("T_atm") is None:
+        atmosphereDict["T_atm"] = TATM
+    
+    if atmosphereDict.get("v_wind") is None:
+        atmosphereDict["v_wind"] = VWIND
+    
+    if atmosphereDict.get("h_column") is None:
+        atmosphereDict["h_column"] = HCOLUMN
+
     if (PWV0 := atmosphereDict.get("PWV0")) is not None:
         if isinstance(PWV0, float) or isinstance(PWV0, int):
             atmosphereDict["PWV0"] = (PWV0, PWV0)
+    else:
+        atmosphereDict["PWV0"] = (1, 1)
 
     for key in checklist:
         if atmosphereDict.get(key) is None:

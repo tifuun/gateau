@@ -950,7 +950,7 @@ INPUT_FILE_ENCODING    =
 # *.vhdl, *.ucf, *.qsf and *.ice.
 
 FILE_PATTERNS          = *.c \
-			 *.cu \
+                         *.cu \
                          *.cc \
                          *.cxx \
                          *.cpp \

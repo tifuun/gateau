@@ -1,5 +1,5 @@
 """!
-@file \_\_main\_\_.py
+@file __main__.py
 @brief Gateau cli entry point (for selftest)
 """
 

@@ -279,9 +279,12 @@ class simulator(object):
         
 
         #### INITIALISING TELESCOPE PARAMETERS ####
-        self.telescope["eta_ruze"] = np.ones(self.source["f_src"].size)
-        if isinstance(self.telescope.get("eta_taper"), float):
-            self.telescope["eta_taper"] *= np.ones(self.source["f_src"].size)
+        self.telescope["eta_ruze"] = np.ones((f_src := self.source["f_src"]).size)
+        if isinstance(eta_t := self.telescope.get("eta_taper"), float):
+            self.telescope["eta_taper"] *= np.ones(f_src.size)
+        
+        elif isinstance(eta_t, tuple):
+            self.telescope["eta_taper"] = gcascade.sizer(eta_t[0], f_src, eta_t[1])
         
         if self.telescope.get("s_rms") is not None:
             self.telescope["s_rms"] *= 1e-6 # Convert um to m

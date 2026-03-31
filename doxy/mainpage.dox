@@ -103,6 +103,11 @@ have a read of [MAINTAINERS.md](./MAINTAINERS.md)
 us get gateau running on other platforms!).
 
 
+\section user_guide Resources For Users
+
+A detailed overview of the `gateau` implementation can be found in the user guide.
+We also provide a comprehensive overview of the input parameters \ref input_dicts here.
+
 \section faq_main Frequently Asked Questions
 
 For common troubleshooting instructions,
