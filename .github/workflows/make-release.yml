@@ -10,7 +10,7 @@ permissions:
   packages: read    # pull image from GHCR
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
 
     container:
