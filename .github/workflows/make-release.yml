@@ -1,4 +1,4 @@
-name: Build sdist and Create Release
+name: Make release and docs
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   packages: read    # pull image from GHCR
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
 
     container:
@@ -34,6 +34,22 @@ jobs:
       - name: List built artifacts (debug)
         run: ls -lah dist
 
+      - name: Generate and Deploy Doxygen Docs
+        run: |
+          set -e
+          rm -rf docs
+          . /venv/bin/activate
+          ./scripts/GenerateDocs.py
+
+      - name: List built docs (debug)
+        run: ls -lah docs
+
+      - name: Make docs tarball
+        run: |
+          set -e
+          tagname=$(git describe --tags --abbrev=0)
+          tar cf - docs | xz > "gateau-docs-${tagname}.tar.xz"
+
       - name: Create GitHub Release and upload artifacts
         uses: softprops/action-gh-release@v2
         with:
@@ -42,6 +58,25 @@ jobs:
           generate_release_notes: true
           files: |
             dist/*.tar.gz
+            gateau-docs-*.tar*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
+
+  pages:
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
