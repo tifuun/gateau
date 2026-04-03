@@ -21,7 +21,7 @@ NCPU = multiprocessing.cpu_count()
 FACTOR_PAD = 3
 
 def convolve_source_cube_pool(args: Tuple[np.ndarray, np.ndarray, int], 
-                              diameter_tel: float, 
+                              radius_tel: float, 
                               az_arr: np.ndarray, 
                               el_arr: np.ndarray,
                               edge_taper: float) -> np.ndarray:
@@ -35,19 +35,17 @@ def convolve_source_cube_pool(args: Tuple[np.ndarray, np.ndarray, int],
     omega_pixel = d_az * d_el * np.cos(el_rad)[None,:]
 
     source_cube, f_src, thread_idx = args
-    Rtel = diameter_tel / 2
 
     lam_arr = scc.c / f_src
     
     source_cube_convolved = np.zeros(source_cube.shape)
 
     for i, lam in enumerate(parallel_iterator(lam_arr, thread_idx)):
-        cval = (np.nanmean(source_cube[:,0,i]) + np.nanmean(source_cube[:,-1,i]) + \
-                np.nanmean(source_cube[0,:,i]) + np.nanmean(source_cube[-1,:,i]))
+        cval = (np.nanmean(source_cube[:,0,i]) + np.nanmean(source_cube[:,-1,i])/4 + \
+                np.nanmean(source_cube[0,:,i]) + np.nanmean(source_cube[-1,:,i]))/4
         
-        ff = ff_from_aperture(az_arr, el_arr, lam, Rtel, edge_taper)
-
-        area_phys = np.pi*Rtel**2
+        ff = ff_from_aperture(az_arr, el_arr, lam, radius_tel, edge_taper)
+        area_phys = np.pi*radius_tel**2
 
         func = partial(moving_sum, ff_pattern=ff)
 
@@ -55,7 +53,12 @@ def convolve_source_cube_pool(args: Tuple[np.ndarray, np.ndarray, int],
                                                   func, 
                                                   size=ff.shape,
                                                   mode="constant",
-                                                  cval=cval)
+                                                  cval=0)
+        #fig, ax = plt.subplots(1,3)
+        #ax[0].imshow(source_cube_convolved[:,:,i])
+        #ax[1].imshow(ff)
+        #ax[2].imshow(source_cube[:,:,i])
+        #plt.show()
     return source_cube_convolved
 
 def moving_sum(source_slice, ff_pattern):

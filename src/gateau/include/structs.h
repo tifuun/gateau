@@ -41,7 +41,6 @@ struct Instrument
     int num_spax; 
     int use_onef;
     float *onef_level;
-    float *onef_conv;
     float *onef_alpha;
 };
 

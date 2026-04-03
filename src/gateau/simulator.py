@@ -258,14 +258,11 @@ class simulator(object):
         if self.instrument["use_onef"]:
             if isinstance(self.instrument["onef_level"], float) or isinstance(self.instrument["onef_level"], int):
                 self.instrument["onef_level"] *= np.ones(self.instrument["nf_ch"])
-            if isinstance(self.instrument["onef_conv"], float) or isinstance(self.instrument["onef_conv"], int):
-                self.instrument["onef_conv"] *= np.ones(self.instrument["nf_ch"])
             if isinstance(self.instrument["onef_alpha"], float) or isinstance(self.instrument["onef_alpha"], int):
                 self.instrument["onef_alpha"] *= np.ones(self.instrument["nf_ch"])
 
         else:
             self.instrument["onef_level"] = np.zeros(self.instrument["nf_ch"])
-            self.instrument["onef_conv"] = np.zeros(self.instrument["nf_ch"])
             self.instrument["onef_alpha"] = np.zeros(self.instrument["nf_ch"])
         
         if self.instrument.get("pointings") is None:
@@ -279,9 +276,12 @@ class simulator(object):
         
 
         #### INITIALISING TELESCOPE PARAMETERS ####
-        self.telescope["eta_ruze"] = np.ones(self.source["f_src"].size)
-        if isinstance(self.telescope.get("eta_taper"), float):
-            self.telescope["eta_taper"] *= np.ones(self.source["f_src"].size)
+        self.telescope["eta_ruze"] = np.ones((f_src := self.source["f_src"]).size)
+        if isinstance(eta_t := self.telescope.get("eta_taper"), float):
+            self.telescope["eta_taper"] *= np.ones(f_src.size)
+        
+        elif isinstance(eta_t, tuple):
+            self.telescope["eta_taper"] = gcascade.sizer(eta_t[0], f_src, eta_t[1])
         
         if self.telescope.get("s_rms") is not None:
             self.telescope["s_rms"] *= 1e-6 # Convert um to m
