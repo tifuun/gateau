@@ -58,9 +58,6 @@ def checkInstrumentDict(instrumentDict):
     if instrumentDict.get("onef_alpha") is None:
         instrumentDict["onef_alpha"] = 1
 
-    if instrumentDict.get("onef_conv") is None:
-        instrumentDict["onef_conv"] = 1
-
     if instrumentDict.get("material") is None:
         instrumentDict["material"] = "Al_NbTiN"
     

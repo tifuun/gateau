@@ -258,14 +258,11 @@ class simulator(object):
         if self.instrument["use_onef"]:
             if isinstance(self.instrument["onef_level"], float) or isinstance(self.instrument["onef_level"], int):
                 self.instrument["onef_level"] *= np.ones(self.instrument["nf_ch"])
-            if isinstance(self.instrument["onef_conv"], float) or isinstance(self.instrument["onef_conv"], int):
-                self.instrument["onef_conv"] *= np.ones(self.instrument["nf_ch"])
             if isinstance(self.instrument["onef_alpha"], float) or isinstance(self.instrument["onef_alpha"], int):
                 self.instrument["onef_alpha"] *= np.ones(self.instrument["nf_ch"])
 
         else:
             self.instrument["onef_level"] = np.zeros(self.instrument["nf_ch"])
-            self.instrument["onef_conv"] = np.zeros(self.instrument["nf_ch"])
             self.instrument["onef_alpha"] = np.zeros(self.instrument["nf_ch"])
         
         if self.instrument.get("pointings") is None:

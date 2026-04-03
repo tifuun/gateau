@@ -23,7 +23,7 @@ If a parameter has a default value, it automatically implies that parameter is o
 | "dx" | \f$\Delta x\f$ | Size of pixel in atmosphere screen along \f$x\f$-axis | float | 0.2 | \f$\mathbb{R}^+\f$ | m |
 | "dy" | \f$\Delta y\f$ | Size of pixel in atmosphere screen along \f$y\f$-axis | float | 0.2 | \f$\mathbb{R}^+\f$ | m |
 | "h_column" | \f$h_\mathrm{column}\f$ | Height of atmospheric column above telescope | float | 1500 | \f$\mathbb{R}^+\f$ | m |
-| "v_wind" | \f$v_\mathrm{w}\f$ | Windspeed along azimuth direction | float | 10 | [0,\f$\infty\f$) | m s\f$^{-1}\f$ |
+| "v_wind" | \f$v_\mathrm{w}\f$ | Windspeed along azimuth direction | float | 10 | \f$\mathbb{R}_{\geq 0}\f$ | m s\f$^{-1}\f$ |
 | "PWV0" | PWV\f$_0\f$ | Average PWV around which fluctuations are added. If a linear gradient throughout the observation is desired,<br>supply a 2-tuple (PWV\f$_\mathrm{start}\f$, PWV\f$_\mathrm{end}\f$) and `gateau` will interpolate between these two values | float, 2-tuple | 1 | [0.1,5.5]  | mm |
 | "T_atm" | \f$T_\mathrm{atm}\f$ | Physical temperature of atmosphere | float | 273 | \f$\mathbb{R}^+\f$ | K |
 
@@ -47,8 +47,22 @@ If a parameter has a default value, it automatically implies that parameter is o
 | "radius" | \f$R_\mathrm{hex}\f$ | Circumradius of hexagonal spaxel configuration, excluding central spaxel | int | 0 | \f$\mathbb{Z}_{\geq 0}\f$ | # of spaxels |
 | "spacing" | \f$\delta_\mathrm{hex}\f$ | Far-field pointing separation between spaxels along the circumradius | float | 0 | \f$\mathbb{R}_{\geq 0}\f$ | \f$^\circ\f$ |
 
+\section cascdict Cascade Stage Dictionaries
+For the cascade, there are two dictionary types. The reflective stage is described by:
+| Name of field | Symbol | Description | Datatype | Default value | Allowed range | Units |
+|---------------|--------|-------------|----------|---------------|---------------|-------|
+| "eta_coup" | \f$\eta_k\f$ | Fraction of spectral power entering stage \f$k\f$ and transmitted to next stage \f$k+1\f$.<br>If a string, needs to be "Ohmic-Al" to choose Ohmic losses.<br>If \f$\eta_k\f$ is an array defined on some frequencies \f$\nu_\eta\f$, this field should be filled with a 2-tuple \f$(\eta_k, \nu_\eta)\f$ | float, string, 2-tuple | - | [0,1] | - |
+| "T_parasitic" | \f$T_k\f$ | Temperature coupling parasitically to instrument at stage \f$k\f$.<br>If set to the string "atm", `gateau` will let the stage couple to the atmosphere sky signal, without source | float, string | - | \f$\mathbb{R}^+\f$ | K |
 
-
+A refractive stage is defined by the following:
+| Name of field | Symbol | Description | Datatype | Default value | Allowed range | Units |
+|---------------|--------|-------------|----------|---------------|---------------|-------|
+| "thickness" | \f$d\f$ | Thickness of material | float | - | \f$\mathbb{R}^+\f$ | m |
+| "neff" | \f$n\f$ | Effective refractive index of material | float | - | \f$\mathbb{R}^+\f$ | - |
+| "tandelta" | \f$\tan \delta\f$ | Loss tangent of material | float | - | \f$\mathbb{R}^+\f$ | - |
+| "T_parasitic_refl" | - | Temperature of surroundings seen in reflection | float | - | \f$\mathbb{R}^+\f$ | K |
+| "T_parasitic_refr" | - | Temperature of material making up refractive stage | float | - | \f$\mathbb{R}^+\f$ | K |
+| "window_AR" | - | Mimic effect of AR coating by disabling reflections | bool | - | {True, False} | - |
 
 
 

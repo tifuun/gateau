@@ -139,6 +139,15 @@ void writeArray(
     delete[] h_array;
 }
 
+/**
+  Calculate Johnson-Nyquist noise.
+
+  @param T Temperature for noise.
+  @param nu Frequencies in Hz on which noise will be calculated.
+
+  @returns Johnson-Nyquist noise at temperature T, evaluated at frequencies nu.
+ */
+
 __host__ inline 
 float get_jn_noise(
         float T, 
@@ -152,31 +161,12 @@ float get_jn_noise(
 /////// DEVICE FUNCTIONS ////////
 /////////////////////////////////
 
-__device__ __inline__ 
-void time_wrt_to(
-        int thread_index, 
-        int thread_index_select = 0,
-        long long int time_offset = 0
-        )
-{
-    if(thread_index == thread_index_select) 
-    {
-        printf(
-                "Thread %d at time %llu w.r.t. offset\n", 
-                thread_index, 
-                clock64() - time_offset
-                );
-    }
-}
-
 /**
   Initialize CUDA.
  
   Instantiate program and populate constant memory.
  
   @param instrument CuInstrument object containing instrument to be simulated.
-  @param telescope CuTelescope object containing telescope to be simulated.
-  @param source CuSource object containing source definitions.
   @param atmosphere CuAtmosphere object containing atmosphere parameters.
   @param nTimes number of time evaluations in simulation.
   @param num_stage Number of stages in radiative transfer cascade.
@@ -193,89 +183,31 @@ void initCUDA(
     float sqrt_samp = sqrtf(0.5 * instrument->f_sample); // Constant term needed for noise calculation
 
     // OBSERVATION-INSTRUMENT PARAMETERS
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                cf_sample, 
-                &(instrument->f_sample), 
-                sizeof(float)
-                ) 
-            );
-
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                csqrt_samp, 
-                &sqrt_samp, 
-                sizeof(float)
-                ) 
-            );
-
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                cGR_factor, 
-                &GR_factor, 
-                sizeof(float)
-                ) 
-            );
-
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                cnt, 
-                &nTimes, 
-                sizeof(int)
-                ) 
-            );
-
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                cnf_ch, 
-                &(instrument->nf_ch), 
-                sizeof(int)
-                ) 
-            );
-
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                cnum_stage, 
-                &num_stage, 
-                sizeof(int)
-                ) 
-            );
+    gpuErrchk(cudaMemcpyToSymbol(cf_sample, &(instrument->f_sample), sizeof(float)));
+    gpuErrchk(cudaMemcpyToSymbol(csqrt_samp, &sqrt_samp, sizeof(float)));
+    gpuErrchk(cudaMemcpyToSymbol(cGR_factor, &GR_factor, sizeof(float)));
+    gpuErrchk(cudaMemcpyToSymbol(cnt, &nTimes, sizeof(int)));
+    gpuErrchk(cudaMemcpyToSymbol(cnf_ch, &(instrument->nf_ch), sizeof(int)));
+    gpuErrchk(cudaMemcpyToSymbol(cnum_stage, &num_stage, sizeof(int)));
 
     // ATMOSPHERE PARAMETERS
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                ch_column, 
-                &(atmosphere->h_column), 
-                sizeof(float)
-                ) 
-            );
-
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                cv_wind, 
-                &(atmosphere->v_wind), 
-                sizeof(float)
-                ) 
-            );
-
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                cpwv0, 
-                &(atmosphere->pwv0), 
-                sizeof(float)
-                ) 
-            );
-    
-    gpuErrchk( 
-            cudaMemcpyToSymbol(
-                cpwv_slope, 
-                &(atmosphere->pwv_slope), 
-                sizeof(float)
-                ) 
-            );
+    gpuErrchk(cudaMemcpyToSymbol(ch_column, &(atmosphere->h_column), sizeof(float)));
+    gpuErrchk(cudaMemcpyToSymbol(cv_wind, &(atmosphere->v_wind), sizeof(float)));
+    gpuErrchk(cudaMemcpyToSymbol(cpwv0, &(atmosphere->pwv0), sizeof(float)));
+    gpuErrchk(cudaMemcpyToSymbol(cpwv_slope, &(atmosphere->pwv_slope), sizeof(float)));
 }
+///////////////////
+///// KERNELS /////
+///////////////////
 
-// Kernel to convert column-major flattened array to row-major flattened array
+/**
+  Convert column-major flattened array to row-major flattened array
+ 
+  @param out Array to place transposed array.
+  @param in Array to be transposed.
+  @param rows Number of rows.
+  @param cols Number of columns.
+ */
 __global__ 
 void transpose_flat_array(
         float *out, 
@@ -301,8 +233,10 @@ void transpose_flat_array(
 }
 
 /**
-  Initialize random number generator state.
+  Initialize random number generator (RNG) states.
 
+  @param state Array of CUDA RNG states.
+  @param seed Seed for RNG states.
  */
 __global__ 
 void init_random_states(
@@ -327,11 +261,17 @@ void init_random_states(
     }
 }
 
+/**
+  Calculate the PSD of pink noise.
+
+  @param output Array to place output in.
+  @param onef_level Array with pink noise levels per channel.
+  @param onef
+  */
 __global__ 
 void calc_onef_psd(
         cufftComplex *output,
         float *onef_level,
-        float *onef_conv,
         float *onef_alpha,
         curandState *state
         )
@@ -356,7 +296,7 @@ void calc_onef_psd(
 
             for(int k=0; k<cnf_ch; k++) 
             {
-                factor_loc = sqrtf(onef_level[k] / cnt) * onef_conv[k] * powf(factor, onef_alpha[k]/2);
+                factor_loc = sqrtf(onef_level[k] / cnt) * powf(factor, onef_alpha[k]/2);
                 local.x = factor_loc * curand_normal(&localState);
                 local.y = factor_loc * curand_normal(&localState);
                 output[k*(cnt / 2 + 1) + idx] = local;
@@ -1309,7 +1249,7 @@ void run_gateau(
                     blockSize1D = NTHREADS1D;
                     gridSize1D = nBlocks1D*numSMs;
 
-                    float *d_onef_level, *d_onef_conv, *d_onef_alpha;
+                    float *d_onef_level, *d_onef_alpha;
                     gpuErrchk( 
                             cudaMalloc(
                                 (void**)&d_onef_level, 
@@ -1320,21 +1260,6 @@ void run_gateau(
                             cudaMemcpy(
                                 d_onef_level, 
                                 instrument->onef_level, 
-                                nf_ch * sizeof(float), 
-                                cudaMemcpyHostToDevice
-                                ) 
-                            );
-
-                    gpuErrchk( 
-                            cudaMalloc(
-                                (void**)&d_onef_conv, 
-                                nf_ch * sizeof(float)
-                                ) 
-                            );
-                    gpuErrchk( 
-                            cudaMemcpy(
-                                d_onef_conv, 
-                                instrument->onef_conv, 
                                 nf_ch * sizeof(float), 
                                 cudaMemcpyHostToDevice
                                 ) 
@@ -1366,7 +1291,6 @@ void run_gateau(
                     calc_onef_psd<<<gridSize1D, blockSize1D>>>(
                             d_onef_out, 
                             d_onef_level, 
-                            d_onef_conv, 
                             d_onef_alpha,
                             devstates
                             );
@@ -1376,11 +1300,6 @@ void run_gateau(
                     gpuErrchk( 
                             cudaFree(
                                 d_onef_level
-                                ) 
-                            );
-                    gpuErrchk( 
-                            cudaFree(
-                                d_onef_conv
                                 ) 
                             );
                     gpuErrchk( 
@@ -1434,12 +1353,12 @@ void run_gateau(
                 else 
                 {
                     gpuErrchk( 
-                            cudaMemset(
-                                d_sigout, 
-                                0, 
-                                nf_sub_fnt * sizeof(float)
-                                ) 
-                            );
+                        cudaMemset(
+                            d_sigout, 
+                            0, 
+                            nf_sub_fnt * sizeof(float)
+                            ) 
+                        );
                 }
                 
                 gpuErrchk( 
