@@ -306,8 +306,11 @@ void calc_onef_psd(
     }
 }
 
+/**
+  Calculate PWV trace and 
+  */
 __global__ 
-void calc_traces_rng(
+void calc_pwv_trace(
         float *az_scan, 
         float *el_scan,
         float *az_scan_center, 
@@ -1287,7 +1290,8 @@ void run_gateau(
                                 ntscr_h*nf_ch * sizeof(cufftComplex)
                                 ) 
                             );
-
+                    
+                    // KERNEL CALL
                     calc_onef_psd<<<gridSize1D, blockSize1D>>>(
                             d_onef_out, 
                             d_onef_level, 
@@ -1438,7 +1442,7 @@ void run_gateau(
                             ) 
                         );
 
-                calc_traces_rng<<<gridSize1D, blockSize1D>>>(
+                calc_pwv_trace<<<gridSize1D, blockSize1D>>>(
                         d_az_scan,
                         d_el_scan,
                         d_az_scan_center,
@@ -1550,16 +1554,8 @@ void run_gateau(
                             ) 
                         );
 
-                gpuErrchk( 
-                        cudaFree(
-                            d_sigout
-                            ) 
-                        );
-                gpuErrchk( 
-                        cudaFree(
-                            d_sigout_T
-                            ) 
-                        );
+                gpuErrchk(cudaFree(d_sigout));
+                gpuErrchk(cudaFree(d_sigout_T));
 
                 outfile.
                     write_chunk_to_spaxel(
@@ -1572,11 +1568,7 @@ void run_gateau(
                 idx_in_screen += nt_sub_scr_job;
             }
             gpuErrchk( cudaDeviceSynchronize() );
-            gpuErrchk( 
-                    cudaFree(
-                        d_pwv_screen
-                        ) 
-                    );
+            gpuErrchk( cudaFree(d_pwv_screen));
 
             idx_wrap++;
         }
