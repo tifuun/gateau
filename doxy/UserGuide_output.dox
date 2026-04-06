@@ -1,0 +1,41 @@
+/** 
+\page user_guide_output Output Format Reference
+On this page, we explain the format in which `gateau` stores its data. First, we provide a general overview of the data format.
+After that, we will dive a bit deeper into the specific parts of a `gateau` output file.
+
+\section output_overview General Overview
+The output of `gateau` is stored in the HDF5 data format. 
+For each spaxel, a separate group is created in the output file which contains the TODs for each voxel belonging to that spaxel.
+The group also contains extra data that is useful for further reduction and analysis of the data.
+Aside from the spaxel groups, an extra group is created that contains observation attributes, such as timestamps, voxel frequencies, and telescope pointings.
+This group is also meant to facilitate further data reduction and is designed to mimic typical observation output.
+
+The spaxel output itself can either be in units of Watts to represent power detected, or units of Kelvin representing brightness temperature seen.
+For the brightness temperature scale, `gateau` simulates a skydip observation internally.
+A skydip is a technique in millimeter and submillimeter astronomy, where the telescope is 'dipped' from a high elevbation to a low elevation.
+This causes the telescope beam to traverse a smoothly increasig airmass over time, which smoothly increases the brightness temperature seen.
+At the same time, the instrument detector response will smoothly vary over the skydip as well. Then, a relation between detector response and brightness temperature can be drawn up.
+`gateau` does this by smoothly varying the PWV and calculating the corresponding atmosphere spectrum power and brightness temperature. Then, for each PWV value the sky signal is propagated through the optical system with which the simulation was performed.
+We calculate the power entering each KID, which we then associate with the brightness temperature of that PWV value.
+So, instead of varying the airmass by varying the elevation, `gateau` varies the airmass by directly adjusting the PWV.
+Also, whereas the real skydip provides a scale from detector units to brightness temperature, `gateau` provides a scale from power units to brightness temperature.
+
+\section output_obsattrs Observation Attributes Group
+Every `gateau` output file contains an observation attributes group, which can be accessed by the name: `"OBSATTRS"`.
+This returns a group, which contains the following datasets:
+- `"frequencies"`: The channel frequencies for each voxel, in Hz. Size: \f$N_f\f$.
+- `"times"`: Timestamps in seconds. Size: \f$N_t\f$.
+- `"az"`: Azimuth angle of telescope as function of timestamp, in degrees. Size: \f$N_t\f$.
+- `"el"`: Elevation angle of telescope as function of timestamp, in degrees. Size: \f$N_t\f$.
+
+\section output_spaxels Spaxel Groups
+Each spaxel has its own output group. 
+For each spaxel \f$i\in\{0,N_\mathrm{spax}-1\}\f$, its group can be accessed by the name: `"SPAXEL{i}"`.
+As an example, spaxel number 0 can be accessed using the name `"SPAXEL0"`.
+Each spaxelgroup contains the following datasets:
+- `"data"`: The TODs for this spaxel, either in Watts or Kelvin. Shape: \f$N_t \times N_f\f$.
+- `"az_spax"`: Azimuth offset of spaxel w.r.t. telescope broadside, in degrees.
+- `"el_spax"`: Elevation offset of spaxel w.r.t. telescope broadside, in degrees.
+
+*/
+

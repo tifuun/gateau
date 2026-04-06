@@ -1,0 +1,11 @@
+/** 
+\page detailed_user_guide Detailed Descriptions Of `gateau`
+On this page, we provide detailed implementation-specific overviews of each `gateau` component. 
+
+\ref user_guide_inst_tel "Telescope And Instrument Reference"
+
+\ref user_guide_output "Output Format Reference"
+
+\ref input_dicts "Input Dictionary Reference"
+
+*/

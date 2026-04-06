@@ -105,8 +105,9 @@ us get gateau running on other platforms!).
 
 \section user_guide Resources For Users
 
-A detailed overview of the `gateau` implementation can be found in the user guide.
-We also provide a comprehensive overview of the input parameters \ref input_dicts here.
+In the \ref detailed_user_guide "user guide", we provide a detailed overview of the `gateau` implementation.
+This is crucial for using `gateau` to the maximum of its extent.
+We also provide a comprehensive overview of all the input dictionaries required for running `gateau`.
 
 \section faq_main Frequently Asked Questions
 
