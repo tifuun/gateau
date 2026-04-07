@@ -366,9 +366,9 @@ void calc_pwv_trace(
 /**
   Main simulation kernel. This is where the magic happens.
 
-  @param eta_cascade Array containing the transmission efficiency of each stage in the cascadei, including the final filterbank stage.
-  @param psd_cascade Array containing the parasitic power spectral density of each stage in the cascade, including the final filterbank stage.
-  @param num_stages Number of cascade stages, excluding the initial pass of the source signal through the atmosphere and the final filterbank stage.
+  @param eta_cascade Array containing the transmission efficiency of each stage in the cascade.
+  @param psd_cascade Array containing the parasitic power spectral density of each stage in the cascade.
+  @param num_stages Number of cascade stages, excluding the initial pass of the source signal through the atmosphere.
   @param sigout Array for storing output power, for each channel, for each time, in SI units.
   @param azout Array containing Azimuth coordinates as function of time.
   @param elout Array containing Elevation coordinates as function of time.
@@ -393,7 +393,7 @@ void calc_power(
         float *psd_cascade,
         float *psd_cmb,
         float *eta_atm,
-        float *filterbank,
+        float *transmission,
         float *sigout, 
         float *nepout, 
         float *source
@@ -531,7 +531,7 @@ void calc_power(
         #pragma unroll 
         for(int k=0; k<cnf_ch; k++) 
         {
-            eta_kj = filterbank[k*f_src.num + idy];
+            eta_kj = transmission[k*f_src.num + idy];
             psd_in_k =  psd_in * eta_kj;
 
             sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
@@ -943,7 +943,7 @@ void run_gateau(
         {
             for(int j=0; j<f_src.num; j++)
             {
-                eta_kj_sum[k] += instrument->filterbank[k*f_src.num + j];
+                eta_kj_sum[k] += instrument->transmission[k*f_src.num + j];
             }
         }
     
@@ -982,7 +982,7 @@ void run_gateau(
                     cascade->num_stage, 
                     psd_atm.data(), 
                     eta_atm,
-                    instrument->filterbank, 
+                    instrument->transmission, 
                     eta_kj_sum,
                     Psky, 
                     Tsky
@@ -1059,20 +1059,20 @@ void run_gateau(
     delete[] c1;
 
     // Allocate and copy instrument arrays
-    int nfilterbank = nf_src * nf_ch;
+    int ntransmission = nf_src * nf_ch;
     
-    float *d_filterbank;
+    float *d_transmission;
     gpuErrchk( 
             cudaMalloc(
-                (void**)&d_filterbank, 
-                nfilterbank * sizeof(float)
+                (void**)&d_transmission, 
+                ntransmission * sizeof(float)
                 ) 
             );
     gpuErrchk( 
             cudaMemcpy(
-                d_filterbank, 
-                instrument->filterbank, 
-                nfilterbank * sizeof(float), 
+                d_transmission, 
+                instrument->transmission, 
+                ntransmission * sizeof(float), 
                 cudaMemcpyHostToDevice
                 ) 
             );
@@ -1483,7 +1483,7 @@ void run_gateau(
                         d_psd_cascade, 
                         d_psd_cmb, 
                         d_eta_atm,
-                        d_filterbank,
+                        d_transmission,
                         d_sigout,
                         d_nepout,
                         d_I_nu

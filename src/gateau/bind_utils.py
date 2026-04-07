@@ -37,7 +37,7 @@ def allfillInstrument(InstDict: dict[str, any],
     """
 
     arr_f_ch = ar.array('f', InstDict["f_ch_arr"].ravel())
-    arr_filterbank = ar.array('f', InstDict["filterbank"].ravel())
+    arr_transmission = ar.array('f', InstDict["transmission"].ravel())
     arr_az_fpa = ar.array('f', InstDict["pointings"][0].ravel())
     arr_el_fpa = ar.array('f', InstDict["pointings"][1].ravel())
     arr_onef_level = ar.array('f', InstDict["onef_level"].ravel())
@@ -46,7 +46,7 @@ def allfillInstrument(InstDict: dict[str, any],
     InstStruct.nf_ch = c_int(InstDict["nf_ch"])
     InstStruct.f_ch = (c_float * InstDict["nf_ch"]).from_buffer(arr_f_ch)
     InstStruct.f_sample = c_float(InstDict["f_sample"])
-    InstStruct.filterbank = (c_float * InstDict["filterbank"].size).from_buffer(arr_filterbank)
+    InstStruct.transmission = (c_float * InstDict["transmission"].size).from_buffer(arr_transmission)
     InstStruct.delta = c_float(InstDict["delta"])
     InstStruct.eta_pb = c_float(InstDict["eta_pb"])
     InstStruct.az_fpa = (c_float * InstDict["pointings"][0].size).from_buffer(arr_az_fpa)

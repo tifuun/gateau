@@ -11,6 +11,7 @@ import gateau.materials as gmaterials
 TATM = 273
 VWIND = 10
 HCOLUMN = 1500
+DXY = 0.2
 
 def checkTelescopeDict(telescopeDict):
     checklist = ["eta_taper"]#, "az_scan", "el_scan"]
@@ -25,29 +26,17 @@ def checkTelescopeDict(telescopeDict):
 
 def checkInstrumentDict(instrumentDict):
     checklist = ["material", 
-                 "f0_ch", 
+                 "fmin_ch", 
                  "f_sample",
                  "sec_harmonic",
-                 "box_eq", 
-                 "order", 
                  "radius",
                  "eta_peak",
-                 "single_line"]
+                 "use_filterbank"]
 
     errlist = []
 
-    # f0_ch is array of center frequencies
-    if isinstance(instrumentDict.get("f0_ch"), np.ndarray):
-        instrumentDict["nf_ch"] = instrumentDict.get("f0_ch").size
-
     if instrumentDict.get("sec_harmonic") is None:
         instrumentDict["sec_harmonic"] = False
-
-    if instrumentDict.get("box_eq") is None:
-        instrumentDict["box_eq"] = True
-
-    if instrumentDict.get("order") is None:
-        instrumentDict["order"] = 1
 
     if instrumentDict.get("onef_level") is None:
         instrumentDict["use_onef"] = 0
@@ -72,8 +61,8 @@ def checkInstrumentDict(instrumentDict):
     if instrumentDict.get("radius") is None:
         instrumentDict["radius"] = 0
     
-    if instrumentDict.get("single_line") is None:
-        instrumentDict["single_line"] = True
+    if instrumentDict.get("use_filterbank") is None:
+        instrumentDict["use_filterbank"] = True
     
     if instrumentDict.get("eta_peak") is None:
         instrumentDict["eta_peak"] = 1
@@ -85,7 +74,7 @@ def checkInstrumentDict(instrumentDict):
     return errlist
 
 def checkAtmosphereDict(atmosphereDict):
-    checklist = ["path", "dx", "dy"]
+    checklist = ["path"]
 
     errlist = []
 
@@ -103,6 +92,12 @@ def checkAtmosphereDict(atmosphereDict):
             atmosphereDict["PWV0"] = (PWV0, PWV0)
     else:
         atmosphereDict["PWV0"] = (1, 1)
+
+    if atmosphereDict.get("dx") is None:
+        atmosphereDict["dx"] = DXY
+    
+    if atmosphereDict.get("dy") is None:
+        atmosphereDict["dy"] = DXY
 
     for key in checklist:
         if atmosphereDict.get(key) is None:

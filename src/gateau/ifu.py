@@ -1,6 +1,6 @@
 """!
 @file
-Generate or read filterbank matrix.
+Generate or read transmission matrix.
 """
 
 import numpy as np
@@ -16,13 +16,13 @@ def lorentzian_with_second_order(f, f0, Ql, I=1):
     return 1 / (1 + 4 * Ql**2 * (f / f0 - 1) ** 2) + I / 2 / (1 + 4 * Ql**2 * (f / (2 * f0) - 1) ** 2)
 
 
-def generate_filterbank(instrumentDict: dict[str, any], 
+def generate_transmission(instrumentDict: dict[str, any], 
                         sourceDict: dict[str, any]) -> np.ndarray:
     """   
-    Generate an 'idealized' filterbank that assumes perfect matching of the filters to the signal line.
+    Generate transmission curves for simulating a filterbank that assumes perfect matching of the filters to the signal line.
 
     Args:
-        f (array): frequencies over which to evaluate the filterbank.
+        f (array): frequencies over which to evaluate the transmission.
         f0 (array): a list of resonance frequencies of the filters.
         Ql (single value, array): The loaded quality factor of the filters, given as a single value or a list of the same length as f0_list.
         kernel (function): the function describing the filter. Must take as arguments (f, f0, Ql).
@@ -70,15 +70,15 @@ def generate_filterbank(instrumentDict: dict[str, any],
     
     return transfer
 
-def generate_filterbank_independent(instrumentDict: dict[str, any], 
+def generate_transmission_independent(instrumentDict: dict[str, any], 
                                     sourceDict: dict[str, any]) -> np.ndarray:
     """!
-    Generate a Lorentzian filterbank matrix from resolving power R.
+    Generate Lorentzian transmission curves from resolving power R.
 
     @param instrumentDict Instrument dictionary.
     @param sourceDict Source dictionary.
 
-    @returns filterbank The Lorentzian filterbank.
+    @returns transmission The Lorentzian transmission.
     """
 
     Ql          = instrumentDict.get("R")

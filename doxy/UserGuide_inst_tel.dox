@@ -2,6 +2,113 @@
 \page user_guide_inst_tel Telescope And Instrument Reference
 
 \section inst_tel_tel Telescope 
+A telescope in a `gateau` simulation is defined by two parameters:
+    - Taper efficiency \f$\eta_\mathrm{t}\f$.
+    - Root-mean-square (RMS) surface roughness \f$\rho_\mathrm{surf}\f$.
 
+\f$\eta_\mathrm{t}\f$ is a measure of how uniformly the feed illuminates the telescope aperture.
+It can be set to a scalar between 0 and 1.
+Also, it is possible to define a frequency-dependent \f$\eta_\mathrm{t}\f$ as an array of values between 0 and 1.
+In this case, \f$\eta_\mathrm{t}\f$ and the array of frequencies \f$\nu_\eta\f$ on which \f$\eta_\mathrm{t}\f$ is defined must be supplied as a 2-tuple (\f$\eta_\mathrm{t}\f$, \f$\nu_\eta\f$).
+Here, \f$\nu_\eta\f$ must be supplied in units of Hertz.
+Then `gateau` will apply a linear interpolation of \f$\eta_\mathrm{t}\f$ on the source frequencies \f$\nu\f$.
+
+\f$\rho_\mathrm{surf}\f$ must be a nonnegative scalar with units of micrometer. 
+The default value is 0, representing a perfectly smooth surface.
+
+The reference for the input dictionary for a telescope can be found \ref teldict "here."
+
+\section inst_tel_inst Instrument
+The instrument in `gateau` is set by supplying spectral and spatial information.
+
+\subsection inst_tel_inst_f Generating channel frequencies
+We will start by specifying all the different ways of generating an array of channel frequencies, which will be denoted by \f$f\f$.
+First, we give an overview of all available parameters: 
+    - The lowest channel frequency \f$f_\mathrm{min}\f$.
+    - The highest channel frequency \f$f_\mathrm{max}\f$.
+    - The number of channels in the array \f$N_f\f$.
+    - The resolving power \f$R\f$.
+
+The \f$f\f$ array will be used to calculate Lorentzian transmission curves, together with \f$R\f$. This will be detailed in the subsections after this.
+
+We will now discuss ways to generate the array with scalar input values.
+The first way to generate an array is to pass \f$f_\mathrm{min}\f$, \f$N_f\f$, and \f$R\f$.
+\f$f_\mathrm{max}\f$ is unknown, but as we will see this is not important.
+In this case, the channel frequencies are calculated using a geometric spacing with half-power overlap between adjacent Lorentzian filter transmission curves:
+\f[
+    f = f_\mathrm{min}\left( 1 + \frac{1}{R} \right)^n,\quad\quad\mathbf{(1)}
+\f]
+with \f$n = \{0,...,N_f-1\}\f$ an array of indices.
+
+The second way is to pass \f$f_\mathrm{max}\f$, \f$N_f\f$, and \f$R\f$. 
+\f$f_\mathrm{min}\f$ is unknown now and must be calculated before we proceed.
+We first calculate \f$f_\mathrm{min}\f$ by rearranging Eq.(1) and setting \f$n=N_f-1\f$:
+\f[
+    f_\mathrm{min} = f_\mathrm{max} \left( 1 + \frac{1}{R} \right)^{1-N_f},
+\f]
+and then we can directly use \f$f_\mathrm{min}\f$ to calculate \f$f\f$ using Eq.(1) again.
+
+The third way is to pass \f$f_\mathrm{min}\f$, \f$f_\mathrm{max}\f$, and \f$R\f$. 
+\f$N_f\f$ is unknown now and must be calculated.
+First, we calculate \f$N_f\f$ by rearranging Eq.(1) and solving for \f$N_f\f$:
+\f[
+    N_f = \left\lceil \log_q\left( \frac{f_\mathrm{max}}{f_\mathrm{min}}  \right) \right\rceil,
+\f]
+where \f$q=1 + 1 / R\f$. 
+Then we calculate \f$f\f$ again using Eq.(1).
+
+The fourth, and final for scalar input, way is to pass \f$f_\mathrm{min}\f$, \f$f_\mathrm{max}\f$, and \f$N_f\f$.
+Now, \f$R\f$ is unknown, and can be calculated by rearranging Eq.(1) again:
+\f[
+    R = \left( \frac{f_\mathrm{max}}{f_\mathrm{min}} \right)^{\left( \frac{-1}{N_f-1} \right)}, 
+\f]
+and then we use Eq.(1) again to calculate \f$f\f$.
+
+We want to highlight here that one should never supply all four parameters, only three of the four.
+Technically, it is possible to supply all four parameters and discard one to calculate \f$f\f$.
+However, in this case `gateau` must choose for the user which one to discard, which is not trivial.
+Hence, when four parameters are passed, `gateau` will exit with an error message.
+
+Aside from scalar input, `gateau` can also take \f$f\f$ directly from the user as an array.
+Here, \f$R\f$ must be supplied too, either as scalar or array.
+If supplied as array, it must have the same size as \f$f\f$.
+Note that \f$R\f$ can only be supplied as an array if \f$f\f$ is also supplied as array.
+Also note that, since Eq.(1) was not used, the resulting Lorentzians will most probably not overlap at half-power points.
+
+\subsection inst_tel_inst_independent_lorentz Lorentzian Array Model
+Now that we have calculated (or just supplied) \f$f\f$ and \f$R\f$, we can calculate the Lorentzian transmission curves.
+For this, we need one extra parameter:
+    - The Lorentzian peak height in isolation \f$\eta_\mathrm{peak}\f$, which can possibly be channel-dependent.
+
+In the case that all Lorentzians are isolated from eachother, which is for example the case for a grating, the transmission curves take the following shape:
+\f[
+    \eta_\mathrm{trans}(f,\nu) = \frac{\eta_\mathrm{peak}(f)}{4R^2(\nu/f-1)^2}.
+\f]
+Here, the transmission curve is denoted \f$\eta_\mathrm{trans}(f,\nu)\f$.
+Note that we explicitly show the dependence of \f$\eta_\mathrm{trans}\f$ on \f$f\f$ and \f$\nu\f$ to highlight that the transmission curves is evaluated on the sky frequencies \f$\nu\f$, but assigned to the channel frequencies \f$f\f$.
+We also explicitly show the possible dependence of \f$\eta_\mathrm{peak}\f$ on \f$f\f$.
+
+\subsection inst_tel_inst_filt Filterbank Model
+When placed in a filterbank, the Lorentzians are coupled to a single transmission line.
+This causes the downstream (closer to end of transmission line) Lorentzians to "see" a signal from which the upstream (closer to beginning of transmission line) Lorentzians have already removed a portion of signal.
+Effectively, this can be absorbed by subtracting the upstream \f$\eta_\mathrm{trans}\f$ from downstream \f$\eta_\mathrm{trans}\f$.
+
+Usually, the high frequency filters are placed near the start of the transmission line and the frequencies drop monotonically when going to the end of the transmission line.
+Therefore, we can model the filterbank with the following expression:
+\f[
+    \eta_\mathrm{trans}(f,\nu) = \frac{\eta_\mathrm{peak}(f) - \Sigma_{\bar{f}\gt f}\eta_\mathrm{trans}(\bar{f},\nu)}{4R^2(\nu/f-1)^2}.
+\f]
+Here we start seeing what we meant earlier by saying that \f$\eta_\mathrm{peak}\f$ is the peak height in isolation.
+When placed, with multiple other Lorentzians, on a single transmission line, the effective peak efficiency is affected by upstream (i.e. higher frequency) filters.
+
+\subsection inst_tel_inst_user User-supplied model
+It is also possible to supply a custom transmission curve model.
+In this case, \f$f\f$ must be supplied as an array as well and none of the elements are allowed to be outside of the rage [0,1].
+The custom model can directly be supplied to the `"transmission"` field of an instrument dictionary, which will, whenever a `gateau` model is used, to store the calculated transmission curves by `gateau`.
+It is important that the custom model is supplied as a 2-dimensional array, with axis 0 having length \f$N_f\f$.
+Axis 1 can have any size larger than zero because, after supplying, a 1-dimensional linear interpolation will be performed along this axis.
+This interpolation will be evaluated on \f$\nu\f$, ensuring that axis 1 and the spectral axis of the source cube have the same size. 
+The interpolated transmission curves will be stored for usage
+
+The reference for the input dictionary for an instrument can be found \ref instdict "here."
 */
-

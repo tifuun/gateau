@@ -23,19 +23,19 @@ Also, whereas the real skydip provides a scale from detector units to brightness
 \section output_obsattrs Observation Attributes Group
 Every `gateau` output file contains an observation attributes group, which can be accessed by the name: `"OBSATTRS"`.
 This returns a group, which contains the following datasets:
-- `"frequencies"`: The channel frequencies for each voxel, in Hz. Size: \f$N_f\f$.
-- `"times"`: Timestamps in seconds. Size: \f$N_t\f$.
-- `"az"`: Azimuth angle of telescope as function of timestamp, in degrees. Size: \f$N_t\f$.
-- `"el"`: Elevation angle of telescope as function of timestamp, in degrees. Size: \f$N_t\f$.
+    - `"frequencies"`: The channel frequencies for each voxel, in Hz. Size: \f$N_f\f$.
+    - `"times"`: Timestamps in seconds. Size: \f$N_t\f$.
+    - `"az"`: Azimuth angle of telescope as function of timestamp, in degrees. Size: \f$N_t\f$.
+    - `"el"`: Elevation angle of telescope as function of timestamp, in degrees. Size: \f$N_t\f$.
 
 \section output_spaxels Spaxel Groups
 Each spaxel has its own output group. 
 For each spaxel \f$i\in\{0,N_\mathrm{spax}-1\}\f$, its group can be accessed by the name: `"SPAXEL{i}"`.
 As an example, spaxel number 0 can be accessed using the name `"SPAXEL0"`.
 Each spaxelgroup contains the following datasets:
-- `"data"`: The TODs for this spaxel, either in Watts or Kelvin. Shape: \f$N_t \times N_f\f$.
-- `"az_spax"`: Azimuth offset of spaxel w.r.t. telescope broadside, in degrees.
-- `"el_spax"`: Elevation offset of spaxel w.r.t. telescope broadside, in degrees.
+    - `"data"`: The TODs for this spaxel, either in Watts or Kelvin. Shape: \f$N_t \times N_f\f$.
+    - `"az_spax"`: Azimuth offset of spaxel w.r.t. telescope broadside, in degrees.
+    - `"el_spax"`: Elevation offset of spaxel w.r.t. telescope broadside, in degrees.
 
 */
 

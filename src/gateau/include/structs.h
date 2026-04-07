@@ -33,7 +33,7 @@ struct Instrument
     int nf_ch;          /**< Number of elements in freqs.*/
     float *f_ch;        /**< Array with filter frequencies.*/
     float f_sample;     /**< Readout frequency of instrument in Hertz.*/
-    float *filterbank;  /**< Array with filterbank matrix, flattened.*/
+    float *transmission;  /**< Array with transmission matrix, flattened along sky frequency axis.*/
     float delta;        /**< Superconducting bandgap energy in Joules.*/
     float eta_pb;       /**< Pair breaking efficiency of superconductor.*/
     float *az_fpa;      /**< Array with azimuth pointings for FPA.*/

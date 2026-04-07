@@ -5,8 +5,10 @@ Each element in `gateau` is set using a Python dictionary.
 Here, for each dictionary, we supply a table containing the string representation of the field, 
 the symbol we use in the user guide to denote the quantity (if applicable),
 a description of what the field symbolises, the allowed datatypes and shapes/sizes,
-any potential default values, and the required physical units.
+any potential default values, allowed ranges, and the required physical units.
 If a parameter has a default value, it automatically implies that parameter is optional.
+Note also that the allowed range only specifies the range in which the simulation will not produce errors.
+Deciding if the output makes sense is still also for the user to decide and verify.
 
 \section sourcedict Source Dictionary
 | Name of field | Symbol | Description | Datatype | Default value | Allowed range | Units |
@@ -36,12 +38,15 @@ If a parameter has a default value, it automatically implies that parameter is o
 \section instdict Instrument Dictionary
 | Name of field | Symbol | Description | Datatype | Default value | Allowed range | Units |
 |---------------|--------|-------------|----------|---------------|---------------|-------|
-| "f0_ch" | \f$f_0\f$ (scalar), \f$f\f$ (array) | Lowest channel frequency, or array with channel frequencies | float, 1D array | - | [\f$7\cdot10^{11},9\cdot10^{12}\f$] | Hz |
-| "fl_ch" | \f$f_\mathrm{max}\f$ | Highest channel frequency | float | - | [\f$7\cdot10^{11},9\cdot10^{12}\f$] | Hz |
+| "fmin_ch" | \f$f_\mathrm{min}\f$ | Lowest channel frequency | float | - | [\f$7\cdot10^{11},9\cdot10^{12}\f$] | Hz |
+| "fmax_ch" | \f$f_\mathrm{max}\f$ | Highest channel frequency | float | - | [\f$7\cdot10^{11},9\cdot10^{12}\f$] | Hz |
 | "nf_ch" | \f$N_f\f$ | Number of channel frequencies | int | - | \f$\mathbb{Z}^+\f$ | Hz |
-| "R" | \f$R\f$ | Resolving power of individual filter | float, 1D array of size \f$N_f\f$ | - | \f$\mathbb{R}^+\f$ | - |
+| "R" | \f$R\f$ | Resolving power of individual filter.<br>If an array, the "f_ch" field must also be supplied and must have the same size. | float, 1D array of size \f$N_f\f$ | - | \f$\mathbb{R}^+\f$ | - |
+| "f_ch" | \f$f\f$ | Array of channel frequencies.<br>Only supply if you do not want `gateau` to calculate these for you.<br>Filling this field will completely override the "fmin_ch", "fmax_ch", and "nf_ch" fields. | 1D array | - | [\f$7\cdot10^{11},9\cdot10^{12}\f$] | Hz |
 | "f_sample" | \f$f_\mathrm{sample}\f$ | Sampling frequency of readout | float | - | \f$\mathbb{R}^+\f$ | Hz |
 | "eta_peak" | \f$\eta_\mathrm{peak}\f$ | Peak height of filter in isolation | float, 1D array of size \f$N_f\f$ | 1 | [0,1] | - |
+| "use_filterbank" | - | Whether to use the filterbank model or independent Lorentzians,<br>in case `gateau` should generate the transmission curves. | bool | True | {True, False} | - |
+| "transmission" | \f$\eta_\mathrm{trans}\f$ | Matrix with transmission curves.<br>If `gateau` should create the transmission curves, do not fill this field.<br>If you want to supply your own transmission curves, pass them to this field.<br>In this case, it is mandatory that "f_ch" is passed as well. | 2D array, axis 0 must have same size as \f$f\f$ | - | [0,1] | - |
 | "onef_alpha" | \f$\alpha\f$ | Slope of pink noise power spectral density | float, 1D array of size \f$N_f\f$ | 0 | \f$\mathbb{R}_{\geq 0}\f$ | - | 
 | "onef_level" | \f$A\f$ | Level of pink noise | float, 1D array of size \f$N_f\f$ | 0 | \f$\mathbb{R}_{\geq 0}\f$ | - |
 | "radius" | \f$R_\mathrm{hex}\f$ | Circumradius of hexagonal spaxel configuration, excluding central spaxel | int | 0 | \f$\mathbb{Z}_{\geq 0}\f$ | # of spaxels |
