@@ -51,6 +51,7 @@ Deciding if the output makes sense is still also for the user to decide and veri
 | "onef_level" | \f$A\f$ | Level of pink noise | float, 1D array of size \f$N_f\f$ | 0 | \f$\mathbb{R}_{\geq 0}\f$ | - |
 | "radius" | \f$R_\mathrm{hex}\f$ | Circumradius of hexagonal spaxel configuration, excluding central spaxel | int | 0 | \f$\mathbb{Z}_{\geq 0}\f$ | # of spaxels |
 | "spacing" | \f$\delta_\mathrm{hex}\f$ | Far-field pointing separation between spaxels along the circumradius | float | 0 | \f$\mathbb{R}_{\geq 0}\f$ | \f$^\circ\f$ |
+| "pointings" | - | Spaxel pointing offsets with respect to telescope broadside.<br>If this field is supplied, the "radius" and "spacing" fields will be ignored.<br>The pointing offsets must be supplied with a 2-tuple \f$(\Delta\phi,\Delta\theta)\f$,<br>containing the azimuth and elevation offset arrays for each spaxel. | 2-tuple | - | [0,360] \f$(\Delta\phi)\f$, (0,90) \f$(\Delta\theta)\f$ | \f$^\circ\f$ |
 
 \section cascdict Cascade Stage Dictionaries
 For the cascade, there are two dictionary types. The reflective stage is described by:

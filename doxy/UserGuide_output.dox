@@ -12,7 +12,7 @@ This group is also meant to facilitate further data reduction and is designed to
 
 The spaxel output itself can either be in units of Watts to represent power detected, or units of Kelvin representing brightness temperature seen.
 For the brightness temperature scale, `gateau` simulates a skydip observation internally.
-A skydip is a technique in millimeter and submillimeter astronomy, where the telescope is 'dipped' from a high elevbation to a low elevation.
+A skydip is a technique in millimeter and submillimeter astronomy, where the telescope is 'dipped' from a high elevation to a low elevation.
 This causes the telescope beam to traverse a smoothly increasig airmass over time, which smoothly increases the brightness temperature seen.
 At the same time, the instrument detector response will smoothly vary over the skydip as well. Then, a relation between detector response and brightness temperature can be drawn up.
 `gateau` does this by smoothly varying the PWV and calculating the corresponding atmosphere spectrum power and brightness temperature. Then, for each PWV value the sky signal is propagated through the optical system with which the simulation was performed.

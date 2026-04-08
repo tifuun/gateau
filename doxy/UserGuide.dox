@@ -3,10 +3,14 @@
 On this page, we provide detailed implementation-specific overviews of each `gateau` component. 
 The user guide is more technical, so a lot of conceptual things will be discussed more "matter-of-factly", while more attention is placed on the technical details.
 
-\ref user_guide_inst_tel "Telescope And Instrument Reference"
+\ref user_guide_src_atm "Source and atmosphere reference"
 
-\ref user_guide_output "Output Format Reference"
+\ref user_guide_inst_tel "Telescope and instrument reference"
 
-\ref input_dicts "Input Dictionary Reference"
+\ref user_guide_scan "Scanning functionality reference"
+
+\ref user_guide_output "Output format reference"
+
+\ref input_dicts "Input dictionary reference"
 
 */

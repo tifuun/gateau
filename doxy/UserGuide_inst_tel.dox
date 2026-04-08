@@ -16,6 +16,7 @@ Then `gateau` will apply a linear interpolation of \f$\eta_\mathrm{t}\f$ on the 
 \f$\rho_\mathrm{surf}\f$ must be a nonnegative scalar with units of micrometer. 
 The default value is 0, representing a perfectly smooth surface.
 
+\subsection tel_inst_tel_dict Input dictionary reference for telescope models
 The reference for the input dictionary for a telescope can be found \ref teldict "here."
 
 \section inst_tel_inst Instrument
@@ -104,11 +105,27 @@ When placed, with multiple other Lorentzians, on a single transmission line, the
 \subsection inst_tel_inst_user User-supplied model
 It is also possible to supply a custom transmission curve model.
 In this case, \f$f\f$ must be supplied as an array as well and none of the elements are allowed to be outside of the rage [0,1].
-The custom model can directly be supplied to the `"transmission"` field of an instrument dictionary, which will, whenever a `gateau` model is used, to store the calculated transmission curves by `gateau`.
-It is important that the custom model is supplied as a 2-dimensional array, with axis 0 having length \f$N_f\f$.
+The custom model can be supplied to the `"transmission"` field of an instrument dictionary as a 2-tuple, containing the transmission curves as the zeroth element and the frequencies on which the curves are defined as the first element. 
+It is important that the custom model is supplied as a 2-dimensional array, with each row representing a transmission curve for a channel.
+Therefore, axis 0 must have length \f$N_f\f$.
 Axis 1 can have any size larger than zero because, after supplying, a 1-dimensional linear interpolation will be performed along this axis.
 This interpolation will be evaluated on \f$\nu\f$, ensuring that axis 1 and the spectral axis of the source cube have the same size. 
-The interpolated transmission curves will be stored for usage
+The interpolated transmission curves will be stored for usage in the simulation.
 
+\subsection tel_inst_inst_pointings Defining the spaxel array
+After defining the spectral characteristics, it is time to define the spatial characteristics.
+The built-in spaxel configuration in `gateau` is a packed hexagon, defined using the following parameters:
+    - The circumradius of the hexagon \f$R_\mathrm{hex}\f$ in number of spaxels, without the central spaxel.
+    - The far-field spaxel spacing \f$\delta_\mathrm{hex}\f$ along the circumradius in degrees.
+
+This configuration aligns the central spaxel pointing along the telescope broadside.
+
+It is also possible to directly supply the far-field pointing configuration.
+In this case, a 2-tuple needs to be supplied to the `"pointings"` field of the instrument dictionary.
+The zeroth element must be an array with azimuth pointing offsets for each spaxel,
+and the first element must be an array with elevation offsets for each spaxel.
+Both the azimuth and elevation pointing offsets must be with respect to telescope broadside and in units of degrees.
+
+\subsection tel_inst_inst_dict Input dictionary reference for instrument models
 The reference for the input dictionary for an instrument can be found \ref instdict "here."
 */

@@ -278,8 +278,12 @@ class simulator(object):
         elif self.instrument.get("transmission") is None:
             self.instrument["transmission"] = gifu.generate_transmission_independent(self.instrument, self.source)
         else:
-            pass
-            #### TODO interpolate custom transmission model on sky frequency axis
+            self.instrument["transmission"] = gcascade.sizer(
+                    self.instrument["transmission"][0], 
+                    self.source["f_src"], 
+                    self.instrument["transmission"][1],
+                    axis = 0
+                    )
 
         if self.instrument["use_onef"]:
             if isinstance(self.instrument["onef_level"], float) or isinstance(self.instrument["onef_level"], int):
@@ -294,12 +298,12 @@ class simulator(object):
         if self.instrument.get("pointings") is None:
             if self.instrument.get("spacing") is None or self.instrument.get("radius") is None:
                 self.instrument["pointings"] = np.zeros(1), np.zeros(1)
-                self.instrument["n_spax"] = 1
             
             else:
                 self.instrument["pointings"] = gifu.generate_fpa_pointings(self.instrument) 
-                self.instrument["n_spax"] = self.instrument["pointings"][0].size
-        
+
+        # In any case, want to get number of spaxels
+        self.instrument["n_spax"] = self.instrument["pointings"][0].size
 
         #### INITIALISING TELESCOPE PARAMETERS ####
         self.telescope["eta_ruze"] = np.ones((f_src := self.source["f_src"]).size)
