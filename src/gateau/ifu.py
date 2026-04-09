@@ -33,7 +33,7 @@ def generate_transmission(instrumentDict: dict[str, any],
     """
     
     Ql          = instrumentDict.get("R")
-    f0          = instrumentDict.get("f_ch_arr")
+    f0          = instrumentDict.get("f_ch")
     eta         = instrumentDict.get("eta_peak")
     f           = sourceDict.get("f_src")
     
@@ -82,7 +82,7 @@ def generate_transmission_independent(instrumentDict: dict[str, any],
     """
 
     Ql          = instrumentDict.get("R")
-    f0          = instrumentDict.get("f_ch_arr")
+    f0          = instrumentDict.get("f_ch")
     eta         = instrumentDict.get("eta_peak")
     f           = sourceDict.get("f_src")
     

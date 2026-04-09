@@ -26,7 +26,6 @@ def checkTelescopeDict(telescopeDict):
 
 def checkInstrumentDict(instrumentDict):
     checklist = ["material", 
-                 "fmin_ch", 
                  "f_sample",
                  "sec_harmonic",
                  "radius",
@@ -38,14 +37,14 @@ def checkInstrumentDict(instrumentDict):
     if instrumentDict.get("sec_harmonic") is None:
         instrumentDict["sec_harmonic"] = False
 
-    if instrumentDict.get("onef_level") is None:
-        instrumentDict["use_onef"] = 0
+    if instrumentDict.get("pink_level") is None:
+        instrumentDict["use_pink"] = 0
 
     else:
-        instrumentDict["use_onef"] = 1
+        instrumentDict["use_pink"] = 1
 
-    if instrumentDict.get("onef_alpha") is None:
-        instrumentDict["onef_alpha"] = 1
+    if instrumentDict.get("pink_alpha") is None:
+        instrumentDict["pink_alpha"] = 1
 
     if instrumentDict.get("material") is None:
         instrumentDict["material"] = "Al_NbTiN"

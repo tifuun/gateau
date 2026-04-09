@@ -25,7 +25,7 @@ Deciding if the output makes sense is still also for the user to decide and veri
 | "dx" | \f$\Delta x\f$ | Size of pixel in atmosphere screen along \f$x\f$-axis | float | 0.2 | \f$\mathbb{R}^+\f$ | m |
 | "dy" | \f$\Delta y\f$ | Size of pixel in atmosphere screen along \f$y\f$-axis | float | 0.2 | \f$\mathbb{R}^+\f$ | m |
 | "h_column" | \f$h_\mathrm{column}\f$ | Height of atmospheric column above telescope | float | 1500 | \f$\mathbb{R}^+\f$ | m |
-| "v_wind" | \f$v_\mathrm{w}\f$ | Windspeed along azimuth direction | float | 10 | \f$\mathbb{R}_{\geq 0}\f$ | m s\f$^{-1}\f$ |
+| "v_wind" | \f$u_\mathrm{w}\f$ | Windspeed along azimuth direction | float | 10 | \f$\mathbb{R}_{\geq 0}\f$ | m s\f$^{-1}\f$ |
 | "PWV0" | PWV\f$_0\f$ | Average PWV around which fluctuations are added. If a linear gradient throughout the observation is desired,<br>supply a 2-tuple (PWV\f$_\mathrm{start}\f$, PWV\f$_\mathrm{end}\f$) and `gateau` will interpolate between these two values | float, 2-tuple | 1 | [0.1,5.5]  | mm |
 | "T_atm" | \f$T_\mathrm{atm}\f$ | Physical temperature of atmosphere | float | 273 | \f$\mathbb{R}^+\f$ | K |
 
@@ -47,8 +47,8 @@ Deciding if the output makes sense is still also for the user to decide and veri
 | "eta_peak" | \f$\eta_\mathrm{peak}\f$ | Peak height of filter in isolation | float, 1D array of size \f$N_f\f$ | 1 | [0,1] | - |
 | "use_filterbank" | - | Whether to use the filterbank model or independent Lorentzians,<br>in case `gateau` should generate the transmission curves. | bool | True | {True, False} | - |
 | "transmission" | \f$\eta_\mathrm{trans}\f$ | Matrix with transmission curves.<br>If `gateau` should create the transmission curves, do not fill this field.<br>If you want to supply your own transmission curves, pass them to this field.<br>In this case, it is mandatory that "f_ch" is passed as well. | 2D array, axis 0 must have same size as \f$f\f$ | - | [0,1] | - |
-| "onef_alpha" | \f$\alpha\f$ | Slope of pink noise power spectral density | float, 1D array of size \f$N_f\f$ | 0 | \f$\mathbb{R}_{\geq 0}\f$ | - | 
-| "onef_level" | \f$A\f$ | Level of pink noise | float, 1D array of size \f$N_f\f$ | 0 | \f$\mathbb{R}_{\geq 0}\f$ | - |
+| "pink_alpha" | \f$\alpha\f$ | Slope of pink noise power spectral density | float, 1D array of size \f$N_f\f$ | 0 | \f$\mathbb{R}_{\geq 0}\f$ | - | 
+| "pink_level" | \f$A\f$ | Level of pink noise | float, 1D array of size \f$N_f\f$ | 0 | \f$\mathbb{R}_{\geq 0}\f$ | - |
 | "radius" | \f$R_\mathrm{hex}\f$ | Circumradius of hexagonal spaxel configuration, excluding central spaxel | int | 0 | \f$\mathbb{Z}_{\geq 0}\f$ | # of spaxels |
 | "spacing" | \f$\delta_\mathrm{hex}\f$ | Far-field pointing separation between spaxels along the circumradius | float | 0 | \f$\mathbb{R}_{\geq 0}\f$ | \f$^\circ\f$ |
 | "pointings" | - | Spaxel pointing offsets with respect to telescope broadside.<br>If this field is supplied, the "radius" and "spacing" fields will be ignored.<br>The pointing offsets must be supplied with a 2-tuple \f$(\Delta\phi,\Delta\theta)\f$,<br>containing the azimuth and elevation offset arrays for each spaxel. | 2-tuple | - | [0,360] \f$(\Delta\phi)\f$, (0,90) \f$(\Delta\theta)\f$ | \f$^\circ\f$ |

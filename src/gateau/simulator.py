@@ -228,6 +228,11 @@ class simulator(object):
         
         #### INITIALISING INSTRUMENT PARAMETERS ####
         # First, check if channel frequencies are given.
+        R_inst = self.instrument.get("R")
+        nf_ch = self.instrument.get("nf_ch")
+        fmin_ch = self.instrument.get("fmin_ch")
+        fmax_ch = self.instrument.get("fmax_ch")
+
         if (f_ch := self.instrument.get("f_ch")) is None:
             # R, nf_ch, and fmin_ch given -> fmax_ch unknowm
             if (R_inst := self.instrument.get("R")) is not None and \
@@ -285,15 +290,15 @@ class simulator(object):
                     axis = 0
                     )
 
-        if self.instrument["use_onef"]:
-            if isinstance(self.instrument["onef_level"], float) or isinstance(self.instrument["onef_level"], int):
-                self.instrument["onef_level"] *= np.ones(self.instrument["nf_ch"])
-            if isinstance(self.instrument["onef_alpha"], float) or isinstance(self.instrument["onef_alpha"], int):
-                self.instrument["onef_alpha"] *= np.ones(self.instrument["nf_ch"])
+        if self.instrument["use_pink"]:
+            if isinstance(self.instrument["pink_level"], float) or isinstance(self.instrument["pink_level"], int):
+                self.instrument["pink_level"] *= np.ones(self.instrument["nf_ch"])
+            if isinstance(self.instrument["pink_alpha"], float) or isinstance(self.instrument["pink_alpha"], int):
+                self.instrument["pink_alpha"] *= np.ones(self.instrument["nf_ch"])
 
         else:
-            self.instrument["onef_level"] = np.zeros(self.instrument["nf_ch"])
-            self.instrument["onef_alpha"] = np.zeros(self.instrument["nf_ch"])
+            self.instrument["pink_level"] = np.zeros(self.instrument["nf_ch"])
+            self.instrument["pink_alpha"] = np.zeros(self.instrument["nf_ch"])
         
         if self.instrument.get("pointings") is None:
             if self.instrument.get("spacing") is None or self.instrument.get("radius") is None:
