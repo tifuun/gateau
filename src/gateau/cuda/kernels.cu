@@ -265,14 +265,14 @@ void init_random_states(
   Calculate the PSD of pink noise.
 
   @param output Array to place output in.
-  @param onef_level Array with pink noise levels per channel.
-  @param onef
+  @param pink_level Array with pink noise levels per channel.
+  @param pink
   */
 __global__ 
-void calc_onef_psd(
+void calc_pink_psd(
         cufftComplex *output,
-        float *onef_level,
-        float *onef_alpha,
+        float *pink_level,
+        float *pink_alpha,
         curandState *state
         )
 {
@@ -296,7 +296,7 @@ void calc_onef_psd(
 
             for(int k=0; k<cnf_ch; k++) 
             {
-                factor_loc = sqrtf(onef_level[k] / cnt) * powf(factor, onef_alpha[k]/2);
+                factor_loc = sqrtf(pink_level[k] / cnt) * powf(factor, pink_alpha[k]/2);
                 local.x = factor_loc * curand_normal(&localState);
                 local.y = factor_loc * curand_normal(&localState);
                 output[k*(cnt / 2 + 1) + idx] = local;
@@ -366,9 +366,9 @@ void calc_pwv_trace(
 /**
   Main simulation kernel. This is where the magic happens.
 
-  @param eta_cascade Array containing the transmission efficiency of each stage in the cascadei, including the final filterbank stage.
-  @param psd_cascade Array containing the parasitic power spectral density of each stage in the cascade, including the final filterbank stage.
-  @param num_stages Number of cascade stages, excluding the initial pass of the source signal through the atmosphere and the final filterbank stage.
+  @param eta_cascade Array containing the transmission efficiency of each stage in the cascade.
+  @param psd_cascade Array containing the parasitic power spectral density of each stage in the cascade.
+  @param num_stages Number of cascade stages, excluding the initial pass of the source signal through the atmosphere.
   @param sigout Array for storing output power, for each channel, for each time, in SI units.
   @param azout Array containing Azimuth coordinates as function of time.
   @param elout Array containing Elevation coordinates as function of time.
@@ -393,7 +393,7 @@ void calc_power(
         float *psd_cascade,
         float *psd_cmb,
         float *eta_atm,
-        float *filterbank,
+        float *transmission,
         float *sigout, 
         float *nepout, 
         float *source
@@ -531,7 +531,7 @@ void calc_power(
         #pragma unroll 
         for(int k=0; k<cnf_ch; k++) 
         {
-            eta_kj = filterbank[k*f_src.num + idy];
+            eta_kj = transmission[k*f_src.num + idy];
             psd_in_k =  psd_in * eta_kj;
 
             sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
@@ -943,7 +943,7 @@ void run_gateau(
         {
             for(int j=0; j<f_src.num; j++)
             {
-                eta_kj_sum[k] += instrument->filterbank[k*f_src.num + j];
+                eta_kj_sum[k] += instrument->transmission[k*f_src.num + j];
             }
         }
     
@@ -982,7 +982,7 @@ void run_gateau(
                     cascade->num_stage, 
                     psd_atm.data(), 
                     eta_atm,
-                    instrument->filterbank, 
+                    instrument->transmission, 
                     eta_kj_sum,
                     Psky, 
                     Tsky
@@ -1059,20 +1059,20 @@ void run_gateau(
     delete[] c1;
 
     // Allocate and copy instrument arrays
-    int nfilterbank = nf_src * nf_ch;
+    int ntransmission = nf_src * nf_ch;
     
-    float *d_filterbank;
+    float *d_transmission;
     gpuErrchk( 
             cudaMalloc(
-                (void**)&d_filterbank, 
-                nfilterbank * sizeof(float)
+                (void**)&d_transmission, 
+                ntransmission * sizeof(float)
                 ) 
             );
     gpuErrchk( 
             cudaMemcpy(
-                d_filterbank, 
-                instrument->filterbank, 
-                nfilterbank * sizeof(float), 
+                d_transmission, 
+                instrument->transmission, 
+                ntransmission * sizeof(float), 
                 cudaMemcpyHostToDevice
                 ) 
             );
@@ -1245,24 +1245,24 @@ void run_gateau(
                             ) 
                         );
                 
-                if(instrument->use_onef) 
+                if(instrument->use_pink) 
                 {
                     int ntscr_h = nt_sub_scr_job / 2 + 1;
                     nBlocks1D = ceilf((float)(ntscr_h) / NTHREADS1D / numSMs);
                     blockSize1D = NTHREADS1D;
                     gridSize1D = nBlocks1D*numSMs;
 
-                    float *d_onef_level, *d_onef_alpha;
+                    float *d_pink_level, *d_pink_alpha;
                     gpuErrchk( 
                             cudaMalloc(
-                                (void**)&d_onef_level, 
+                                (void**)&d_pink_level, 
                                 nf_ch * sizeof(float)
                                 ) 
                             );
                     gpuErrchk( 
                             cudaMemcpy(
-                                d_onef_level, 
-                                instrument->onef_level, 
+                                d_pink_level, 
+                                instrument->pink_level, 
                                 nf_ch * sizeof(float), 
                                 cudaMemcpyHostToDevice
                                 ) 
@@ -1270,32 +1270,32 @@ void run_gateau(
 
                     gpuErrchk( 
                             cudaMalloc(
-                                (void**)&d_onef_alpha, 
+                                (void**)&d_pink_alpha, 
                                 nf_ch * sizeof(float)
                                 ) 
                             );
                     gpuErrchk( 
                             cudaMemcpy(
-                                d_onef_alpha, 
-                                instrument->onef_alpha, 
+                                d_pink_alpha, 
+                                instrument->pink_alpha, 
                                 nf_ch * sizeof(float), 
                                 cudaMemcpyHostToDevice
                                 ) 
                             );
 
-                    cufftComplex *d_onef_out;
+                    cufftComplex *d_pink_out;
                     gpuErrchk( 
                             cudaMalloc(
-                                (void**)&d_onef_out, 
+                                (void**)&d_pink_out, 
                                 ntscr_h*nf_ch * sizeof(cufftComplex)
                                 ) 
                             );
                     
                     // KERNEL CALL
-                    calc_onef_psd<<<gridSize1D, blockSize1D>>>(
-                            d_onef_out, 
-                            d_onef_level, 
-                            d_onef_alpha,
+                    calc_pink_psd<<<gridSize1D, blockSize1D>>>(
+                            d_pink_out, 
+                            d_pink_level, 
+                            d_pink_alpha,
                             devstates
                             );
 
@@ -1303,12 +1303,12 @@ void run_gateau(
                     
                     gpuErrchk( 
                             cudaFree(
-                                d_onef_level
+                                d_pink_level
                                 ) 
                             );
                     gpuErrchk( 
                             cudaFree(
-                                d_onef_alpha
+                                d_pink_alpha
                                 ) 
                             );
 
@@ -1339,14 +1339,14 @@ void run_gateau(
                     CUFFT_CALL( 
                             cufftExecC2R(
                                 plan, 
-                                d_onef_out, 
+                                d_pink_out, 
                                 d_sigout
                                 ) 
                             );
                     gpuErrchk( cudaDeviceSynchronize() );
                     gpuErrchk( 
                             cudaFree(
-                                d_onef_out
+                                d_pink_out
                                 ) 
                             );
 
@@ -1483,7 +1483,7 @@ void run_gateau(
                         d_psd_cascade, 
                         d_psd_cmb, 
                         d_eta_atm,
-                        d_filterbank,
+                        d_transmission,
                         d_sigout,
                         d_nepout,
                         d_I_nu

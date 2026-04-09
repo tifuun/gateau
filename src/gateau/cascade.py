@@ -91,8 +91,9 @@ def eta_Al_ohmic(f_src: np.ndarray) -> np.ndarray:
     return 1.0 - (1.0 - eta_Al_ohmic_840) * np.sqrt(f_src / 840e9)
 
 def sizer(eta: Union[np.ndarray, float], 
-           f_src: np.ndarray, 
-           f_eta: np.ndarray = None) -> np.ndarray:
+          f_src: np.ndarray, 
+          f_eta: np.ndarray = None,
+          axis: int = None) -> np.ndarray:
     """!
     Resize efficiency term to new size.
     Used to vectorize or interpolate on efficiency terms.
@@ -109,6 +110,9 @@ def sizer(eta: Union[np.ndarray, float],
     @param f_eta Numpy array containing frequencies at which eta is evaluated. Units: Hz.
                  Should only be passed when 1D interpolation is required in case eta.size != f_src.size.
                  Defaults to None.
+    @param axis Axis along which to loop interpolation, in case eta is mutli-dimensional.
+                The actual interpolation will always occur along the fastest axis.
+                Defaults to None.
     
     @returns Array with eta values, depending on input (see above).
     """
@@ -118,9 +122,22 @@ def sizer(eta: Union[np.ndarray, float],
 
     elif f_eta is not None:
         idx_sorted = np.argsort(f_eta)
-        return np.interp(f_src, 
-                         f_eta[idx_sorted], 
-                         eta[idx_sorted])
+
+        if axis is not None:
+            eta_out = np.zeros(eta.shape[axis], f_src.size)
+            idx_sorted = np.argsort(f_eta)
+            
+            for ii in range(eta_out.shape[axis]):
+                eta_out[ii] = np.interp(f_src, 
+                                      f_eta[idx_sorted], 
+                                      eta[ii,idx_sorted]
+                                      )
+            return eta_out
+        
+        else:
+            return np.interp(f_src, 
+                             f_eta[idx_sorted], 
+                             eta[idx_sorted])
 
     else:
         return eta

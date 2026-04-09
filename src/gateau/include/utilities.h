@@ -91,7 +91,7 @@ void resp_calibration(
         int num_stage,
         float *psd_atm,
         float *eta_atm,
-        float *filterbank,
+        float *transmission,
         float *eta_kj_sum,
         float *Psky, 
         float *Tsky
@@ -159,7 +159,7 @@ void resp_calibration(
 
             for(int k=0; k<nf_ch; k++) 
             {
-                eta_kj = filterbank[k*f_src->num + idy];
+                eta_kj = transmission[k*f_src->num + idy];
 
                 psd_in_k = psd_in * eta_kj;
 

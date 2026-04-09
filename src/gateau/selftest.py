@@ -37,7 +37,7 @@ telescope_dict = {
         }
 
 instrument_dict = {
-        "f0_ch"         : 300e9,
+        "fmin_ch"       : 300e9,
         "nf_ch"         : 1,
         "R"             : 500,
         "f_sample"      : 158,
@@ -123,7 +123,7 @@ def selftest():
         assert(dec.size == interface.n_times)
             
 # Check if output frequency array length is as specified
-        assert(freq.size == interface.instrument["f_ch_arr"].size)
+        assert(freq.size == interface.instrument["f_ch"].size)
 
 # Check if output has correct shape
         assert(times.size == tods.shape[0])

@@ -63,8 +63,8 @@ def daisy(times: np.ndarray,
 
     az0, el0 = check_size(times, az0, el0)
 
-    az = r_petal * np.cos(2*np.pi * period_cycle * times) * np.sin(2*np.pi * period_petal * times) + az0
-    el = r_petal * np.sin(2*np.pi * period_cycle * times) * np.sin(2*np.pi * period_petal * times) + el0
+    az = r_petal * np.cos(2*np.pi / period_cycle * times) * np.sin(2*np.pi / period_petal * times) + az0
+    el = r_petal * np.sin(2*np.pi / period_cycle * times) * np.sin(2*np.pi / period_petal * times) + el0
     
     return az, el 
 

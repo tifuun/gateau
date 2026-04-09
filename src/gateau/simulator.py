@@ -226,54 +226,89 @@ class simulator(object):
         self.telescope["az_scan"] = az_scan
         self.telescope["el_scan"] = el_scan
         
-        f0_ch = self.instrument["f0_ch"]
-        
         #### INITIALISING INSTRUMENT PARAMETERS ####
-        if isinstance(f0_ch, np.ndarray):
-            self.instrument["nf_ch"] = f0_ch.size
-            self.instrument["f_ch_arr"] = f0_ch
+        # First, check if channel frequencies are given.
+        R_inst = self.instrument.get("R")
+        nf_ch = self.instrument.get("nf_ch")
+        fmin_ch = self.instrument.get("fmin_ch")
+        fmax_ch = self.instrument.get("fmax_ch")
 
-        elif self.instrument.get("R") and self.instrument.get("nf_ch"):
-            # R and number of channels given -> fl_ch unknowm
-            idx_ch_arr = np.arange(self.instrument["nf_ch"])
-            self.instrument["f_ch_arr"] = f0_ch * (1 + 1 / self.instrument["R"])**idx_ch_arr
-        
-        elif self.instrument.get("R") and self.instrument.get("fl_ch"):
-            # R and fl_ch given -> number of channels unknown
-            self.instrument["nf_ch"] = np.ceil(np.emath.logn(1 + 1/self.instrument["R"], self.instrument["fl_ch"]/self.instrument["f0_ch"])).astype(int)
-            idx_ch_arr = np.arange(self.instrument["nf_ch"])
-            self.instrument["f_ch_arr"] = f0_ch * (1 + 1 / self.instrument["R"])**idx_ch_arr
-        
-        elif self.instrument.get("nf_ch") and self.instrument.get("fl_ch"):
-            # number of channels and fl_ch given -> filter Q unknown
-            self.instrument["R"] = 1 / ((self.instrument["fl_ch"]/self.instrument["f0_ch"])**(1/(self.instrument["nf_ch"] - 1)) - 1)
-            idx_ch_arr = np.arange(self.instrument["nf_ch"])
-            self.instrument["f_ch_arr"] = f0_ch * (1 + 1 / self.instrument["R"])**idx_ch_arr
-                
-        if self.instrument["single_line"]:
-            self.instrument["filterbank"] = gifu.generate_filterbank(self.instrument, self.source)
+        if (f_ch := self.instrument.get("f_ch")) is None:
+            # R, nf_ch, and fmin_ch given -> fmax_ch unknowm
+            if (R_inst := self.instrument.get("R")) is not None and \
+                (nf_ch := self.instrument.get("nf_ch")) is not None and \
+                (fmin_ch := self.instrument.get("fmin_ch")) is not None and\
+                (fmax_ch := self.instrument.get("fmax_ch")) is None:
+
+                idx_ch_arr = np.arange(nf_ch)
+                self.instrument["f_ch"] = fmin_ch * (1 + 1 / R_inst)**idx_ch_arr
+            
+            # R, nf_ch, and fmax_ch given -> fmin_ch unknown
+            elif R_inst is not None and \
+                    nf_ch is not None and \
+                    fmax_ch is not None and \
+                    fmin_ch is None:
+
+                idx_ch_arr = np.arange(nf_ch)
+                fmin_ch = fmax_ch * (1 + 1 / R_inst)**(1 - nf_ch)
+                self.instrument["f_ch"] = fmin_ch * (1 + 1 / R_inst)**idx_ch_arr
+
+            # R, fmin_ch, and fmax_ch given -> nf_ch unknown
+            elif R_inst is not None and \
+                    fmin_ch is not None and \
+                    fmax_ch is not None and \
+                    nf_ch is None:
+
+                nf_ch = np.ceil(np.emath.logn(1 + 1 / R_inst, fmax_ch / fmin_ch)).astype(int)
+                idx_ch_arr = np.arange(nf_ch)
+                self.instrument["f_ch"] = fmin_ch * (1 + 1 / R_inst)**idx_ch_arr
+            
+            # nf_ch, fmin_ch, and fmax_ch given -> R unknown
+            elif  nf_ch is not None and \
+                    fmin_ch is not None and \
+                    fmax_ch is not None and \
+                    R_inst is None:
+                R_inst = 1 / ((fmax_ch / fmin_ch)**(1/(nf_ch - 1)) - 1)
+                idx_ch_arr = np.arange(nf_ch)
+                self.instrument["f_ch"] = fmin_ch * (1 + 1 / R_inst)**idx_ch_arr
+
+            self.instrument["nf_ch"] = nf_ch
+            self.instrument["R"] = R_inst
+
         else:
-            self.instrument["filterbank"] = gifu.generate_filterbank_independent(self.instrument, self.source)
+            self.instrument["nf_ch"] = self.instrument["f_ch"].size
 
-        if self.instrument["use_onef"]:
-            if isinstance(self.instrument["onef_level"], float) or isinstance(self.instrument["onef_level"], int):
-                self.instrument["onef_level"] *= np.ones(self.instrument["nf_ch"])
-            if isinstance(self.instrument["onef_alpha"], float) or isinstance(self.instrument["onef_alpha"], int):
-                self.instrument["onef_alpha"] *= np.ones(self.instrument["nf_ch"])
+        if self.instrument["use_filterbank"]:
+            self.instrument["transmission"] = gifu.generate_transmission(self.instrument, self.source)
+        elif self.instrument.get("transmission") is None:
+            self.instrument["transmission"] = gifu.generate_transmission_independent(self.instrument, self.source)
+        else:
+            self.instrument["transmission"] = gcascade.sizer(
+                    self.instrument["transmission"][0], 
+                    self.source["f_src"], 
+                    self.instrument["transmission"][1],
+                    axis = 0
+                    )
+
+        if self.instrument["use_pink"]:
+            if isinstance(self.instrument["pink_level"], float) or isinstance(self.instrument["pink_level"], int):
+                self.instrument["pink_level"] *= np.ones(self.instrument["nf_ch"])
+            if isinstance(self.instrument["pink_alpha"], float) or isinstance(self.instrument["pink_alpha"], int):
+                self.instrument["pink_alpha"] *= np.ones(self.instrument["nf_ch"])
 
         else:
-            self.instrument["onef_level"] = np.zeros(self.instrument["nf_ch"])
-            self.instrument["onef_alpha"] = np.zeros(self.instrument["nf_ch"])
+            self.instrument["pink_level"] = np.zeros(self.instrument["nf_ch"])
+            self.instrument["pink_alpha"] = np.zeros(self.instrument["nf_ch"])
         
         if self.instrument.get("pointings") is None:
             if self.instrument.get("spacing") is None or self.instrument.get("radius") is None:
                 self.instrument["pointings"] = np.zeros(1), np.zeros(1)
-                self.instrument["n_spax"] = 1
             
             else:
                 self.instrument["pointings"] = gifu.generate_fpa_pointings(self.instrument) 
-                self.instrument["n_spax"] = self.instrument["pointings"][0].size
-        
+
+        # In any case, want to get number of spaxels
+        self.instrument["n_spax"] = self.instrument["pointings"][0].size
 
         #### INITIALISING TELESCOPE PARAMETERS ####
         self.telescope["eta_ruze"] = np.ones((f_src := self.source["f_src"]).size)
@@ -301,8 +336,8 @@ class simulator(object):
                                   np.mean(el_scan))
             
             return {
-                    "eta_ap"     : self._average_over_filterbank(eta_ap),
-                    "eta_atm"    : self._average_over_filterbank(eta_atm),
+                    "eta_ap"     : self._average_over_transmission(eta_ap),
+                    "eta_atm"    : self._average_over_transmission(eta_atm),
                     }
         
     def run(self, 
@@ -392,16 +427,16 @@ class simulator(object):
             errstr = f"Errors encountered in {label_dict} dictionary in fields :{errlist}."
             raise FieldError(errstr)
 
-    def _average_over_filterbank(self, array_to_average: np.ndarray) -> np.ndarray:
+    def _average_over_transmission(self, array_to_average: np.ndarray) -> np.ndarray:
         """!
-        Average an array over the filterbank.
+        Average an array over the transmission curves.
         
         @param array_to_average Numpy array with size equal to size of source frequency array.
 
-        @returns Array averaged over filterbank.
+        @returns Array averaged over transmission curves.
         """
-        sh_f = self.instrument["filterbank"].shape
+        sh_f = self.instrument["transmission"].shape
         assert array_to_average.size == sh_f[1]
 
-        array_tiled = np.squeeze(array_to_average)[None,:] * self.instrument["filterbank"]
-        return np.nansum(array_tiled, axis=1) / np.nansum(self.instrument["filterbank"], axis=1)
+        array_tiled = np.squeeze(array_to_average)[None,:] * self.instrument["transmission"]
+        return np.nansum(array_tiled, axis=1) / np.nansum(self.instrument["transmission"], axis=1)
