@@ -1,4 +1,39 @@
 /** 
 \page user_guide_scan Scanning functionality reference
 
+\section scan_eta_atm Time-dependent behaviour of the scan
+Here, we describe what happens at each timestamp during a `gateau` simulation.
+During a simulation, `gateau` scans the source and atmosphere using user-defined scanning patterns.
+These scanning patterns are executed in a horizontal azimuth-elevation frame.
+For the telescope, the broadside pointing is denoted by the 2-tuple \f$(\phi(t),\theta(t))\f$.
+For each spaxel, the pointing offset \f$(\Delta\phi_i,\Delta\theta_i)\f$ is added to the scanning pattern to produce the individual spaxel pointings \f$(\phi(t)+\Delta \phi_i,\theta(t)+\Delta \theta_i)\f$. 
+Importantly, the source is assumed stationary during a scan.
+So implicitly, `gateau` assumes that the source is perfectly tracked over an observation.
+We will show later how tracking errors could be emulated. The spaxel pointings are used to, for each spaxel and for each point in time \f$t\f$, perform a 2-dimensional bilinear interpolation on the source.
+
+While the telescope is scanning, the atmospheric screen is translated with a constant windspeed \f$u_\mathrm{w}\f$ along the azimuthal direction, assuming a frozen-flow model for the line-of-sight atmospheric fluctuations.
+The spaxel pointing can be converted to \f$(x,y)\f$ coordinates on the total screen:
+\f[
+    \begin{align}
+    x_i(t) &= h_\mathrm{column}\tan(\phi(t) + \Delta\phi_i ) + u_\mathrm{w}t,\\
+    y_i(t) &= h_\mathrm{column}\tan(\theta(t) + \Delta\theta_i).
+    \end{align}
+\f]
+Here, \f$h_\mathrm{column}\f$ is the column height of the atmosphere above the telescope, defined as the height of the column containing the majority of PWV.
+We then use the screen coordinates to perform a 2-dimensional bilinear interpolation on the PWV screen and obtain a time trace of PWV values for each spaxel.
+We then use the Atmospheric Transmission at Microwaves (ATM) code to convert PWV to the atmospheric transmission \f$\eta_\mathrm{atm}\f$.
+This is done by using a pre-generated lookup table that gives \f$\eta_\mathrm{atm}\f$ as function of \f$\nu\f$ and PWV.
+The table spans the spectral range from 70 up to and including 900 GHz, with a 0.1 GHz stepsize.
+The PWV range spans from 0.1 up to and including 5.5 mm, with a 0.1 mm stepsize.
+This table is used by applying 2-dimensional bilinear interpolation on \f$\nu\f$ and the PWV.
+After interpolating, we apply airmass correction:
+\f[
+    \eta_\mathrm{atm} := \eta^{\mathrm{csc}(\theta_i)}_\mathrm{atm},
+\f]
+where \f$\theta_i\f$ is the spaxel-dependent elevation.
+Then, by assigning a physical temperature to the atmosphere over \f$h_\mathrm{column}\f$, we can describe the effect of the atmosphere on the source signal.
+
+\section scan_scan_patterns Scanning patterns
+Scanning patterns in `gateau` are supplied as Python functions during the initialisation step of a simulation.
+
 */

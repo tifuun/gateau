@@ -364,6 +364,44 @@ void calc_pwv_trace(
 }
 
 /**
+  Calculate zenith PWV trace
+  */
+__global__ 
+void calc_pwv_trace_zenith(
+        ArrSpec x_atm,
+        ArrSpec y_atm,
+        float *pwv_screen,
+        float *pwv_trace
+        )
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;                                 
+                                                                                     
+    if (idx < cnt) 
+    {
+        // FLOATS                                                                    
+        float time_point;  // Timepoint for thread in simulation. This is not the global time, only time in current simulation chunk!                   
+        float pwv_point;   // Container for storing interpolated PWV values.        
+        float x_point;
+                                                                                     
+        time_point = idx / cf_sample;
+
+        x_point = cv_wind * time_point;
+
+        interpValue(
+                x_point, 
+                0,
+                &x_atm, 
+                &y_atm, 
+                pwv_screen, 
+                0, 
+                pwv_point
+                );            
+                                                                                     
+        pwv_trace[idx] = pwv_point + cpwv0 + cpwv_slope*(time_point + ct_start);
+    }
+}
+
+/**
   Main simulation kernel. This is where the magic happens.
 
   @param eta_cascade Array containing the transmission efficiency of each stage in the cascade.
@@ -503,6 +541,7 @@ void calc_power(
         
         // Coupling to source
         psd_in = eta_illum_loc * psd_nu * 0.5 + psd_cmb_loc;
+        //psd_in = psd_nu;
         
         // Initial pass through atmosphere
         psd_in = rad_trans(
@@ -622,6 +661,7 @@ void run_gateau(
     float *d_el_trace;      // Elevation traces
     float *d_time_trace;    // Time traces
     float *d_pwv_trace;     // PWV traces
+    float *d_pwv_trace_zenith;     // PWV trace at zenith
     
     // HOST: INTEGERS
     unsigned long long nf_ch;              // Number of channels per spaxel
@@ -722,6 +762,7 @@ void run_gateau(
     // Instantiate and write filter freqs to output file
     OutputFile outfile(
             outpath, 
+            instrument->num_spax,
             nttot, 
             nf_ch, 
             instrument->f_ch, 
@@ -1377,12 +1418,9 @@ void run_gateau(
                             nt_sub_scr_job * sizeof(float)
                             ) 
                         );
-                gpuErrchk( 
-                        cudaMalloc(
-                            (void**)&d_pwv_trace, 
-                            nt_sub_scr_job * sizeof(float)
-                            ) 
-                        );
+                gpuErrchk( cudaMalloc((void**)&d_pwv_trace, nt_sub_scr_job * sizeof(float)) );
+                gpuErrchk( cudaMalloc((void**)&d_pwv_trace_zenith, nt_sub_scr_job * sizeof(float)) );
+                
                 gpuErrchk( 
                         cudaMalloc(
                             (void**)&d_time_trace, 
@@ -1441,6 +1479,29 @@ void run_gateau(
                             sizeof(int)
                             ) 
                         );
+
+                float *pwv_zenith = new float[nt_sub_scr_job];
+                if(!idx_spax) {
+                    calc_pwv_trace_zenith<<<gridSize1D, blockSize1D>>>(
+                            x_atm,
+                            y_atm,
+                            d_pwv_screen,
+                            d_pwv_trace_zenith
+                            );
+
+                    gpuErrchk( cudaDeviceSynchronize() );
+                    
+                    gpuErrchk( 
+                            cudaMemcpy(
+                                pwv_zenith, 
+                                d_pwv_trace_zenith, 
+                                nt_sub_scr_job * sizeof(float), 
+                                cudaMemcpyDeviceToHost
+                                ) 
+                            );
+                    gpuErrchk( cudaFree(d_pwv_trace_zenith) );
+
+                }
 
                 calc_pwv_trace<<<gridSize1D, blockSize1D>>>(
                         d_az_scan,
@@ -1563,9 +1624,17 @@ void run_gateau(
                             sigout_T
                             );
                 
+                if(!idx_spax) {
+                    outfile.write_chunk_to_pwv(nt_sub_scr_job, pwv_zenith);
+                }
+                
+                delete[] pwv_zenith;
+                delete[] sigout_T;
+
                 idx_write++;
                 idx_offset += nt_sub_scr_job;
                 idx_in_screen += nt_sub_scr_job;
+
             }
             gpuErrchk( cudaDeviceSynchronize() );
             gpuErrchk( cudaFree(d_pwv_screen));
@@ -1576,6 +1645,8 @@ void run_gateau(
         {
             exit(1);
         }
+
+        if(!idx_spax) {outfile.close_obsattrs();}
 
         outfile.
             close_spaxel(idx_spax);

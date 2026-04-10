@@ -97,7 +97,7 @@ class simulator(object):
                    t_obs: float, 
                    az0: float,
                    el0: float,
-                   scan_func: Union[Callable, list[Callable]],
+                   scan_func: Callable,
                    instrument_dict: dict[str, any],
                    telescope_dict: dict[str, any],
                    atmosphere_dict: dict[str, any],
@@ -113,14 +113,11 @@ class simulator(object):
         @ingroup public_api_simulator
 
         @param t_obs Total observation time for simulation, in seconds.
-        @param az0 Central azimuth value for the (first) scan pattern, in degrees.
-        @param el0 Central elevation value for the (first) scan pattern, in degrees.
+        @param az0 Central azimuth value for the scan pattern, in degrees.
+        @param el0 Central elevation value for the scan pattern, in degrees.
         @param scan_func Function handle of the function defining the scan pattern. 
             First argument must be a Numpy array consisting of timestamps.
             Second and third argument must be scalars or Numpy arrays containing central azimuth and elevation values, respectively.
-            The 'scan_func' argument can also be a list of function handles. 
-            In this case, the first function in the list is evaluated using az0 and el0 as supplied to this function.
-            Then, the output is passed to the next function handle in the list.
         @param instrument_dict Dictionary containing instrument specification.
         @param telescope_dict Dictionary containing telescope specification.
         @param atmosphere_dict Dictionary containing atmosphere specification.
@@ -209,19 +206,11 @@ class simulator(object):
         # We also convert the average pwv tuple in the atmosphere dict to a starting pwv and a slope
         self.atmosphere["PWV_slope"] = (self.atmosphere["PWV0"][1] - self.atmosphere["PWV0"][0]) / times_array[-1]
 
-        if isinstance(scan_func, list):
-            az_scan, el_scan = scan_func[0](times_array, az0, el0)
-            self.telescope["az_scan_center"] = az_scan
-            self.telescope["el_scan_center"] = el_scan
-            for s_f in scan_func[1:]:
-                az_scan, el_scan = s_f(times_array, az_scan, el_scan)
+        az_scan_center, el_scan_center = scan_func(times_array, az0, el0)
+        self.telescope["az_scan_center"] = az_scan_center
+        self.telescope["el_scan_center"] = el_scan_center
         
-        else:
-            az_scan_center, el_scan_center = scan_func(times_array, az0, el0)
-            self.telescope["az_scan_center"] = az_scan_center
-            self.telescope["el_scan_center"] = el_scan_center
-            
-            az_scan, el_scan = scan_func(times_array, az0, el0)
+        az_scan, el_scan = scan_func(times_array, az0, el0)
 
         self.telescope["az_scan"] = az_scan
         self.telescope["el_scan"] = el_scan
