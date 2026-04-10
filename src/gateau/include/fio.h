@@ -27,10 +27,12 @@ namespace fs = std::filesystem;
 
 #define OBSATTRS_NAME   "OBSATTRS"
 #define SPAX_NAME       "SPAXEL"
+#define NSPAX_NAME      "num_spax"
 #define FREQS_NAME      "frequencies"
 #define TIME_NAME       "times"
 #define AZ_NAME         "az"
 #define EL_NAME         "el"
+#define PWV_NAME        "pwv"
 
 #define AZ_SPAX_NAME    "az_spax"
 #define EL_SPAX_NAME    "el_spax"
@@ -67,7 +69,8 @@ class OutputFile
         hid_t   spax_id;
         
         // Handles for hdf5 dataspace/set creation
-        hid_t   dspace_id, dspace_slab_id, dset_id;
+        // Special one for PWV because its easier
+        hid_t   dspace_id, dspace_pwv_id, dspace_slab_id, dspace_pwv_slab_id, dset_id, dset_pwv_id;
 
         // Output dimensions
         hsize_t dims_1D[RANK1D], 
@@ -78,10 +81,11 @@ class OutputFile
         hsize_t dims_2D_null[2] = {0,0};
 
         // Hyperslab dimensions
-        hsize_t start[2], count[2];
+        hsize_t start[2], count[2], start_pwv[1], count_pwv[1];
 
         int ntimes, nfreqs;
         int offset_times = 0;
+        int offset_times_pwv = 0;
 
         void check_API_call_status(
                 herr_t status, 
@@ -97,6 +101,7 @@ class OutputFile
     public:
         OutputFile(
                 const char *filename, 
+                int nspax,
                 int ntimes, 
                 int nfreqs, 
                 float *freqs, 
@@ -130,6 +135,34 @@ class OutputFile
                     H5P_DEFAULT
                     );   
 
+            // Write dataspace with number of spaxels
+            dspace_id = H5Screate(H5S_SCALAR);
+
+            dset_id = H5Dcreate(
+                    obsattrs_id,
+                    NSPAX_NAME,
+                    H5T_NATIVE_INT,
+                    dspace_id,
+                    H5P_DEFAULT,
+                    H5P_DEFAULT,
+                    H5P_DEFAULT
+                    );
+
+            check_API_call_status(
+                    H5Dwrite(
+                        dset_id, 
+                        H5T_NATIVE_INT,
+                        H5S_ALL, 
+                        H5S_ALL, 
+                        H5P_DEFAULT, 
+                        &nspax
+                        ),
+                    __LINE__
+                    );
+
+            check_API_call_status(H5Dclose(dset_id), __LINE__);
+            check_API_call_status(H5Sclose(dspace_id), __LINE__);
+            
             // Write dataspace for frequencies
             dims_1D[0] = nfreqs;
             
@@ -161,15 +194,8 @@ class OutputFile
                     __LINE__
                     );
             
-            check_API_call_status(
-                    H5Dclose(dset_id),
-                    __LINE__
-                    );
-            
-            check_API_call_status(
-                    H5Sclose(dspace_id),
-                    __LINE__
-                    );
+            check_API_call_status(H5Dclose(dset_id), __LINE__);
+            check_API_call_status(H5Sclose(dspace_id), __LINE__);
             
             // Initialise time and az-el arrays
             dims_1D[0] = ntimes;
@@ -256,21 +282,76 @@ class OutputFile
                         ),
                     __LINE__
                     );
+            check_API_call_status(H5Dclose(dset_id), __LINE__);
+            check_API_call_status(H5Sclose(dspace_id), __LINE__);
             
+            // Allocate output array for zenith PWV
+            dspace_pwv_id = H5Screate_simple(
+                    RANK1D, 
+                    dims_1D, 
+                    NULL
+                    );
+            
+            dset_pwv_id = H5Dcreate(
+                    obsattrs_id,
+                    PWV_NAME,
+                    H5T_IEEE_F32LE,
+                    dspace_pwv_id,
+                    H5P_DEFAULT,
+                    H5P_DEFAULT,
+                    H5P_DEFAULT
+                    );
+        }
+        void write_chunk_to_pwv(
+                int ntimes_chunk, 
+                float *data
+                )
+        {
+            start_pwv[0] = offset_times_pwv;
+            count_pwv[0] = ntimes_chunk;
+
+            dims_1D[0] = ntimes_chunk;
+
             check_API_call_status(
-                    H5Dclose(dset_id),
+                    H5Sselect_hyperslab(
+                        dspace_pwv_id,
+                        H5S_SELECT_SET,
+                        start,
+                        NULL,
+                        count,
+                        NULL
+                        ),
                     __LINE__
+                    );
+
+            dspace_pwv_slab_id = H5Screate_simple(
+                    RANK1D,
+                    dims_1D,
+                    NULL
                     );
             
             check_API_call_status(
-                    H5Sclose(dspace_id),
+                    H5Dwrite(
+                        dset_pwv_id,
+                        H5T_IEEE_F32LE,
+                        dspace_pwv_slab_id,
+                        dspace_pwv_id,
+                        H5P_DEFAULT,
+                        data
+                        ),
                     __LINE__
                     );
             
+            offset_times_pwv += ntimes_chunk;
             check_API_call_status(
-                    H5Gclose(obsattrs_id),
+                    H5Sclose(dspace_pwv_slab_id),
                     __LINE__
                     );
+        }
+        void close_obsattrs() {
+            check_API_call_status(H5Dclose(dset_pwv_id), __LINE__);
+            check_API_call_status(H5Sclose(dspace_pwv_id), __LINE__);
+            check_API_call_status(H5Gclose(obsattrs_id), __LINE__);
         }
 
         void open_spaxel(
@@ -353,15 +434,8 @@ class OutputFile
                     __LINE__
                     );
             
-            check_API_call_status(
-                    H5Dclose(dset_id),
-                    __LINE__
-                    );
-            
-            check_API_call_status(
-                    H5Sclose(dspace_id),
-                    __LINE__
-                    );
+            check_API_call_status(H5Dclose(dset_id), __LINE__);
+            check_API_call_status(H5Sclose(dspace_id), __LINE__);
 
             // Allocate output array for this spaxel
             dspace_id = H5Screate_simple(
