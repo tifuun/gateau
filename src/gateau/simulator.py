@@ -103,8 +103,7 @@ class simulator(object):
                    atmosphere_dict: dict[str, any],
                    source_dict: dict[str, any],
                    cascade_list: Union[list[dict[str, any]], str],
-                   cascade_yaml: str = "cascade.yaml",
-                   return_full: bool = False) -> Union[None, dict[str, any]]:
+                   cascade_yaml: str = "cascade.yaml") -> None:
         """!
         Initialise a gateau setup. 
         THis function needs to be called before running a simulation.
@@ -127,9 +126,6 @@ class simulator(object):
         @param cascade_yaml Name of .yaml file containing cascade.
             Only used if 'cascade_list' is a string containing a folder with a cascade .yaml.
             Defaults to 'cascade.yaml'.
-        @param return_full Boolean determining whether extra output is returned.
-            This extra output might be useful when you want to process the actual gateau output further.
-            Defaults to False.
 
         @returns Dictionary containing the aperture efficiency and atmospheric transmission.
             The latter is evaluated using the PWV0 supplied in the atmosphere dictionary.
@@ -279,6 +275,7 @@ class simulator(object):
                     axis = 0
                     )
 
+        print(self.instrument["use_pink"])
         if self.instrument["use_pink"]:
             if isinstance(self.instrument["pink_level"], float) or isinstance(self.instrument["pink_level"], int):
                 self.instrument["pink_level"] *= np.ones(self.instrument["nf_ch"])
@@ -315,19 +312,7 @@ class simulator(object):
             self.telescope["eta_ruze"] *= eta_surf 
 
         self.telescope["eta_illum"] = self.telescope["eta_taper"] * self.telescope["eta_ruze"]
-
-        if return_full:
-            eta_illum = copy.deepcopy(self.telescope["eta_illum"])
-            eta_ap *= eta_illum
-
-            eta_atm = get_eta_atm(self.source["f_src"],
-                                  np.mean(self.atmosphere["PWV0"]),
-                                  np.mean(el_scan))
-            
-            return {
-                    "eta_ap"     : self._average_over_transmission(eta_ap),
-                    "eta_atm"    : self._average_over_transmission(eta_atm),
-                    }
+        self.telescope["eta_ap"] = self._average_over_transmission(eta_ap * self.telescope["eta_illum"])
         
     def run(self, 
             outname: Union[str, Path] = "out", 

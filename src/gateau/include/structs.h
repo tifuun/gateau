@@ -46,7 +46,8 @@ struct Instrument
 
 struct Telescope 
 {
-    float *eta_illum;      /**< Array of aperture efficiencies.*/
+    float *eta_illum;      /**< Array of illumination efficiencies.*/
+    float *eta_ap;      /**< Array of aperture efficiencies.*/
     float *az_scan;     /**< Azimuth co-ordinates of scan strategy for simulation.*/
     float *el_scan;     /**< Elevation co-ordinates of scan strategy for simulation.*/
     float *az_scan_center;     /**< Azimuth center co-ordinates of scan strategy for simulation.*/

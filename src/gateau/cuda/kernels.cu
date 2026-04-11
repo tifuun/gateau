@@ -88,10 +88,7 @@ inline void gpuAssert(
               line
               );
       
-      if (abort)
-      {
-          exit(code);
-      }
+      if (abort) {exit(code);}
    }
 }
 
@@ -125,16 +122,13 @@ void writeArray(
     {
         for(int count = 0; count < s_array; count ++)
         {
-            myfile 
-                << h_array[count] 
-                << "\n" ;
+            myfile << h_array[count] << "\n" ;
         }
         myfile.close();
     }
     else 
     {
-        std::cout 
-        << "Unable to open file";
+        std::cout << "Unable to open file";
     }
     delete[] h_array;
 }
@@ -147,12 +141,8 @@ void writeArray(
 
   @returns Johnson-Nyquist noise at temperature T, evaluated at frequencies nu.
  */
-
 __host__ inline 
-float get_jn_noise(
-        float T, 
-        float nu
-        ) 
+float get_jn_noise(float T, float nu) 
 {
     return HP * nu / (expf(HP * nu / (KB * T)) - 1);
 }
@@ -213,7 +203,8 @@ void transpose_flat_array(
         float *out, 
         const float *in, 
         int rows, 
-        int cols)
+        int cols
+        )
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int size = rows * cols;
@@ -233,6 +224,35 @@ void transpose_flat_array(
 }
 
 /**
+  Perform responsivity calibration on pink noise TODs.
+ 
+  @param out Array to place transposed array.
+  @param in Array to be transposed.
+  @param rows Number of rows.
+  @param cols Number of columns.
+ */
+__global__ 
+void resp_cal_pink(
+        float *data, 
+        float *c0,
+        float *c1,
+        int nttot, 
+        int nf_job,
+        int nf_offset
+        )
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < nttot) 
+    {
+        for(int k = 0; k<nf_job; k++) 
+        {
+            data[k*nttot + idx] = c1[k + nf_offset] * data[k*nttot + idx] + c0[k + nf_offset];
+        }
+    }
+}
+
+/**
   Initialize random number generator (RNG) states.
 
   @param state Array of CUDA RNG states.
@@ -241,17 +261,16 @@ void transpose_flat_array(
 __global__ 
 void init_random_states(
         curandState *state,
-        unsigned long long int seed
+        unsigned long long int seed,
+        int nstates
         )
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;                                 
                                                                                      
-    if (idx < cnt) 
+    if (idx < nstates) 
     {
-        if (!seed)
-        {
-            seed = clock64();
-        }
+        if (!seed) {seed = clock64();}
+        
         curand_init(
                 seed, 
                 idx, 
@@ -273,12 +292,15 @@ void calc_pink_psd(
         cufftComplex *output,
         float *pink_level,
         float *pink_alpha,
+        int nttot,
+        int nf_job, 
+        int nf_offset,
         curandState *state
         )
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;                                 
                                                                                      
-    if (idx < (cnt / 2)) 
+    if (idx < (nttot / 2)) 
     {
         cufftComplex local;
         curandState localState = state[idx];
@@ -291,15 +313,15 @@ void calc_pink_psd(
 
         else 
         {
-            float factor = 1 / (idx * cf_sample / 2 / (cnt / 2 + 1));
+            float factor = 1 / (idx * cf_sample / 2 / (nttot / 2 + 1));
             float factor_loc;
 
-            for(int k=0; k<cnf_ch; k++) 
+            for(int k=0; k<nf_job; k++) 
             {
-                factor_loc = sqrtf(pink_level[k] / cnt) * powf(factor, pink_alpha[k]/2);
+                factor_loc = sqrtf(pink_level[k + nf_offset] / nttot) * powf(factor, pink_alpha[k + nf_offset]/2);
                 local.x = factor_loc * curand_normal(&localState);
                 local.y = factor_loc * curand_normal(&localState);
-                output[k*(cnt / 2 + 1) + idx] = local;
+                output[k*(nttot / 2 + 1) + idx] = local;
             }
             state[idx] = localState;
         }
@@ -490,12 +512,10 @@ void calc_power(
         bool offsource = ((temp1 < az_src.start) || (temp1 > az_src_max)) || 
                          ((temp2 < el_src.start) || (temp2 > el_src_max));
 
-        if(offsource) 
-        {
-            psd_nu = 0.;
-        }
+        if(offsource) {psd_nu = 0.;}
         
-        else {
+        else 
+        {
             x0y0 = f_src.num * (iaz + iel * az_src.num);
             x1y0 = f_src.num * (iaz + 1 + iel * az_src.num);
             x0y1 = f_src.num * (iaz + (iel+1) * az_src.num);
@@ -541,7 +561,6 @@ void calc_power(
         
         // Coupling to source
         psd_in = eta_illum_loc * psd_nu * 0.5 + psd_cmb_loc;
-        //psd_in = psd_nu;
         
         // Initial pass through atmosphere
         psd_in = rad_trans(
@@ -555,10 +574,8 @@ void calc_power(
         for (int n=0; n<cnum_stage; n++) 
         {
             psd_parasitic_use = psd_cascade[n*f_src.num + idy];
-            if (psd_parasitic_use < 0) 
-            {
-                psd_parasitic_use = psd_sky;
-            }
+            
+            if (psd_parasitic_use < 0) {psd_parasitic_use = psd_sky;}
 
             psd_in = rad_trans(
                     psd_in, 
@@ -573,7 +590,7 @@ void calc_power(
             eta_kj = transmission[k*f_src.num + idy];
             psd_in_k =  psd_in * eta_kj;
 
-            sigfactor = psd_in_k * f_src.step; // Note that psd_in already has the eta_kj incorporated!
+            sigfactor = psd_in_k * f_src.step;
 
             atomicAdd(
                     &sigout[k*cnt + idx], 
@@ -614,16 +631,12 @@ void calc_photon_noise(
     {
         curandState localState = state[idx + idx_in_screen];
         float P_k, sigma_k;
-        float c0_loc, c1_loc;
 
         for(int k=0; k<cnf_ch; k++) 
         {
-            c0_loc = c0[k];
-            c1_loc = c1[k];
             sigma_k = sqrtf(2 * nepout[k*cnt + idx]) * csqrt_samp;
             P_k = sigout[k*cnt + idx] + sigma_k * curand_normal(&localState);
-            sigout[k*cnt + idx] = c0_loc + c1_loc * P_k;
-
+            sigout[k*cnt + idx] = c0[k] + c1[k] * P_k;
         }
         state[idx + idx_in_screen] = localState;
     }
@@ -720,15 +733,13 @@ void run_gateau(
     float lx_av = lx - ly;                          // Available length along x, taking into account center of screen
     float t_obs_av = lx_av / atmosphere->v_wind;    // Max available time per screen
 
-    if(isinf(t_obs_av) || isnan(t_obs_av)) 
-    {
-        t_obs_av = ttot;
-    }
-
-    int nJobs = ceil(ttot / t_obs_av);                     // Total number of times kernel needs to be run
-
-    // Following int is number of evaluations per a
-    ntscr = floor(t_obs_av * instrument->f_sample);  // Number of time evaluations available per atmosphere screen. Floored to be safe.
+    if(isinf(t_obs_av) || isnan(t_obs_av)) {t_obs_av = ttot;}
+    
+    // Total number of times kernel needs to be run
+    int nJobs = ceil(ttot / t_obs_av);                     
+    
+    // Number of time evaluations available per atmosphere screen. Floored to be safe.
+    ntscr = floor(t_obs_av * instrument->f_sample);
 
     struct ArrSpec x_atm;
     struct ArrSpec y_atm;
@@ -767,6 +778,7 @@ void run_gateau(
             nf_ch, 
             instrument->f_ch, 
             times_arr, 
+            telescope->eta_ap, 
             telescope->az_scan, 
             telescope->el_scan
             );
@@ -781,13 +793,9 @@ void run_gateau(
             );
 
     // TiEMPO2 prefers larger L1 cache over shared memory.
-    gpuErrchk( 
-            cudaDeviceSetCacheConfig(
-                cudaFuncCachePreferL1
-                ) 
-            );
+    gpuErrchk( cudaDeviceSetCacheConfig(cudaFuncCachePreferL1) );
     
-    float freq;    // Frequency, used for initialising background sources.
+    float freq;
 
     // Allocate cascade arrays
     std::vector<float> psd_atm(nf_src);
@@ -796,10 +804,7 @@ void run_gateau(
     {
         freq = f_src.start + f_src.step * j;
         
-        psd_atm[j] = get_jn_noise(
-                atmosphere->T_atm, 
-                freq
-                ); 
+        psd_atm[j] = get_jn_noise(atmosphere->T_atm, freq); 
     }
     
     float *d_psd_atm;
@@ -1033,10 +1038,7 @@ void run_gateau(
         // Wait with execution until all threads are done
         for (std::thread &t : threadPool) 
         {
-            if (t.joinable()) 
-            {
-                t.join();
-            }
+            if (t.joinable()) {t.join();}
         }
         delete[] eta_kj_sum;
 
@@ -1051,11 +1053,7 @@ void run_gateau(
         delete[] Tsky;   
     }
 
-    if(!strcmp(
-                outscale, 
-                power_str
-                )
-            )
+    if(!strcmp(outscale, power_str))
     {
         for(int i=0; i<nf_ch; i++)
         {
@@ -1150,11 +1148,18 @@ void run_gateau(
 
     float ftime_counter;
     
-    curandState *devstates;
+    curandState *devstates, *devstates_pink;
     gpuErrchk( 
             cudaMalloc(
                 (void**)&devstates, 
                 ntscr * sizeof(curandState)
+                ) 
+            );
+    
+    gpuErrchk( 
+            cudaMalloc(
+                (void**)&devstates_pink, 
+                (nttot / 2 + 1) * sizeof(curandState)
                 ) 
             );
     
@@ -1164,11 +1169,23 @@ void run_gateau(
   
     init_random_states<<<gridSize1D, blockSize1D>>>(
             devstates, 
-            seed
+            seed,
+            ntscr
+            );
+    
+    nBlocks1D = ceilf((float)(nttot / 2 + 1) / NTHREADS1D / numSMs);
+    blockSize1D = NTHREADS1D;
+    gridSize1D = nBlocks1D*numSMs;
+  
+    init_random_states<<<gridSize1D, blockSize1D>>>(
+            devstates_pink, 
+            seed+1,
+            nttot / 2 + 1
             );
 
     int ntscr_job;
     int nt_sub_scr_job;
+    int nf_job;
     for(int idx_spax=0; idx_spax<num_spax; idx_spax++) 
     {
         printf("Simulating spaxel %d / %d\n", idx_spax+1, num_spax);
@@ -1190,6 +1207,183 @@ void run_gateau(
                     az_fpa, 
                     el_fpa
                     );
+        
+        if(instrument->use_pink) 
+        {
+            gpuErrchk( 
+                cudaMemGetInfo(
+                    &free_mem, 
+                    &total_mem
+                    ) 
+                );
+            
+            float *d_pink_level, *d_pink_alpha;
+            gpuErrchk( 
+                    cudaMalloc(
+                        (void**)&d_pink_level, 
+                        nf_ch * sizeof(float)
+                        ) 
+                    );
+
+            gpuErrchk( 
+                    cudaMalloc(
+                        (void**)&d_pink_alpha, 
+                        nf_ch * sizeof(float)
+                        ) 
+                    );
+
+            gpuErrchk( 
+                    cudaMemcpy(
+                        d_pink_level, 
+                        instrument->pink_level, 
+                        nf_ch * sizeof(float), 
+                        cudaMemcpyHostToDevice
+                        ) 
+                    );
+
+            gpuErrchk( 
+                    cudaMemcpy(
+                        d_pink_alpha, 
+                        instrument->pink_alpha, 
+                        nf_ch * sizeof(float), 
+                        cudaMemcpyHostToDevice
+                        ) 
+                    );
+
+            required_mem = 2 * nttot * nf_ch * sizeof(float) + (nttot / 2 + 1)*nf_job * sizeof(cufftComplex);
+            num_blocks_in_screen = (int)ceil((float)required_mem / (free_mem*MEMBUFF));
+
+            nf_job = (int)ceil((float)nf_ch / num_blocks_in_screen);
+            for(int ii=0; ii<num_blocks_in_screen; ii++) 
+            {
+                if(ii == (num_blocks_in_screen - 1)) {
+                    nf_job = nf_ch - nf_job * ii;
+                }
+
+                cufftComplex *d_pink_out;
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_pink_out, 
+                            (nttot / 2 + 1)*nf_job * sizeof(cufftComplex)
+                            ) 
+                        );
+                nBlocks1D = ceilf((float)(nttot / 2 + 1) / NTHREADS1D / numSMs);
+                blockSize1D = NTHREADS1D;
+                gridSize1D = nBlocks1D*numSMs;
+
+                
+                // KERNEL CALL
+                calc_pink_psd<<<gridSize1D, blockSize1D>>>(
+                        d_pink_out, 
+                        d_pink_level, 
+                        d_pink_alpha,
+                        nttot,
+                        nf_job,
+                        nf_job*ii,
+                        devstates_pink
+                        );
+
+                gpuErrchk( cudaDeviceSynchronize() );
+                
+                cufftHandle plan;
+                int rank = 1;
+                int n[] = { nttot };
+                int istride = 1, ostride = 1;
+                int idist = nttot / 2 + 1;
+                int odist = nttot;
+                int inembed[] = { 0 };
+                int onembed[] = { 0 };
+
+                CUFFT_CALL( 
+                        cufftPlanMany(
+                            &plan, 
+                            rank, 
+                            n, 
+                            inembed, 
+                            istride, 
+                            idist,
+                            onembed, 
+                            ostride, 
+                            odist, 
+                            CUFFT_C2R, 
+                            nf_job
+                            ) 
+                        );
+                float *d_sigout_pink, *d_sigout_pink_T;
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_sigout_pink, 
+                            nttot*nf_job * sizeof(float)
+                            ) 
+                        );
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_sigout_pink_T, 
+                            nttot*nf_job * sizeof(float)
+                            ) 
+                        );
+
+                CUFFT_CALL( 
+                        cufftExecC2R(
+                            plan, 
+                            d_pink_out, 
+                            d_sigout_pink
+                            ) 
+                        );
+
+                nBlocks1D = ceilf((float)nttot / NTHREADS1D / numSMs);
+                blockSize1D = NTHREADS1D;
+                gridSize1D = nBlocks1D*numSMs;
+                resp_cal_pink<<<gridSize1D, blockSize1D>>>(
+                        d_sigout_pink,
+                        d_c0,
+                        d_c1,
+                        nttot, 
+                        nf_job,
+                        nf_job*ii
+                        );
+                
+                nBlocks1D = ceilf((float)nttot*nf_job / NTHREADS1D / numSMs);
+                blockSize1D = NTHREADS1D;
+                gridSize1D = nBlocks1D*numSMs;
+
+                transpose_flat_array<<<gridSize1D, blockSize1D>>>(
+                        d_sigout_pink_T,
+                        d_sigout_pink,
+                        nttot,
+                        nf_job
+                        );
+
+                gpuErrchk( cudaDeviceSynchronize() );
+                gpuErrchk( cudaFree(d_pink_out) );
+                gpuErrchk( cudaFree(d_sigout_pink) );
+
+                float *sigout_pink_T = new float[nttot*nf_job];
+                
+                gpuErrchk( 
+                        cudaMemcpy(
+                            sigout_pink_T, 
+                            d_sigout_pink_T, 
+                            nttot*nf_job * sizeof(float), 
+                            cudaMemcpyDeviceToHost
+                            ) 
+                        );
+                gpuErrchk( cudaFree(d_sigout_pink_T) );
+
+                outfile.
+                    write_pink_chunk_to_spaxel(
+                            nf_job,
+                            sigout_pink_T
+                            );
+
+                delete[] sigout_pink_T;
+
+                CUFFT_CALL( cufftDestroy(plan) );
+                gpuErrchk( cudaDeviceSynchronize() );
+            }
+            gpuErrchk( cudaFree(d_pink_level) );
+            gpuErrchk( cudaFree(d_pink_alpha) );
+        }
 
         idx_wrap = 0;
         idx_offset = 0;
@@ -1201,15 +1395,8 @@ void run_gateau(
             idx_in_screen = 0;
             ntscr_job = ntscr;
 
-            if (idx_wrap == meta[0]) 
-            {
-                idx_wrap = 0;
-            }
-
-            if (idx == (nJobs - 1)) 
-            {
-                ntscr_job = nttot - ntscr * idx;
-            }
+            if (idx_wrap == meta[0]) {idx_wrap = 0;}
+            if (idx == (nJobs - 1)) {ntscr_job = nttot - ntscr * idx;}
 
             nffnt = nf_ch * ntscr_job; // Number of elements in single-screen output.
             
@@ -1253,12 +1440,8 @@ void run_gateau(
                         ) 
                     );
 
-            free_mem *= MEMBUFF;
-
             required_mem = (4 * ntscr_job + 2 * nffnt + npwvscr) * sizeof(float);
-
-            num_blocks_in_screen = (int)ceil((float)required_mem / free_mem);
-            
+            num_blocks_in_screen = (int)ceil((float)required_mem / (free_mem*MEMBUFF));
             nt_sub_scr = (int)floor((float)ntscr_job / num_blocks_in_screen);
 
             for(int idx_sub=0; idx_sub<num_blocks_in_screen; idx_sub++)
@@ -1286,125 +1469,13 @@ void run_gateau(
                             ) 
                         );
                 
-                if(instrument->use_pink) 
-                {
-                    int ntscr_h = nt_sub_scr_job / 2 + 1;
-                    nBlocks1D = ceilf((float)(ntscr_h) / NTHREADS1D / numSMs);
-                    blockSize1D = NTHREADS1D;
-                    gridSize1D = nBlocks1D*numSMs;
-
-                    float *d_pink_level, *d_pink_alpha;
-                    gpuErrchk( 
-                            cudaMalloc(
-                                (void**)&d_pink_level, 
-                                nf_ch * sizeof(float)
-                                ) 
-                            );
-                    gpuErrchk( 
-                            cudaMemcpy(
-                                d_pink_level, 
-                                instrument->pink_level, 
-                                nf_ch * sizeof(float), 
-                                cudaMemcpyHostToDevice
-                                ) 
-                            );
-
-                    gpuErrchk( 
-                            cudaMalloc(
-                                (void**)&d_pink_alpha, 
-                                nf_ch * sizeof(float)
-                                ) 
-                            );
-                    gpuErrchk( 
-                            cudaMemcpy(
-                                d_pink_alpha, 
-                                instrument->pink_alpha, 
-                                nf_ch * sizeof(float), 
-                                cudaMemcpyHostToDevice
-                                ) 
-                            );
-
-                    cufftComplex *d_pink_out;
-                    gpuErrchk( 
-                            cudaMalloc(
-                                (void**)&d_pink_out, 
-                                ntscr_h*nf_ch * sizeof(cufftComplex)
-                                ) 
-                            );
-                    
-                    // KERNEL CALL
-                    calc_pink_psd<<<gridSize1D, blockSize1D>>>(
-                            d_pink_out, 
-                            d_pink_level, 
-                            d_pink_alpha,
-                            devstates
-                            );
-
-                    gpuErrchk( cudaDeviceSynchronize() );
-                    
-                    gpuErrchk( 
-                            cudaFree(
-                                d_pink_level
-                                ) 
-                            );
-                    gpuErrchk( 
-                            cudaFree(
-                                d_pink_alpha
-                                ) 
-                            );
-
-                    cufftHandle plan;
-                    int rank = 1;
-                    int n[] = { nt_sub_scr_job };
-                    int istride = 1, ostride = 1;
-                    int idist = ntscr_h, odist = nt_sub_scr_job;
-                    int inembed[] = { 0 };
-                    int onembed[] = { 0 };
-
-                    CUFFT_CALL( 
-                            cufftPlanMany(
-                                &plan, 
-                                rank, 
-                                n, 
-                                inembed, 
-                                istride, 
-                                idist,
-                                onembed, 
-                                ostride, 
-                                odist, 
-                                CUFFT_C2R, 
-                                nf_ch
-                                ) 
-                            );
-
-                    CUFFT_CALL( 
-                            cufftExecC2R(
-                                plan, 
-                                d_pink_out, 
-                                d_sigout
-                                ) 
-                            );
-                    gpuErrchk( cudaDeviceSynchronize() );
-                    gpuErrchk( 
-                            cudaFree(
-                                d_pink_out
-                                ) 
-                            );
-
-                    CUFFT_CALL( cufftDestroy(plan) );
-                    gpuErrchk( cudaDeviceSynchronize() );
-                }
-
-                else 
-                {
-                    gpuErrchk( 
-                        cudaMemset(
-                            d_sigout, 
-                            0, 
-                            nf_sub_fnt * sizeof(float)
-                            ) 
-                        );
-                }
+                gpuErrchk( 
+                    cudaMemset(
+                        d_sigout, 
+                        0, 
+                        nf_sub_fnt * sizeof(float)
+                        ) 
+                    );
                 
                 gpuErrchk( 
                         cudaMalloc(
@@ -1418,8 +1489,19 @@ void run_gateau(
                             nt_sub_scr_job * sizeof(float)
                             ) 
                         );
-                gpuErrchk( cudaMalloc((void**)&d_pwv_trace, nt_sub_scr_job * sizeof(float)) );
-                gpuErrchk( cudaMalloc((void**)&d_pwv_trace_zenith, nt_sub_scr_job * sizeof(float)) );
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_pwv_trace, 
+                            nt_sub_scr_job * sizeof(float)
+                            ) 
+                        );
+                
+                gpuErrchk( 
+                        cudaMalloc(
+                            (void**)&d_pwv_trace_zenith, 
+                            nt_sub_scr_job * sizeof(float)
+                            ) 
+                        );
                 
                 gpuErrchk( 
                         cudaMalloc(
@@ -1440,14 +1522,8 @@ void run_gateau(
 
                 nBlocks2Dx = ceilf((float)nt_sub_scr_job / NTHREADS2DX / numSMs);
                 nBlocks2Dy = ceilf((float)nf_src / NTHREADS2DY / numSMs);
-                blockSize2D = dim3(
-                        NTHREADS2DX, 
-                        NTHREADS2DY
-                        );
-                gridSize2D = dim3(
-                        nBlocks2Dx*numSMs, 
-                        nBlocks2Dy*numSMs
-                        );
+                blockSize2D = dim3(NTHREADS2DX, NTHREADS2DY);
+                gridSize2D = dim3(nBlocks2Dx*numSMs, nBlocks2Dy*numSMs);
                 
                 ftime_counter = static_cast<float>(idx_offset) / instrument->f_sample;
 
@@ -1521,12 +1597,7 @@ void run_gateau(
                         );
 
                 gpuErrchk( cudaDeviceSynchronize() );
-                
-                gpuErrchk( 
-                        cudaFree(
-                            d_time_trace
-                            ) 
-                        );
+                gpuErrchk( cudaFree(d_time_trace) );
 
                 // CALL TO MAIN SIMULATION KERNEL
                 calc_power<<<gridSize2D, blockSize2D>>>(
@@ -1551,22 +1622,9 @@ void run_gateau(
                         );
                 
                 gpuErrchk( cudaDeviceSynchronize() );
-                
-                gpuErrchk( 
-                        cudaFree(
-                            d_pwv_trace
-                            ) 
-                        );
-                gpuErrchk( 
-                        cudaFree(
-                            d_az_trace
-                            ) 
-                        );
-                gpuErrchk( 
-                        cudaFree(
-                            d_el_trace
-                            ) 
-                        );
+                gpuErrchk( cudaFree(d_pwv_trace) );
+                gpuErrchk( cudaFree(d_az_trace) );
+                gpuErrchk( cudaFree(d_el_trace) );
 
                 calc_photon_noise<<<gridSize1D, blockSize1D>>>(
                         d_sigout, 
@@ -1578,12 +1636,7 @@ void run_gateau(
                         );
 
                 gpuErrchk( cudaDeviceSynchronize() );
-                
-                gpuErrchk( 
-                        cudaFree(
-                            d_nepout
-                            ) 
-                        );
+                gpuErrchk( cudaFree(d_nepout) );
                 
                 float *d_sigout_T;
 
@@ -1648,12 +1701,12 @@ void run_gateau(
 
         if(!idx_spax) {outfile.close_obsattrs();}
 
-        outfile.
-            close_spaxel(idx_spax);
+        outfile.close_spaxel(idx_spax);
         
         printf("*** Progress: 100 / 100 ***\r");
     }
     gpuErrchk( cudaDeviceReset() );
+    
     printf("\033[0m\n");
 }
 
