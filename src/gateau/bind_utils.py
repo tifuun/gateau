@@ -65,12 +65,14 @@ def allfillTelescope(TelDict: dict[str, any],
     @param TelStruct Struct to be filled and passed to ctypes.
     """
     arr_eta_illum = ar.array('f', TelDict["eta_illum"].ravel())
+    arr_eta_ap = ar.array('f', TelDict["eta_ap"].ravel())
     arr_az_scan = ar.array('f', TelDict["az_scan"].ravel())
     arr_el_scan = ar.array('f', TelDict["el_scan"].ravel())
     arr_az_scan_center = ar.array('f', TelDict["az_scan_center"].ravel())
     arr_el_scan_center = ar.array('f', TelDict["el_scan_center"].ravel())
     
     TelStruct.eta_illum = (c_float * TelDict["eta_illum"].size).from_buffer(arr_eta_illum)
+    TelStruct.eta_ap = (c_float * TelDict["eta_ap"].size).from_buffer(arr_eta_ap)
     TelStruct.az_scan = (c_float * TelDict["az_scan"].size).from_buffer(arr_az_scan)
     TelStruct.el_scan = (c_float * TelDict["el_scan"].size).from_buffer(arr_el_scan)
     TelStruct.az_scan_center = (c_float * TelDict["az_scan_center"].size).from_buffer(arr_az_scan_center)

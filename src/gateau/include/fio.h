@@ -29,6 +29,7 @@ namespace fs = std::filesystem;
 #define SPAX_NAME       "SPAXEL"
 #define NSPAX_NAME      "num_spax"
 #define FREQS_NAME      "frequencies"
+#define ETA_AP_NAME     "eta_ap"
 #define TIME_NAME       "times"
 #define AZ_NAME         "az"
 #define EL_NAME         "el"
@@ -81,10 +82,11 @@ class OutputFile
         hsize_t dims_2D_null[2] = {0,0};
 
         // Hyperslab dimensions
-        hsize_t start[2], count[2], start_pwv[1], count_pwv[1];
+        hsize_t start[2], count[2], start_pink[2], count_pink[2], start_pwv[1], count_pwv[1];
 
         int ntimes, nfreqs;
         int offset_times = 0;
+        int offset_freqs = 0;
         int offset_times_pwv = 0;
 
         void check_API_call_status(
@@ -92,10 +94,7 @@ class OutputFile
                 int loc
                 )
         {
-            if(status < 0)
-            {
-                printf("HDF5 API error occured on line %d\n", loc);
-            }
+            if(status < 0) {printf("HDF5 API error occured on line %d\n", loc);}
         }
     
     public:
@@ -106,6 +105,7 @@ class OutputFile
                 int nfreqs, 
                 float *freqs, 
                 float *times, 
+                float *eta_ap,
                 float *az, 
                 float *el
                 ) 
@@ -118,6 +118,9 @@ class OutputFile
 
             start[1] = 0;
             count[1] = nfreqs;
+            
+            start_pink[0] = 0;
+            count_pink[0] = ntimes;
 
             // Make file and obsattrs group
             file_id = H5Fcreate(
@@ -194,6 +197,29 @@ class OutputFile
                     __LINE__
                     );
             
+            // Write eta_ap
+            dset_id = H5Dcreate(
+                    obsattrs_id, 
+                    ETA_AP_NAME, 
+                    H5T_IEEE_F32LE, 
+                    dspace_id, 
+                    H5P_DEFAULT, 
+                    H5P_DEFAULT, 
+                    H5P_DEFAULT
+                    );
+
+            check_API_call_status( 
+                    H5Dwrite(
+                        dset_id, 
+                        H5T_IEEE_F32LE, 
+                        H5S_ALL, 
+                        H5S_ALL, 
+                        H5P_DEFAULT, 
+                        eta_ap
+                        ),
+                    __LINE__
+                    );
+            
             check_API_call_status(H5Dclose(dset_id), __LINE__);
             check_API_call_status(H5Sclose(dspace_id), __LINE__);
             
@@ -227,12 +253,6 @@ class OutputFile
                         ),
                     __LINE__
                     );
-            
-            check_API_call_status(
-                    H5Dclose(dset_id),
-                    __LINE__
-                    );
-            
 
             dset_id = H5Dcreate(
                     obsattrs_id, 
@@ -253,11 +273,6 @@ class OutputFile
                         H5P_DEFAULT, 
                         az
                         ),
-                    __LINE__
-                    );
-            
-            check_API_call_status(
-                    H5Dclose(dset_id),
                     __LINE__
                     );
             
@@ -361,20 +376,13 @@ class OutputFile
                 ) 
         {
             offset_times = 0;
+            offset_freqs = 0;
             
             char spax_name[CHBUFF] = SPAX_NAME;
             char buffer[CHBUFF];
             
-            sprintf(
-                    buffer, 
-                    "%d", 
-                    spax_index
-                    );
-            
-            strcat(
-                    spax_name, 
-                    buffer
-                    );
+            sprintf(buffer, "%d", spax_index);
+            strcat(spax_name, buffer);
             
             spax_id = H5Gcreate(
                     file_id, 
@@ -405,10 +413,6 @@ class OutputFile
                         H5P_DEFAULT, 
                         &az_spax
                         ),
-                    __LINE__
-                    );
-            check_API_call_status(
-                    H5Dclose(dset_id),
                     __LINE__
                     );
             
@@ -454,6 +458,53 @@ class OutputFile
                     H5P_DEFAULT
                     );
         }
+        
+        void write_pink_chunk_to_spaxel(
+                int nfreqs_chunk, 
+                float *data
+                )
+        {
+            start_pink[1] = offset_freqs;
+            count_pink[1] = nfreqs_chunk;
+
+            dims_1D[0] = ntimes * nfreqs_chunk;
+
+            check_API_call_status(
+                    H5Sselect_hyperslab(
+                        dspace_id,
+                        H5S_SELECT_SET,
+                        start_pink,
+                        NULL,
+                        count_pink,
+                        NULL
+                        ),
+                    __LINE__
+                    );
+
+            dspace_slab_id = H5Screate_simple(
+                    RANK1D,
+                    dims_1D,
+                    NULL
+                    );
+            
+            check_API_call_status(
+                    H5Dwrite(
+                        dset_id,
+                        H5T_IEEE_F32LE,
+                        dspace_slab_id,
+                        dspace_id,
+                        H5P_DEFAULT,
+                        data
+                        ),
+                    __LINE__
+                    );
+            
+            offset_freqs += nfreqs_chunk;
+            check_API_call_status(
+                    H5Sclose(dspace_slab_id),
+                    __LINE__
+                    );
+        }
 
         void write_chunk_to_spaxel(
                 int ntimes_chunk, 
@@ -482,7 +533,25 @@ class OutputFile
                     dims_1D,
                     NULL
                     );
-            
+
+            float *buffer = new float[dims_1D[0]];
+            check_API_call_status(
+                    H5Dread(
+                        dset_id, 
+                        H5T_IEEE_F32LE, 
+                        dspace_slab_id, 
+                        dspace_id, 
+                        H5P_DEFAULT, 
+                        buffer
+                        ), 
+                    __LINE__
+                    );
+
+            for(int ii=0; ii < dims_1D[0]; ii++) 
+            {
+                buffer[ii] += data[ii];
+            }
+
             check_API_call_status(
                     H5Dwrite(
                         dset_id,
@@ -490,10 +559,12 @@ class OutputFile
                         dspace_slab_id,
                         dspace_id,
                         H5P_DEFAULT,
-                        data
+                        buffer
                         ),
                     __LINE__
                     );
+            
+            delete[] buffer;
             
             offset_times += ntimes_chunk;
             check_API_call_status(
@@ -504,31 +575,16 @@ class OutputFile
 
         void close_spaxel(int spax_index) 
         {
-            check_API_call_status(
-                    H5Dclose(dset_id),
-                    __LINE__
-                    );
-            
-            check_API_call_status(
-                    H5Sclose(dspace_id),
-                    __LINE__
-                    );
-            
-            check_API_call_status(
-                    H5Gclose(spax_id),
-                    __LINE__
-                    );
+            check_API_call_status(H5Dclose(dset_id), __LINE__);
+            check_API_call_status(H5Sclose(dspace_id), __LINE__);
+            check_API_call_status(H5Gclose(spax_id), __LINE__);
         }
 
         ~OutputFile() 
         {
-            check_API_call_status(
-                    H5Fclose(file_id),
-                    __LINE__
-                    );
+            check_API_call_status(H5Fclose(file_id), __LINE__);
         }
 };
-
 #endif
 
 void readAtmMeta(
