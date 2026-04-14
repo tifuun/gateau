@@ -318,11 +318,16 @@ class simulator(object):
             outname: Union[str, Path] = "out", 
             overwrite: bool = False,
             outscale: str = "Tb",
-            seed: int = 0) -> None:
+            seed: int = 0,
+            use_photon_noise: bool = True,
+            use_rad_trans: bool = True,
+            use_pink_noise: bool = None) -> None:
         """!
         Run a gateau simulation.
         This is the main routine of gateau and should be called after filling all dictionaries and running the 'initialise' method.
-    
+        The last three arguments starting with 'use_...' are useful for debugging or characterisation of gateau.
+        For regular simulations, these should not be changed.
+
         @ingroup public_api_simulator
         
         @param outname Name of output hdf5 file. If a path, will place output in the path.
@@ -333,12 +338,23 @@ class simulator(object):
             Accepts "Tb" or "P". Defaults to "Tb".
         @param seed Seed for photon and pink noise generation. 
             Defaults to 0, which will internally be converted to a random seed using the current time.
+        @param use_photon_noise Enable photon noise calculation. Useful for debugging.
+            Defaults to True, which enables photon noise.
+        @param use_rad_trans Enable radiative transfer to calculate received power from sky.
+            Defaults to True, which enables the radiative transfer.
+        @param use_pink_noise Enable pink noise calculation.
+            This toggle is extra, because setting the "pink_level" field in the instrument dictionary already
+            decides whether or not to use pink noise.
+            This toggle is just here to explicitly enable/disable it, even when the field is set.
+            Defaults to None, which will leave the decision whether or not to 
+            enable pink noise to whether or not the "pink_level" field is filled.
         """
 
         if not self.initialisedSetup:
             self.clog.error("The initialise method MUST be called before running a simulation!")
             raise InitialError
             sys.exit()
+
 
         if isinstance(outname, str):
             outname = Path(outname)
@@ -365,6 +381,13 @@ class simulator(object):
                 pass
             else:
                 exit()
+
+        # Set debugging toggles
+        self.instrument["use_photon_noise"] = use_photon_noise
+        self.cascade["use_rad_trans"] = use_rad_trans
+
+        if use_pink_noise is not None:
+            self.instrument["use_pink"] = use_pink_noise 
 
         self.clog.info("\033[1;32m*** STARTING gateau SIMULATION ***")
         

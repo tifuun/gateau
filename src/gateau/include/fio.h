@@ -113,14 +113,14 @@ class OutputFile
             this->ntimes = ntimes;
             this->nfreqs = nfreqs;
 
-            dims_2D[0] = ntimes;
-            dims_2D[1] = nfreqs;
+            dims_2D[0] = nfreqs;
+            dims_2D[1] = ntimes;
 
-            start[1] = 0;
-            count[1] = nfreqs;
+            start[0] = 0;
+            count[0] = nfreqs;
             
-            start_pink[0] = 0;
-            count_pink[0] = ntimes;
+            start_pink[1] = 0;
+            count_pink[1] = ntimes;
 
             // Make file and obsattrs group
             file_id = H5Fcreate(
@@ -223,7 +223,7 @@ class OutputFile
             check_API_call_status(H5Dclose(dset_id), __LINE__);
             check_API_call_status(H5Sclose(dspace_id), __LINE__);
             
-            // Initialise time and az-el arrays
+            // Write time and az-el arrays
             dims_1D[0] = ntimes;
 
             dspace_id = H5Screate_simple(
@@ -331,9 +331,9 @@ class OutputFile
                     H5Sselect_hyperslab(
                         dspace_pwv_id,
                         H5S_SELECT_SET,
-                        start,
+                        start_pwv,
                         NULL,
-                        count,
+                        count_pwv,
                         NULL
                         ),
                     __LINE__
@@ -464,8 +464,8 @@ class OutputFile
                 float *data
                 )
         {
-            start_pink[1] = offset_freqs;
-            count_pink[1] = nfreqs_chunk;
+            start_pink[0] = offset_freqs;
+            count_pink[0] = nfreqs_chunk;
 
             dims_1D[0] = ntimes * nfreqs_chunk;
 
@@ -511,8 +511,8 @@ class OutputFile
                 float *data
                 )
         {
-            start[0] = offset_times;
-            count[0] = ntimes_chunk;
+            start[1] = offset_times;
+            count[1] = ntimes_chunk;
 
             dims_1D[0] = ntimes_chunk * nfreqs;
 

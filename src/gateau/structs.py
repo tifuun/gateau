@@ -21,9 +21,10 @@ class Cascade(Structure):
     """
 
     _fields_ = [("eta_stage", POINTER(c_float)),
-                 ("psd_stage", POINTER(c_float)),
-                 ("psd_cmb", POINTER(c_float)),
-                 ("num_stage", c_int)]
+                ("psd_stage", POINTER(c_float)),
+                ("psd_cmb", POINTER(c_float)),
+                ("num_stage", c_int),
+                ("use_rad_trans", c_int)]
 
 class Instrument(Structure):
     """!
@@ -39,6 +40,7 @@ class Instrument(Structure):
                 ("az_fpa", POINTER(c_float)),
                 ("el_fpa", POINTER(c_float)),
                 ("num_spax", c_int),
+                ("use_photon_noise", c_int),
                 ("use_pink", c_int),
                 ("pink_level", POINTER(c_float)),
                 ("pink_alpha", POINTER(c_float))]
