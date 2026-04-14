@@ -26,6 +26,7 @@ def allfillCascade(CascadeDict: dict[str, any],
     CascadeStruct.psd_stage = (c_float * CascadeDict["psd_stage"].size).from_buffer(arr_psd)
     CascadeStruct.psd_cmb = (c_float * CascadeDict["psd_cmb"].size).from_buffer(arr_psd_cmb)
     CascadeStruct.num_stage = c_int(CascadeDict["num_stage"])
+    CascadeStruct.use_rad_trans = c_int(CascadeDict["use_rad_trans"])
 
 def allfillInstrument(InstDict: dict[str, any], 
                       InstStruct: Structure) -> None:
@@ -52,6 +53,7 @@ def allfillInstrument(InstDict: dict[str, any],
     InstStruct.az_fpa = (c_float * InstDict["pointings"][0].size).from_buffer(arr_az_fpa)
     InstStruct.el_fpa = (c_float * InstDict["pointings"][1].size).from_buffer(arr_el_fpa)
     InstStruct.num_spax = c_int(InstDict["pointings"][0].size)
+    InstStruct.use_photon_noise = c_int(InstDict["use_photon_noise"])
     InstStruct.use_pink = c_int(InstDict["use_pink"])
     InstStruct.pink_level = (c_float * InstDict["nf_ch"]).from_buffer(arr_pink_level)
     InstStruct.pink_alpha = (c_float * InstDict["nf_ch"]).from_buffer(arr_pink_alpha)

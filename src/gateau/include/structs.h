@@ -26,6 +26,7 @@ struct Cascade
     float *psd_cascade; /**< Power spectral density of each parasitic source of this cascade.*/
     float *psd_cmb; /**< Power spectral density of each parasitic source of this cascade.*/
     int num_stage; /**< Number of (grouped) stages in cascade.*/
+    int use_rad_trans;      /**< Enable radiative transfer cascade.*/
 };
 
 struct Instrument 
@@ -39,6 +40,7 @@ struct Instrument
     float *az_fpa;      /**< Array with azimuth pointings for FPA.*/
     float *el_fpa;      /**< Array with elevation pointings for FPA.*/
     int num_spax; 
+    int use_photon_noise;
     int use_pink;
     float *pink_level;
     float *pink_alpha;
