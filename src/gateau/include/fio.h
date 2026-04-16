@@ -162,10 +162,9 @@ class OutputFile
                         ),
                     __LINE__
                     );
-
-            check_API_call_status(H5Dclose(dset_id), __LINE__);
-            check_API_call_status(H5Sclose(dspace_id), __LINE__);
             
+            check_API_call_status(H5Dclose(dset_id), __LINE__);
+
             // Write dataspace for frequencies
             dims_1D[0] = nfreqs;
             
@@ -196,6 +195,7 @@ class OutputFile
                         ),
                     __LINE__
                     );
+            check_API_call_status(H5Dclose(dset_id), __LINE__);
             
             // Write eta_ap
             dset_id = H5Dcreate(
@@ -219,7 +219,6 @@ class OutputFile
                         ),
                     __LINE__
                     );
-            
             check_API_call_status(H5Dclose(dset_id), __LINE__);
             check_API_call_status(H5Sclose(dspace_id), __LINE__);
             
@@ -253,6 +252,7 @@ class OutputFile
                         ),
                     __LINE__
                     );
+            check_API_call_status(H5Dclose(dset_id), __LINE__);
 
             dset_id = H5Dcreate(
                     obsattrs_id, 
@@ -275,6 +275,7 @@ class OutputFile
                         ),
                     __LINE__
                     );
+            check_API_call_status(H5Dclose(dset_id), __LINE__);
             
             dset_id = H5Dcreate(
                     obsattrs_id, 
@@ -358,13 +359,10 @@ class OutputFile
                     );
             
             offset_times_pwv += ntimes_chunk;
-            check_API_call_status(
-                    H5Sclose(dspace_pwv_slab_id),
-                    __LINE__
-                    );
         }
         void close_obsattrs() {
             check_API_call_status(H5Dclose(dset_pwv_id), __LINE__);
+            check_API_call_status(H5Sclose(dspace_pwv_slab_id), __LINE__);
             check_API_call_status(H5Sclose(dspace_pwv_id), __LINE__);
             check_API_call_status(H5Gclose(obsattrs_id), __LINE__);
         }
@@ -415,6 +413,7 @@ class OutputFile
                         ),
                     __LINE__
                     );
+            check_API_call_status(H5Dclose(dset_id), __LINE__);
             
             dset_id = H5Dcreate(
                     spax_id,
@@ -437,10 +436,9 @@ class OutputFile
                         ),
                     __LINE__
                     );
-            
             check_API_call_status(H5Dclose(dset_id), __LINE__);
             check_API_call_status(H5Sclose(dspace_id), __LINE__);
-
+            
             // Allocate output array for this spaxel
             dspace_id = H5Screate_simple(
                     RANK2D, 
@@ -500,10 +498,7 @@ class OutputFile
                     );
             
             offset_freqs += nfreqs_chunk;
-            check_API_call_status(
-                    H5Sclose(dspace_slab_id),
-                    __LINE__
-                    );
+            check_API_call_status(H5Sclose(dspace_slab_id), __LINE__);
         }
 
         void write_chunk_to_spaxel(
@@ -567,10 +562,7 @@ class OutputFile
             delete[] buffer;
             
             offset_times += ntimes_chunk;
-            check_API_call_status(
-                    H5Sclose(dspace_slab_id),
-                    __LINE__
-                    );
+            check_API_call_status(H5Sclose(dspace_slab_id), __LINE__);
         }
 
         void close_spaxel(int spax_index) 
