@@ -82,7 +82,7 @@ def selftest():
 
         n_hr = 0.42
 
-        return_dict = interface.initialise(
+        interface.initialise(
             n_hr * 3600,
             0,
             60,
@@ -92,7 +92,6 @@ def selftest():
             atmosphere_dict,
             source_dict,
             cascade_list,
-            return_full=True
             )
 
         seed = 420
@@ -126,8 +125,8 @@ def selftest():
         assert(freq.size == interface.instrument["f_ch"].size)
 
 # Check if output has correct shape
-        assert(times.size == tods.shape[0])
-        assert(freq.size == tods.shape[1])
+        assert(times.size == tods.shape[1])
+        assert(freq.size == tods.shape[0])
             
 # Check if generated hdf5 is same as ref
         np.allclose(tods.ravel(), tods_ref.ravel())
