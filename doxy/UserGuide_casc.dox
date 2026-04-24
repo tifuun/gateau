@@ -1,0 +1,26 @@
+/** 
+\page user_guide_casc Cascade Reference
+\section casc_inp Cascade input
+In this page, we will not go into detail what the cascade does. That can be found in the `gateau` paper.
+However, we will focus on how to supply cascades to `gateau`.
+\subsection casc_inp_list As a list
+The most straightforward way is to directly supply a list with each cascade stage dictionary as element.
+This can be passed to the `cascade_list` argument of the `simulator.initialise` method.
+
+\subsection casc_inp_yaml As a YAML file
+It is possible to supply the cascade as a `yaml` file.
+In this case, the `cascade_list` argument must be a string pointing to the folder containing the `yaml`.
+Also, the name of the `yaml` must be passed to the `cascade_yaml` argument of the `simulator.initialise` method.
+
+\subsection casc_inp_special Special options
+It is possible to let a stage parasitically couple to the Ohmic losses of an aluminum reflector. 
+For this, fill the "eta_coup" field with: "Ohmic-Al".
+Similarly, if a stage should couple parasitically to the atmosphere, set the "T_parastic" field to "atmosphere".
+
+\subsection casc_inp_freq_dep Frequency-dependent efficiency terms
+In order to have a stage contain a frequency-dependent efficiency term, 
+the "eta_coup" field should be filled with a 2-tuple, containing an array with efficiency terms as the first element,
+and an array containing frequencies on which the terms are defined as a second element.
+`gateau` will then internally apply a linear interpolation to the efficiency terms on the source frequencies.
+In this way it is possible to define stages that were measured on different frequency grids and include them in `gateau`.
+*/

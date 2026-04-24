@@ -64,6 +64,8 @@ void readAtmScreen(
 class OutputFile 
 {
     private:
+        const char *filename;
+
         // Handles for hdf5 file and groups
         hid_t   file_id;
         hid_t   obsattrs_id;
@@ -110,6 +112,7 @@ class OutputFile
                 float *el
                 ) 
         {
+            this->filename = filename;
             this->ntimes = ntimes;
             this->nfreqs = nfreqs;
 
@@ -359,10 +362,10 @@ class OutputFile
                     );
             
             offset_times_pwv += ntimes_chunk;
+            check_API_call_status(H5Sclose(dspace_pwv_slab_id), __LINE__);
         }
         void close_obsattrs() {
             check_API_call_status(H5Dclose(dset_pwv_id), __LINE__);
-            check_API_call_status(H5Sclose(dspace_pwv_slab_id), __LINE__);
             check_API_call_status(H5Sclose(dspace_pwv_id), __LINE__);
             check_API_call_status(H5Gclose(obsattrs_id), __LINE__);
         }
@@ -458,14 +461,14 @@ class OutputFile
         }
         
         void write_pink_chunk_to_spaxel(
-                int nfreqs_chunk, 
+                int k_ch, 
                 float *data
                 )
         {
-            start_pink[0] = offset_freqs;
-            count_pink[0] = nfreqs_chunk;
+            start_pink[0] = k_ch;
+            count_pink[0] = 1;
 
-            dims_1D[0] = ntimes * nfreqs_chunk;
+            dims_1D[0] = ntimes;
 
             check_API_call_status(
                     H5Sselect_hyperslab(
@@ -497,7 +500,6 @@ class OutputFile
                     __LINE__
                     );
             
-            offset_freqs += nfreqs_chunk;
             check_API_call_status(H5Sclose(dspace_slab_id), __LINE__);
         }
 
@@ -565,14 +567,13 @@ class OutputFile
             check_API_call_status(H5Sclose(dspace_slab_id), __LINE__);
         }
 
-        void close_spaxel(int spax_index) 
+        void close_spaxel() 
         {
             check_API_call_status(H5Dclose(dset_id), __LINE__);
             check_API_call_status(H5Sclose(dspace_id), __LINE__);
             check_API_call_status(H5Gclose(spax_id), __LINE__);
         }
-
-        ~OutputFile() 
+        ~OutputFile()
         {
             check_API_call_status(H5Fclose(file_id), __LINE__);
         }
