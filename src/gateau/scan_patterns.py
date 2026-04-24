@@ -18,7 +18,7 @@ def stare(times: np.ndarray,
 
     @returns Array of azimuth and elevation co-ordinates for the observation.
 
-    @ingroup scan_patterns
+    @ingroup public_api_scan_patterns
     """
 
     az, el = check_size(times, az0, el0)
@@ -42,7 +42,7 @@ def chop(times: np.ndarray,
 
     @returns Array of azimuth and elevation co-ordinates for the observation.
 
-    @ingroup scan_patterns
+    @ingroup public_api_scan_patterns
     """
     
     n = np.floor(times * 2 * 2 * duty_cycle)
@@ -64,15 +64,15 @@ def daisy(times: np.ndarray,
     Get scanning pattern for a daisy scan.
 
     @param times Numpy array containing times of scan. Units: seconds.
-    @param az0 Azimuth co-ordinate of the reference chop position. Units: deg.
-    @param el0 Elevation co-ordinate to stare at. Units: deg.
+    @param az0 Azimuth co-ordinate of the center of the daisy scan. Units: deg.
+    @param el0 Elevation co-ordinate of the center of the daisy scan. Units: deg.
     @param r_petal Distance of center of scan to edge of the petal. Units: deg.
     @param f_cycle Frequency of a full cycle. Units: Hz.
     @param f_petal Frequency of a single petal. Units: Hz.
 
     @returns Array of azimuth and elevation co-ordinates for the observation.
 
-    @ingroup scan_patterns
+    @ingroup public_api_scan_patterns
     """
 
     az0, el0 = check_size(times, az0, el0)
@@ -104,7 +104,7 @@ def chopnod(times: np.ndarray,
 
     @returns Array of azimuth and elevation co-ordinates for the observation.
 
-    @ingroup scan_patterns
+    @ingroup public_api_scan_patterns
     """
     # for even nods, nod_coding = 0, for odd nods, nod_coding = 1
     numbered_nods = np.floor(times * 2 * nod_duty_cycle)

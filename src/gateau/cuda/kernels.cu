@@ -191,36 +191,6 @@ void initCUDA(
 ///////////////////
 
 /**
-  Perform responsivity calibration on TODs.
-  This kernel can be used to convert power to temperature outside of the photon noise kernel.
- 
-  @param out Array to place transposed array.
-  @param in Array to be transposed.
-  @param rows Number of rows.
-  @param cols Number of columns.
- */
-__global__ 
-void resp_cal(
-        float *data, 
-        float *c0,
-        float *c1,
-        int nttot, 
-        int nf_job,
-        int nf_offset
-        )
-{
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx < nttot) 
-    {
-        for(int k = 0; k<nf_job; k++) 
-        {
-            data[k*nttot + idx] = c1[k + nf_offset] * data[k*nttot + idx] + c0[k + nf_offset];
-        }
-    }
-}
-
-/**
   Initialize random number generator (RNG) states.
 
   @param state Array of CUDA RNG states.
@@ -258,11 +228,9 @@ void init_random_states(
 __global__ 
 void calc_pink_psd(
         cufftComplex *output,
-        float *pink_level,
-        float *pink_alpha,
+        float pink_level,
+        float pink_alpha,
         int nttot,
-        int nf_job, 
-        int nf_offset,
         curandState *state
         )
 {
@@ -284,17 +252,68 @@ void calc_pink_psd(
             float factor = 1 / (idx * cf_sample / 2 / (nttot / 2 + 1));
             float factor_loc;
 
-            for(int k=0; k<nf_job; k++) 
-            {
-                factor_loc = sqrtf(pink_level[k + nf_offset] / nttot) * powf(factor, pink_alpha[k + nf_offset]/2);
-                local.x = factor_loc * curand_normal(&localState);
-                local.y = factor_loc * curand_normal(&localState);
-                output[k*(nttot / 2 + 1) + idx] = local;
-            }
+            factor_loc = sqrtf(pink_level / nttot) * powf(factor, pink_alpha/2);
+            local.x = factor_loc * curand_normal(&localState);
+            local.y = factor_loc * curand_normal(&localState);
+            output[idx] = local;
             state[idx] = localState;
         }
     }
 }
+/**
+  Perform responsivity calibration on TODs.
+  This kernel can be used to convert power to temperature outside of the photon noise kernel.
+ 
+  @param out Array to place transposed array.
+  @param in Array to be transposed.
+  @param rows Number of rows.
+  @param cols Number of columns.
+ */
+__global__ 
+void resp_cal(
+        float *data, 
+        float *c0,
+        float *c1,
+        int nttot, 
+        int nf_job,
+        int nf_offset
+        )
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < nttot) 
+    {
+        for(int k = 0; k<nf_job; k++) 
+        {
+            data[k*nttot + idx] = c1[k + nf_offset] * data[k*nttot + idx] + c0[k + nf_offset];
+        }
+    }
+}
+
+/**
+  Perform responsivity calibration on pink noise TODs.
+  This kernel can be used to convert power to temperature outside of the photon noise kernel.
+ 
+  @param out Array to place transposed array.
+  @param in Array to be transposed.
+  @param rows Number of rows.
+  @param cols Number of columns.
+ */
+__global__ 
+void resp_cal_pink(
+        float *data, 
+        float c1,
+        int nttot 
+        )
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < nttot) 
+    {
+        data[idx] = c1 * data[idx];
+    }
+}
+
 
 /**
   Calculate PWV trace and 
@@ -1062,8 +1081,6 @@ void run_gateau(
             );
     
     delete[] eta_atm;
-    delete[] c0;
-    delete[] c1;
 
     // Allocate and copy instrument arrays
     int ntransmission = nf_src * nf_ch;
@@ -1149,7 +1166,7 @@ void run_gateau(
             seed+1,
             nttot / 2 + 1
             );
-
+    
     int ntscr_job;
     int nt_sub_scr_job;
     int nf_job;
@@ -1177,73 +1194,13 @@ void run_gateau(
         
         if(instrument->use_pink) 
         {
-            gpuErrchk( 
-                cudaMemGetInfo(
-                    &free_mem, 
-                    &total_mem
-                    ) 
-                );
-            
-            float *d_pink_level, *d_pink_alpha;
-            gpuErrchk( 
-                    cudaMalloc(
-                        (void**)&d_pink_level, 
-                        nf_ch * sizeof(float)
-                        ) 
-                    );
-
-            gpuErrchk( 
-                    cudaMalloc(
-                        (void**)&d_pink_alpha, 
-                        nf_ch * sizeof(float)
-                        ) 
-                    );
-
-            gpuErrchk( 
-                    cudaMemcpy(
-                        d_pink_level, 
-                        instrument->pink_level, 
-                        nf_ch * sizeof(float), 
-                        cudaMemcpyHostToDevice
-                        ) 
-                    );
-
-            gpuErrchk( 
-                    cudaMemcpy(
-                        d_pink_alpha, 
-                        instrument->pink_alpha, 
-                        nf_ch * sizeof(float), 
-                        cudaMemcpyHostToDevice
-                        ) 
-                    );
-
-            // REQUIRED MEMORY BUDGET FOR PINK NOISE CALCULATION:
-            // nttot * nf_ch -> total size of TODs required.
-            // (nttot / 2 + 1) * nf_job -> total size of PSD amplitudes required.
-            // Latter only requires half + 1, because we get real signal out.
-            required_mem = nttot * nf_ch * sizeof(float) + (nttot / 2 + 1) * nf_ch * sizeof(cufftComplex);
-
-            // Here we calculate how much we need to partition 
-            // the free memory to accomodate required memory.
-            // result is the number of times we need to calculate.
-            // We reuse symbol for power calculation, but should be fine.
-            num_blocks_in_screen = (int)ceil((float)required_mem / (free_mem*MEMBUFF));
-
-            // Number of channels per calculation block.
-            // Note that we always go over full time trace and partition channels.
-            nf_job = (int)ceil((float)nf_ch / num_blocks_in_screen);
-            for(int ii=0; ii<num_blocks_in_screen; ii++) 
+            for(int k=0; k<nf_ch; k++) 
             {
-                // When reaching last block, set number of channels to final remaining ones.
-                if(ii == (num_blocks_in_screen - 1)) {
-                    nf_job = nf_ch - nf_job * ii;
-                }
-
                 cufftComplex *d_pink_out;
                 gpuErrchk( 
                         cudaMalloc(
                             (void**)&d_pink_out, 
-                            (nttot / 2 + 1)*nf_job * sizeof(cufftComplex)
+                            (nttot / 2 + 1) * sizeof(cufftComplex)
                             ) 
                         );
                 nBlocks1D = ceilf((float)(nttot / 2 + 1) / NTHREADS1D / numSMs);
@@ -1253,45 +1210,29 @@ void run_gateau(
                 // KERNEL CALL
                 calc_pink_psd<<<gridSize1D, blockSize1D>>>(
                         d_pink_out, 
-                        d_pink_level, 
-                        d_pink_alpha,
+                        instrument->pink_level[k], 
+                        instrument->pink_alpha[k],
                         nttot,
-                        nf_job,
-                        nf_job*ii,
                         devstates_pink
                         );
 
                 gpuErrchk( cudaDeviceSynchronize() );
                 
                 cufftHandle plan;
-                int rank = 1;
-                int n[] = { nttot };
-                int istride = 1, ostride = 1;
-                int idist = nttot / 2 + 1;
-                int odist = nttot;
-                int inembed[] = { 0 };
-                int onembed[] = { 0 };
 
                 CUFFT_CALL( 
-                        cufftPlanMany(
+                        cufftPlan1d(
                             &plan, 
-                            rank, 
-                            n, 
-                            inembed, 
-                            istride, 
-                            idist,
-                            onembed, 
-                            ostride, 
-                            odist, 
-                            CUFFT_C2R, 
-                            nf_job
+                            nttot, 
+                            CUFFT_C2R,
+                            1
                             ) 
                         );
                 float *d_sigout_pink;
                 gpuErrchk( 
                         cudaMalloc(
                             (void**)&d_sigout_pink, 
-                            nttot*nf_job * sizeof(float)
+                            nttot * sizeof(float)
                             ) 
                         );
 
@@ -1303,46 +1244,25 @@ void run_gateau(
                             ) 
                         );
 
-                // make dummy vector with zeros, to replace d_c0
-                float *d_zeros;
-                gpuErrchk( 
-                    cudaMalloc(
-                        (void**)&d_zeros, 
-                        nf_job * sizeof(float)
-                        ) 
-                    );
-                
-                gpuErrchk( 
-                    cudaMemset(
-                        d_zeros, 
-                        0, 
-                        nf_job * sizeof(float)
-                        ) 
-                    );
-
                 nBlocks1D = ceilf((float)nttot / NTHREADS1D / numSMs);
                 blockSize1D = NTHREADS1D;
                 gridSize1D = nBlocks1D*numSMs;
-                resp_cal<<<gridSize1D, blockSize1D>>>(
+                resp_cal_pink<<<gridSize1D, blockSize1D>>>(
                         d_sigout_pink,
-                        d_zeros,
-                        d_c1,
-                        nttot, 
-                        nf_job,
-                        nf_job*ii
+                        c1[k],
+                        nttot 
                         );
                 
                 gpuErrchk( cudaDeviceSynchronize() );
                 gpuErrchk( cudaFree(d_pink_out) );
-                gpuErrchk( cudaFree(d_zeros) );
 
-                float *sigout_pink = new float[nttot*nf_job];
+                float *sigout_pink = new float[nttot];
                 
                 gpuErrchk( 
                         cudaMemcpy(
                             sigout_pink, 
                             d_sigout_pink, 
-                            nttot*nf_job * sizeof(float), 
+                            nttot * sizeof(float), 
                             cudaMemcpyDeviceToHost
                             ) 
                         );
@@ -1350,7 +1270,7 @@ void run_gateau(
 
                 outfile.
                     write_pink_chunk_to_spaxel(
-                            nf_job,
+                            k,
                             sigout_pink
                             );
 
@@ -1359,8 +1279,6 @@ void run_gateau(
                 CUFFT_CALL( cufftDestroy(plan) );
                 gpuErrchk( cudaDeviceSynchronize() );
             }
-            gpuErrchk( cudaFree(d_pink_level) );
-            gpuErrchk( cudaFree(d_pink_alpha) );
         }
 
         idx_wrap = 0;
@@ -1552,13 +1470,13 @@ void run_gateau(
 
                     float *pwv_zenith = new float[nt_sub_scr_job];
                     if(!idx_spax) {
-                        gpuErrchk( 
+                        gpuErrchk(
                                 cudaMalloc(
-                                    (void**)&d_pwv_trace_zenith, 
+                                    (void**)&d_pwv_trace_zenith,
                                     nt_sub_scr_job * sizeof(float)
-                                    ) 
+                                    )
                                 );
-                    
+
                         calc_pwv_trace_zenith<<<gridSize1D, blockSize1D>>>(
                                 x_atm,
                                 y_atm,
@@ -1567,17 +1485,16 @@ void run_gateau(
                                 );
 
                         gpuErrchk( cudaDeviceSynchronize() );
-                        
-                        gpuErrchk( 
+
+                        gpuErrchk(
                                 cudaMemcpy(
-                                    pwv_zenith, 
-                                    d_pwv_trace_zenith, 
-                                    nt_sub_scr_job * sizeof(float), 
+                                    pwv_zenith,
+                                    d_pwv_trace_zenith,
+                                    nt_sub_scr_job * sizeof(float),
                                     cudaMemcpyDeviceToHost
-                                    ) 
+                                    )
                                 );
                         gpuErrchk( cudaFree(d_pwv_trace_zenith) );
-
                     }
 
                     calc_pwv_trace<<<gridSize1D, blockSize1D>>>(
@@ -1673,7 +1590,6 @@ void run_gateau(
                                 nt_sub_scr_job,
                                 sigout
                                 );
-                    
                     if(!idx_spax) {
                         outfile.write_chunk_to_pwv(nt_sub_scr_job, pwv_zenith);
                     }
@@ -1685,6 +1601,7 @@ void run_gateau(
                     idx_in_screen += nt_sub_scr_job;
 
                 }
+                delete[] pwv_screen;
                 gpuErrchk( cudaDeviceSynchronize() );
                 gpuErrchk( cudaFree(d_pwv_screen));
 
@@ -1695,14 +1612,14 @@ void run_gateau(
                 exit(1);
             }
         }
-
         if(!idx_spax) {outfile.close_obsattrs();}
-
-        outfile.close_spaxel(idx_spax);
+        outfile.close_spaxel();
         
         printf("*** Progress: 100 / 100 ***\r");
     }
     gpuErrchk( cudaDeviceReset() );
+    delete[] c0;
+    delete[] c1;
     
     printf("\033[0m\n");
 }

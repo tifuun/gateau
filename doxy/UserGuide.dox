@@ -9,6 +9,8 @@ The user guide is more technical, so a lot of conceptual things will be discusse
 
 \ref user_guide_scan "Scanning functionality reference"
 
+\ref user_guide_casc "Radiative transfer cascade reference"
+
 \ref user_guide_output "Output format reference"
 
 \ref input_dicts "Input dictionary reference"

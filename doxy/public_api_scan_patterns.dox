@@ -1,0 +1,4 @@
+/**
+\defgroup public_api_scan_patterns Built-in Scan Pattern Reference
+\brief This page contains the API reference for the built-in scan patterns of `gateau`. 
+*/

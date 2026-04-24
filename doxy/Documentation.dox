@@ -6,9 +6,12 @@ This page contains the software documentation for `gateau`.
 The public API reference contains all public methods of `gateau`.
 The API reference is further broken down into two sections.
 The first section contains the references for utility functions used to prepare atmosphere screens and source cubes.
-The second section contains the actual simulator API reference.
+The second section contains the references for the built-in scan patterns.
+The final section contains the actual simulator API reference.
 
 \subpage public_api_utils
+
+\subpage public_api_scan_patterns
 
 \subpage public_api_simulator
 

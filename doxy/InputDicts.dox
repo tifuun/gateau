@@ -58,7 +58,7 @@ For the cascade, there are two dictionary types. The reflective stage is describ
 | Name of field | Symbol | Description | Datatype | Default value | Allowed range | Units |
 |---------------|--------|-------------|----------|---------------|---------------|-------|
 | "eta_coup" | \f$\eta_k\f$ | Fraction of spectral power entering stage \f$k\f$ and transmitted to next stage \f$k+1\f$.<br>If a string, needs to be "Ohmic-Al" to choose Ohmic losses.<br>If \f$\eta_k\f$ is an array defined on some frequencies \f$\nu_\eta\f$, this field should be filled with a 2-tuple \f$(\eta_k, \nu_\eta)\f$ | float, string, 2-tuple | - | [0,1] | - |
-| "T_parasitic" | \f$T_k\f$ | Temperature coupling parasitically to instrument at stage \f$k\f$.<br>If set to the string "atm", `gateau` will let the stage couple to the atmosphere sky signal, without source | float, string | - | \f$\mathbb{R}^+\f$ | K |
+| "T_parasitic" | \f$T_k\f$ | Temperature coupling parasitically to instrument at stage \f$k\f$.<br>If set to the string "atmosphere", `gateau` will let the stage couple to the atmosphere sky signal, without source | float, string | - | \f$\mathbb{R}^+\f$ | K |
 
 A refractive stage is defined by the following:
 | Name of field | Symbol | Description | Datatype | Default value | Allowed range | Units |

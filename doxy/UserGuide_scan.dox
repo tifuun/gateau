@@ -35,5 +35,11 @@ Then, by assigning a physical temperature to the atmosphere over \f$h_\mathrm{co
 
 \section scan_scan_patterns Scanning patterns
 Scanning patterns in `gateau` are supplied as Python functions during the initialisation step of a simulation.
+The function must contain, at least, the following input parameters:
+    - a Numpy array that contains timestamps,
+    - two floats or Numpy arrays containing the azimuth and elevation offset.
+It is possible to supply more input parameters using, for example, the `functools.partial` method.
+`gateau` ships with some built-in scan patterns.
+Have a look at the \ref public_api_scan_patterns "built-in scan pattern reference page" for an overview.
 
 */
