@@ -26,6 +26,10 @@ edie() { die "Failed to: $*"; }
 cd_ass() { cd "$1" || die "Failed to cd into ${2:-$1}" ; }
 ass() { "$@" || die "Failed to run command: $*" ; }
 
+pecho() {
+	printf '%s' "$*"
+}
+
 [ -n "$ZENODO_TOKEN" ] || edie "ZENODO_TOKEN not specified!"
 
 [ -n "$ZENODO_ID" ] || edie "ZENODO_ID not specified!"
@@ -47,7 +51,7 @@ curl() {
 		-L \
 		-s \
 		-H "Authorization: Bearer $token" \
-		"$@" | tr -d '\000-\037'
+		"$@"
 }
 
 get_data() {
@@ -71,7 +75,7 @@ clear_depo_files() {
 
 	depo_json="$(curl -X GET "$depo_api")" || edie "get depo info"
 	depo_files="$(
-		echo "$depo_json" \
+		pecho "$depo_json" \
 			| jq '.files[].id' --raw-output
 		)" || edie "parse depo info"
 
@@ -86,7 +90,7 @@ clear_depo_files() {
 			|| edie "run upload file function"
 	done
 
-	#echo "$depo_files" \
+	#pecho "$depo_files" \
 	#	| xargs -0 -n 1 "$0" ree_delete_file "$depo_api" \
 	#	|| edie "run file deletion reentrant";
 }
@@ -123,11 +127,14 @@ delete_draft() {
 	depos="$(curl -X GET "$api/deposit/depositions?status=draft")" \
 		|| edie "list user's depos"
 
-	depo_drafts="$(echo "$depos" \
+	depo_drafts="$(pecho "$depos" \
 		| jq 'map(select(.submitted == false))')" \
-		|| edie "find draft depos"
+		|| {
+			eecho "$depos"
+			edie "find draft depos"
+		}
 
-	num_drafts="$(echo "$depo_drafts" | jq 'length')" \
+	num_drafts="$(pecho "$depo_drafts" | jq 'length')" \
 		|| edie "count number of draft depos"
 
 	[ "$num_drafts" = 0 ] && {
@@ -139,7 +146,7 @@ delete_draft() {
 		die "invalid number of drafts!?"
 	}
 
-	depo_url="$(echo "$depo_drafts" | jq --raw-output '.[0].links.self')" \
+	depo_url="$(pecho "$depo_drafts" | jq --raw-output '.[0].links.self')" \
 		|| edie "get draft depo url"
 
 	curl -X DELETE "$depo_url" \
@@ -151,13 +158,13 @@ update_version() {
 	version="$2"
 
 	depo_json="$(curl -X GET "$depo_api")" || edie "get depo info"
-	meta="$(echo "$depo_json" | jq '.metadata')" || edie "select meta"
-	meta_new="$(echo "$meta" \
+	meta="$(pecho "$depo_json" | jq '.metadata')" || edie "select meta"
+	meta_new="$(pecho "$meta" \
 		| jq --arg version "$version" '.version = $version')" \
 		|| edie "update meta"
 
 	# Why is this required? We will never know.
-	meta_wrapped="$(echo "$meta_new" \
+	meta_wrapped="$(pecho "$meta_new" \
 		| jq '{"metadata": .}')" \
 		|| edie "wrap meta"
 
@@ -174,7 +181,7 @@ update_version() {
 
 
 #[ -n "$1" ] && {
-#	echo "subcmd!" "$@"
+#	pecho "subcmd!" "$@"
 #	subcmd="$1"
 #	shift
 #	"$subcmd" "$@"
@@ -192,8 +199,11 @@ delete_draft \
 latest_draft="$(new_version "$ZENODO_API_TARGET/deposit/depositions/$ZENODO_ID/")" \
 	|| edie "make new version draft"
 
-echo "$latest_draft" | grep '^https://sandbox.zenodo.org' \
-	|| die "fishy!"
+pecho "$latest_draft" | grep "^$ZENODO_API_TARGET" \
+	|| {
+		eecho "$latest_draft"
+		die "fishy!"
+	}
 
 clear_depo_files "$latest_draft" \
 	|| edie "clear depo files"
@@ -202,8 +212,8 @@ update_version "$latest_draft" "$ZENODO_VERSION"
 
 for line in $ZENODO_FILES
 do
-	file="$(echo "$line" | cut -d: -f1)"
-	name="$(echo "$line" | cut -d: -f2)"
+	file="$(pecho "$line" | cut -d: -f1)"
+	name="$(pecho "$line" | cut -d: -f2)"
 	upload_file "$latest_draft" "$file" "$name"
 done
 
