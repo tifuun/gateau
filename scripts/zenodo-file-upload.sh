@@ -47,7 +47,7 @@ curl() {
 		-L \
 		-s \
 		-H "Authorization: Bearer $token" \
-		"$@" 
+		"$@" | tr -d '\000-\037'
 }
 
 get_data() {
