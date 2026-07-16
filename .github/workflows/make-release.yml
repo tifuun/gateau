@@ -77,8 +77,8 @@ jobs:
       - name: Create Zenodo deposition
         env:
           ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
-          ZENODO_ID: 566623
-          ZENODO_API_TARGET: https://sandbox.zenodo.org/api
+          ZENODO_ID: 21261860
+          ZENODO_API_TARGET: https://zenodo.org/api
           ZENODO_VERSION: ${{env.REPO_TAG}}
           ZENODO_FILES: |
             ./gateau-${{env.REPO_TAG}}.zip:gateau-${{env.REPO_TAG}}.zip
