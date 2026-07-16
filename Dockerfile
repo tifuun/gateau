@@ -8,8 +8,10 @@ WORKDIR /setup
 RUN \
 	apt update && \
 	apt install -y \
+		curl \
 		git  `# Needed by mesonpy??` \
 		git-annex  `# all git cmds will fail in annex repo w/o annex` \
+		jq \
 		meson \
 		python3.9 \
 		python3.9-dev \
