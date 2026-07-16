@@ -58,6 +58,14 @@ from the "artifacts" section of a specific action's run. For example:
 
 - <https://github.com/tifuun/gateau/actions/runs/20929494369>
 
+The documentation and source code are also uploaded
+to Zenodo using the `scripts/zenodo-file-upload.sh` script.
+The Zenodo ID and list of files are configured in the workflow file,
+while the Zenodo API token (extracted from the zenodo webhook URL)
+is a GitHub repository scret.
+More information on this scripts is avaiable
+[here](https://github.com/maybeetree/zenodo-sandbox).
+
 ### Non-automated part: testing and publishing
 
 Testing the sdist and publishing to pypi is not automated and has to be

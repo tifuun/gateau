@@ -25,6 +25,11 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: Get repo info
+        run: |
+          echo "REPO_TAG=$(git describe --tags --abbrev=0)" >> "$GITHUB_ENV"
+          echo "REPO_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> "$GITHUB_ENV"
+
       - name: Build sdist
         run: |
           set -e
@@ -34,7 +39,7 @@ jobs:
       - name: List built artifacts (debug)
         run: ls -lah dist
 
-      - name: Generate and Deploy Doxygen Docs
+      - name: Generate Doxygen Docs
         run: |
           set -e
           rm -rf docs
@@ -46,9 +51,11 @@ jobs:
 
       - name: Make docs tarball
         run: |
-          set -e
-          tagname=$(git describe --tags --abbrev=0)
-          tar cf - docs | xz > "gateau-docs-${tagname}.tar.xz"
+          tar cf - docs | xz > "gateau-docs-$REPO_TAG.tar.xz"
+
+      - name: Make code ZIP archive for Zenodo
+        run: |
+          git archive --format=zip --output "./gateau-$REPO_TAG.zip" "$REPO_BRANCH" \
 
       - name: Create GitHub Release and upload artifacts
         uses: softprops/action-gh-release@v2
@@ -66,6 +73,18 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./docs
+
+      - name: Create Zenodo deposition
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+          ZENODO_ID: 21261860
+          ZENODO_API_TARGET: https://zenodo.org/api
+          ZENODO_VERSION: ${{env.REPO_TAG}}
+          ZENODO_FILES: |
+            ./gateau-${{env.REPO_TAG}}.zip:gateau-${{env.REPO_TAG}}.zip
+            ./gateau-docs-${{env.REPO_TAG}}.tar.xz:gateau-docs-${{env.REPO_TAG}}.tar.xz
+        run: |
+          ./scripts/zenodo-file-upload.sh
 
   pages:
     runs-on: ubuntu-latest
